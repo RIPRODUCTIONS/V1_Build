@@ -15,7 +15,7 @@ async function seed(request: any, counts: { leads?: number; tasks?: number } = {
   // Seed leads containing uniq in names for search (zero-padded for stable sort)
   for (let i = 0; i < leadsCount; i++) {
     const name = `Lead ${String(i).padStart(3, '0')} ${uniq}`;
-    await request.post('http://127.0.0.1:8000/leads/', {
+    await request.post(`${API}/leads/`, {
       ...auth,
       data: { name, email: `${i}-${uniq}@acme.com` },
     });
