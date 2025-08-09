@@ -84,7 +84,6 @@ def main():
         "imports": import_checks,
         "ok": bool(required_paths_ok and pandas_ok),
         "notes": [
-            "grok-python not installed; if needed, provide install source or replace with alternative.",
             "sqlite3 is part of the Python standard library and not needed via pip.",
         ],
     }

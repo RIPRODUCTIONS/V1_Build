@@ -26,7 +26,6 @@ def cmd_health(_: argparse.Namespace) -> int:
         _try_import("git"),
         _try_import("streamlit"),
         _try_import("dotenv"),
-        _try_import("grok"),  # optional; generally missing unless provided
     ]
 
     ok = len(issues) == 0 and any(i["module"] == "pandas" and i["ok"] for i in imports)
