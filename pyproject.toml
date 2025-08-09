@@ -38,4 +38,3 @@ exclude = [".venv", "toolkits"]
 
 [tool.isort]
 profile = "black"
-

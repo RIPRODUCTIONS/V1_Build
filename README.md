@@ -29,4 +29,3 @@ Paths are defined in `.env` and also exposed via `toolkits/` symlinks. Update `.
 - Black, Ruff, Mypy configured via `pyproject.toml`
 - Keep functions short, explicit names, early returns, handle edge cases first
 - Add concise docstrings for non-trivial functions
-
