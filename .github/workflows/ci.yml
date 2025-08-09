@@ -2,6 +2,73 @@ name: CI
 
 on:
   push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install pytest
+
+      - name: Run backend tests
+        env:
+          CI_ENV: "true"
+        run: |
+          cd backend
+          pytest -q
+
+      - name: Start API for E2E
+        env:
+          CI_ENV: "true"
+          CI_CLEANUP_TOKEN: secret-ci
+          DATABASE_URL: sqlite:///./dev-ci.db
+          ALLOWED_ORIGINS: http://localhost:3000
+        run: |
+          cd backend
+          nohup python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 &
+          for i in {1..30}; do
+            curl -sf http://127.0.0.1:8000/health && break || sleep 1;
+          done
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install web dependencies
+        run: |
+          cd apps/web
+          npm ci
+          npx playwright install --with-deps
+
+      - name: Run Playwright tests
+        env:
+          API_BASE_URL: http://127.0.0.1:8000
+          NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:8000
+          CI_CLEANUP_TOKEN: secret-ci
+        run: |
+          cd apps/web
+          npx playwright test --reporter=line
+
+name: CI
+
+on:
+  push:
     branches: [ master, main ]
   pull_request:
 
