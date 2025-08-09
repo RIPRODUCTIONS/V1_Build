@@ -1,28 +1,27 @@
+# General
+.DS_Store
+.env
+*.log
+
 # Python
+.venv/
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
-.build/
-dist/
-.eggs/
-*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
-# Virtual env
-.venv/
+# Backend
+backend/dev.db
+backend/dev-e2e*.db
+backend/celerybeat-schedule
 
-# IDE/editor
+# Node/Next.js
+apps/web/node_modules/
+apps/web/.next/
+apps/web/test-results/
+apps/web/.vercel/
+
+# Editors
 .vscode/
 .idea/
-.DS_Store
-
-# Local data
-research_cache/
-data_cache/
-logs/
-
-# Symlinks to external toolkits
-/toolkits/
-
-# Environment
-.env
