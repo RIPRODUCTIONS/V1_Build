@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.build/
+dist/
+.eggs/
+*.egg-info/
+
+# Virtual env
+.venv/
+
+# IDE/editor
+.vscode/
+.idea/
+.DS_Store
+
+# Local data
+research_cache/
+data_cache/
+logs/
+
+# Symlinks to external toolkits
+/toolkits/
+
+# Environment
+.env
+
