@@ -5,8 +5,10 @@ import importlib
 import json
 from typing import Any
 
+import builder.jobs.builtin  # noqa: F401 ensures builtin jobs are registered
+
 from .config import Settings, summarize
-from .scaffold import ScaffoldOptions, scaffold_project
+from .jobs import get_job, list_jobs
 
 
 def _try_import(module_name: str) -> dict[str, Any]:
@@ -44,14 +46,24 @@ def cmd_show_paths(_: argparse.Namespace) -> int:
     print(json.dumps(summarize(settings), indent=2))
     return 0
 
-
-def cmd_scaffold(args: argparse.Namespace) -> int:
+    # cmd_scaffold removed (automation-only scope)
+    # def cmd_scaffold(args: argparse.Namespace) -> int:
     settings = Settings.load()
-    out = scaffold_project(
-        settings.workspace_dir, ScaffoldOptions(project_name=args.name, force=bool(args.force))
-    )
-    print(str(out))
     return 0
+
+
+def cmd_jobs_list(_: argparse.Namespace) -> int:
+    for name in list_jobs():
+        print(name)
+    return 0
+
+
+def cmd_jobs_run(args: argparse.Namespace) -> int:
+    job = get_job(args.name)
+    if not job:
+        print(f"Unknown job: {args.name}", flush=True)
+        return 1
+    return int(job())
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -64,12 +76,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_show = sub.add_parser("show-paths", help="Print resolved paths and validation status")
     p_show.set_defaults(func=cmd_show_paths)
 
-    p_scaf = sub.add_parser(
-        "scaffold", help="Generate a new project skeleton under projects/<name>"
-    )
-    p_scaf.add_argument("name", help="Project name (directory under projects/)")
-    p_scaf.add_argument("--force", action="store_true", help="Overwrite existing files if present")
-    p_scaf.set_defaults(func=cmd_scaffold)
+    p_jobs = sub.add_parser("jobs", help="Job utilities")
+    jobs_sub = p_jobs.add_subparsers(dest="jobs_cmd", required=True)
+    p_jobs_list = jobs_sub.add_parser("list", help="List available jobs")
+    p_jobs_list.set_defaults(func=cmd_jobs_list)
+    p_jobs_run = jobs_sub.add_parser("run", help="Run a job by name")
+    p_jobs_run.add_argument("name", help="Job name")
+    p_jobs_run.set_defaults(func=cmd_jobs_run)
 
     return parser
 
