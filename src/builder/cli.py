@@ -6,6 +6,7 @@ import json
 from typing import Any
 
 from .config import Settings, summarize
+from .scaffold import ScaffoldOptions, scaffold_project
 
 
 def _try_import(module_name: str) -> dict[str, Any]:
@@ -45,6 +46,15 @@ def cmd_show_paths(_: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_scaffold(args: argparse.Namespace) -> int:
+    settings = Settings.load()
+    out = scaffold_project(
+        settings.workspace_dir, ScaffoldOptions(project_name=args.name, force=bool(args.force))
+    )
+    print(str(out))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="builder", description="Builder CLI")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -54,6 +64,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_show = sub.add_parser("show-paths", help="Print resolved paths and validation status")
     p_show.set_defaults(func=cmd_show_paths)
+
+    p_scaf = sub.add_parser(
+        "scaffold", help="Generate a new project skeleton under projects/<name>"
+    )
+    p_scaf.add_argument("name", help="Project name (directory under projects/)")
+    p_scaf.add_argument("--force", action="store_true", help="Overwrite existing files if present")
+    p_scaf.set_defaults(func=cmd_scaffold)
 
     return parser
 
