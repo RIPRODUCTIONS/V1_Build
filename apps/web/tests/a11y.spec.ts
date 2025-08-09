@@ -6,8 +6,9 @@ test('dashboard has no critical/serious a11y issues', async ({ page, request }) 
   const uniq = Date.now().toString();
   const email = `a11y+${uniq}@example.com`;
   const password = 'secret123';
-  await request.post('http://127.0.0.1:8000/users/register', { data: { email, password } });
-  const login = await request.post('http://127.0.0.1:8000/users/login', { data: { email, password } });
+  const API = process.env.API_BASE_URL || 'http://127.0.0.1:8000';
+  await request.post(`${API}/users/register`, { data: { email, password } });
+  const login = await request.post(`${API}/users/login`, { data: { email, password } });
   const token = (await login.json()).access_token as string;
   await page.addInitScript(([t]) => localStorage.setItem('token', t), [token]);
   await page.goto('/dashboard');

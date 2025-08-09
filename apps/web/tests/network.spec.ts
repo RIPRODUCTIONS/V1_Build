@@ -5,12 +5,13 @@ import { apiGet } from "./utils/apiClient";
 
 test.describe("Dashboard network params", () => {
   test("leads filters propagate to API", async ({ page, request }) => {
+    const API = process.env.API_BASE_URL || 'http://127.0.0.1:8000';
     // seed user and set token to avoid redirect
     const uniq = Date.now().toString();
     const email = `net+${uniq}@example.com`;
     const password = 'secret123';
-    await request.post('http://127.0.0.1:8000/users/register', { data: { email, password } });
-    const login = await request.post('http://127.0.0.1:8000/users/login', { data: { email, password } });
+    await request.post(`${API}/users/register`, { data: { email, password } });
+    const login = await request.post(`${API}/users/login`, { data: { email, password } });
     const token = (await login.json()).access_token as string;
     await page.addInitScript(([t]) => localStorage.setItem('token', t), [token]);
     await page.goto("/dashboard");
@@ -45,11 +46,12 @@ test.describe("Dashboard network params", () => {
   });
 
   test("tasks filters propagate to API", async ({ page, request }) => {
+    const API = process.env.API_BASE_URL || 'http://127.0.0.1:8000';
     const uniq = Date.now().toString();
     const email = `net2+${uniq}@example.com`;
     const password = 'secret123';
-    await request.post('http://127.0.0.1:8000/users/register', { data: { email, password } });
-    const login = await request.post('http://127.0.0.1:8000/users/login', { data: { email, password } });
+    await request.post(`${API}/users/register`, { data: { email, password } });
+    const login = await request.post(`${API}/users/login`, { data: { email, password } });
     const token = (await login.json()).access_token as string;
     await page.addInitScript(([t]) => localStorage.setItem('token', t), [token]);
     const requests: string[] = [];
@@ -87,14 +89,15 @@ test.describe("Dashboard network params", () => {
     const uniq = Date.now().toString();
     const email = `api+${uniq}@example.com`;
     const password = 'secret123';
-    await request.post('http://127.0.0.1:8000/users/register', { data: { email, password } });
-    const login = await request.post('http://127.0.0.1:8000/users/login', { data: { email, password } });
+    const API = process.env.API_BASE_URL || 'http://127.0.0.1:8000';
+    await request.post(`${API}/users/register`, { data: { email, password } });
+    const login = await request.post(`${API}/users/login`, { data: { email, password } });
     const token = (await login.json()).access_token as string;
     const authHeaders = { Authorization: `Bearer ${token}` } as const;
 
     for (let i = 0; i < 10; i++) {
       const name = `Alpha ${String(i).padStart(3, '0')} ${uniq}`;
-      const res = await request.post('http://127.0.0.1:8000/leads/', {
+      const res = await request.post(`${API}/leads/`, {
         headers: authHeaders,
         data: { name, email: `${i}-${uniq}@acme.dev` },
       });

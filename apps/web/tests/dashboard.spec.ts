@@ -5,8 +5,9 @@ async function seed(request: any, counts: { leads?: number; tasks?: number } = {
   const uniq = Date.now().toString();
   const email = `user+${uniq}@example.com`;
   const password = 'secret123';
-  await request.post('http://127.0.0.1:8000/users/register', { data: { email, password } });
-  const login = await request.post('http://127.0.0.1:8000/users/login', { data: { email, password } });
+  const API = process.env.API_BASE_URL || 'http://127.0.0.1:8000';
+  await request.post(`${API}/users/register`, { data: { email, password } });
+  const login = await request.post(`${API}/users/login`, { data: { email, password } });
   const token = (await login.json()).access_token as string;
   const auth = { headers: { Authorization: `Bearer ${token}` } };
   const leadsCount = counts.leads ?? 30;
@@ -21,13 +22,14 @@ async function seed(request: any, counts: { leads?: number; tasks?: number } = {
   }
   // Seed tasks with mixed statuses and uniq in title
   for (let i = 0; i < tasksCount; i++) {
-    const res = await request.post('http://127.0.0.1:8000/tasks/', {
+    const API = process.env.API_BASE_URL || 'http://127.0.0.1:8000';
+    const res = await request.post(`${API}/tasks/`, {
       ...auth,
       data: { title: `Task ${String(i).padStart(3, '0')} ${uniq}`, lead_id: null },
     });
     const id = (await res.json()).id as number;
     if (i % 2 === 0) {
-      await request.put(`http://127.0.0.1:8000/tasks/${id}`, { ...auth, data: { status: 'done' } });
+      await request.put(`${API}/tasks/${id}`, { ...auth, data: { status: 'done' } });
     }
   }
   return { token, uniq };

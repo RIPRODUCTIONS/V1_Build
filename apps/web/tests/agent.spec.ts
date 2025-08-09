@@ -4,11 +4,12 @@ async function seedLead(request: any) {
   const uniq = Date.now().toString();
   const email = `agent+${uniq}@example.com`;
   const password = 'secret123';
-  await request.post('http://127.0.0.1:8000/users/register', { data: { email, password } });
-  const login = await request.post('http://127.0.0.1:8000/users/login', { data: { email, password } });
+  const API = process.env.API_BASE_URL || 'http://127.0.0.1:8000';
+  await request.post(`${API}/users/register`, { data: { email, password } });
+  const login = await request.post(`${API}/users/login`, { data: { email, password } });
   const token = (await login.json()).access_token as string;
   const auth = { headers: { Authorization: `Bearer ${token}` } };
-  const created = await request.post('http://127.0.0.1:8000/leads/', { ...auth, data: { name: `Agent Lead ${uniq}`, email } });
+  const created = await request.post(`${API}/leads/`, { ...auth, data: { name: `Agent Lead ${uniq}`, email } });
   const { id } = await created.json();
   return { token, id };
 }
@@ -18,13 +19,14 @@ test.describe('Agent run toasts', () => {
     const { token, id } = await seedLead(request);
     if (process.env.CI_ENV === 'true') {
       // In CI, call the API directly for deterministic run, then assert artifacts via API
-      const run = await request.post('http://127.0.0.1:8000/agent/run', {
+      const API = process.env.API_BASE_URL || 'http://127.0.0.1:8000';
+      const run = await request.post(`${API}/agent/run`, {
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         data: { lead_id: id, context: '' },
       });
       expect(run.ok()).toBeTruthy();
       const runId = (await run.json()).run_id as number;
-      const res = await request.get(`http://127.0.0.1:8000/agent/artifacts/${runId}`, {
+      const res = await request.get(`${API}/agent/artifacts/${runId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       expect(res.ok()).toBeTruthy();
