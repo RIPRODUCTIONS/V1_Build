@@ -47,11 +47,12 @@ test.describe('Dashboard filters, sorting, infinite scroll, and toasts', () => {
     // Apply status (open)
     await page.locator('select').nth(0).selectOption('open');
 
-    // Apply sort by name
+    // Apply sort by name and capture the next leads request (debounced)
+    const reqP = awaitNextRequest(page, '/leads?');
     await page.locator('#lead-sort').selectOption('name_asc');
+    await reqP;
 
-    // Wait network then expect toast
-    await page.waitForRequest((r) => r.url().includes('/leads'));
+    // Expect toast
     await expect(page.getByText('Filters applied').first()).toBeVisible({ timeout: 10000 });
   });
 
