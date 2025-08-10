@@ -13,6 +13,7 @@ from app.reliability.circuit_breaker import SimpleCircuitBreaker
 from app.reliability.metrics import SimpleTimingMetrics
 from app.reliability.rate_limiter import SlidingWindowRateLimiter
 from app.automation.router import router as automation_router
+from app.ops.cursor_bridge import router as cursor_bridge
 from app.ops.metrics import setup_metrics
 from contextlib import suppress
 from app.routers.admin import router as admin_router
@@ -43,6 +44,23 @@ try:  # pragma: no cover - optional dependency
     HAS_OTEL = True
 except Exception:  # pragma: no cover - optional dependency not installed
     HAS_OTEL = False
+
+
+def _wire_instrumentation(app: FastAPI) -> None:
+    # Instrument after app is created
+    if HAS_OTEL:
+        try:
+            FastAPIInstrumentor.instrument_app(app)
+            RequestsInstrumentor().instrument()
+            SQLAlchemyInstrumentor().instrument(engine=sa_engine.sync_engine)
+        except Exception:
+            pass
+    # Reliability middlewares
+    app.add_middleware(SimpleTimingMetrics)
+    app.add_middleware(SimpleCircuitBreaker)
+    app.add_middleware(SlidingWindowRateLimiter)
+    with suppress(Exception):
+        setup_metrics(app)
 
 
 def create_app() -> FastAPI:
@@ -84,23 +102,7 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    # Instrument after app is created
-    if HAS_OTEL:
-        try:
-            FastAPIInstrumentor.instrument_app(app)
-            RequestsInstrumentor().instrument()
-            SQLAlchemyInstrumentor().instrument(engine=sa_engine.sync_engine)
-        except Exception:
-            # If instrumentation fails at runtime, continue without tracing
-            pass
-
-    # Reliability middlewares (no-op unless env flags are set)
-    app.add_middleware(SimpleTimingMetrics)
-    app.add_middleware(SimpleCircuitBreaker)
-    app.add_middleware(SlidingWindowRateLimiter)
-    # Prometheus metrics
-    with suppress(Exception):
-        setup_metrics(app)
+    _wire_instrumentation(app)
 
     app.include_router(health_router)
     app.include_router(auto_reply_router)
@@ -117,6 +119,7 @@ def create_app() -> FastAPI:
     app.include_router(physical_router)
     app.include_router(prototype_router)
     app.include_router(automation_router)
+    app.include_router(cursor_bridge)
     Base.metadata.create_all(bind=engine)
     return app
 

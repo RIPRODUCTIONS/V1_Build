@@ -1,12 +1,9 @@
+from contextlib import suppress
 from typing import Any
 
 from app.automation.celery_app import celery
-from app.automation.metrics import (
-    runs_failed,
-    runs_retried,
-    runs_started,
-    runs_success,
-)
+from app.automation.compensation import get_comp
+from app.automation.metrics import runs_failed, runs_retried, runs_started, runs_success
 from app.automation.registry import get_dag, get_skill, register_dag
 from app.automation.state import set_status
 
@@ -55,5 +52,11 @@ def run_dag_task(self, run_id: str, intent: str, context: dict[str, Any]):
                 raise self.retry(exc=e, countdown=2 * (self.request.retries + 1)) from None
             await set_status(run_id, "failed", {"error": str(e), "executed": executed})
             runs_failed.labels(intent).inc()
+        # Compensation pass (best-effort)
+        for step in reversed(executed):
+            comp = get_comp(step)
+            if comp:
+                with suppress(Exception):
+                    comp(context)
 
     asyncio.run(_run())

@@ -63,3 +63,13 @@ def set_llm_mode(mode: str, model: str | None = None):
         "primary": s.LLM_PRIMARY,
         "model": model or getattr(s, f"{mode.upper()}_MODEL", "unchanged"),
     }
+
+
+@router.post("/llm/select_best")
+async def llm_select_best():
+    s = Settings()
+    rt = get_llm_router()
+    chosen = await rt.select_best_local()
+    s.LMSTUDIO_MODEL = chosen
+    _reset_router(s)
+    return {"status": "ok", "chosen": chosen}

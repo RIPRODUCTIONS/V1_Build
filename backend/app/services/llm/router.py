@@ -15,10 +15,10 @@ class LLMRouter:
         self.cb_primary = CircuitBreaker(settings.LLM_CB_FAIL_THRESHOLD, settings.LLM_CB_RESET_S)
 
         # Local-first selection
-        if self.s.LLM_PRIMARY == "ollama":
-            self.primary = OllamaProvider(self.s)
-        elif self.s.LLM_PRIMARY == "lmstudio":
+        if self.s.LLM_PRIMARY == "lmstudio":
             self.primary = LMStudioProvider(self.s)
+        elif self.s.LLM_PRIMARY == "ollama":
+            self.primary = OllamaProvider(self.s)
         elif self.s.LLM_PRIMARY == "vllm":
             self.primary = VLLMProvider(self.s)
         elif self.s.LLM_PRIMARY == "openai":
@@ -63,3 +63,21 @@ def get_llm_router() -> LLMRouter:
 def _reset_router(new_settings: Settings | None = None) -> None:
     router = LLMRouter(new_settings or Settings())
     globals()["_router_singleton"] = router
+
+
+def _rank_model_names(names: list[str], policy: str) -> list[str]:
+    prefs = [p.strip().lower() for p in policy.split(",") if p.strip()]
+
+    def score(name: str) -> int:
+        n = name.lower()
+        base = 0
+        for i, token in enumerate(prefs):
+            if token in n:
+                base += 100 - i
+        if "instruct" in n or "chat" in n:
+            base += 5
+        if "q4_" in n or "q5_" in n:
+            base += 1
+        return base
+
+    return sorted(names, key=score, reverse=True)
