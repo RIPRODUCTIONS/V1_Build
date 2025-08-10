@@ -24,17 +24,19 @@ class Settings(BaseSettings):
     # Feature flags
     PROTOTYPE_BUILDER_ENABLED: bool = Field(default=True, env="PROTOTYPE_BUILDER_ENABLED")
 
-    # LLM routing
-    LLM_PRIMARY: str = Field(default="openai", env="LLM_PRIMARY")  # openai|anthropic
-    LLM_FALLBACK: str = Field(default="ollama", env="LLM_FALLBACK")  # ollama|none
+    # LLM routing (local-first defaults)
+    LLM_PRIMARY: str = Field(
+        default="ollama", env="LLM_PRIMARY"
+    )  # ollama|lmstudio|vllm|openai|anthropic
+    LLM_FALLBACK: str = Field(default="none", env="LLM_FALLBACK")  # none|ollama|openai|anthropic
     OPENAI_API_KEY: str | None = Field(default=None, env="OPENAI_API_KEY")
     OPENAI_MODEL: str = Field(default="gpt-4o-mini", env="OPENAI_MODEL")
     ANTHROPIC_API_KEY: str | None = Field(default=None, env="ANTHROPIC_API_KEY")
     ANTHROPIC_MODEL: str = Field(default="claude-3-5-sonnet-latest", env="ANTHROPIC_MODEL")
     OLLAMA_HOST: str = Field(default="http://127.0.0.1:11434", env="OLLAMA_HOST")
     OLLAMA_MODEL: str = Field(default="llama3.1:8b", env="OLLAMA_MODEL")
-    LLM_TIMEOUT_S: float = Field(default=12.0, env="LLM_TIMEOUT_S")
-    LLM_RETRIES: int = Field(default=2, env="LLM_RETRIES")
+    LLM_TIMEOUT_S: float = Field(default=10.0, env="LLM_TIMEOUT_S")
+    LLM_RETRIES: int = Field(default=0, env="LLM_RETRIES")
     LLM_CB_FAIL_THRESHOLD: int = Field(default=3, env="LLM_CB_FAIL_THRESHOLD")
     LLM_CB_RESET_S: float = Field(default=30.0, env="LLM_CB_RESET_S")
 

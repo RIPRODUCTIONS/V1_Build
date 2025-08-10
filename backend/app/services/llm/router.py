@@ -3,9 +3,10 @@ import asyncio
 
 from app.core.config import Settings
 from app.reliability.circuit_breaker import CircuitBreaker
-from .providers.anthropic_p import AnthropicProvider
-from .providers.openai_p import OpenAIProvider
+from .providers.lmstudio_p import LMStudioProvider
 from .providers.ollama_p import OllamaProvider
+from .providers.openai_p import OpenAIProvider
+from .providers.vllm_p import VLLMProvider
 
 
 class LLMRouter:
@@ -13,16 +14,20 @@ class LLMRouter:
         self.s = settings
         self.cb_primary = CircuitBreaker(settings.LLM_CB_FAIL_THRESHOLD, settings.LLM_CB_RESET_S)
 
-        if self.s.LLM_PRIMARY == "openai":
+        # Local-first selection
+        if self.s.LLM_PRIMARY == "ollama":
+            self.primary = OllamaProvider(self.s)
+        elif self.s.LLM_PRIMARY == "lmstudio":
+            self.primary = LMStudioProvider(self.s)
+        elif self.s.LLM_PRIMARY == "vllm":
+            self.primary = VLLMProvider(self.s)
+        elif self.s.LLM_PRIMARY == "openai":
             self.primary = OpenAIProvider(self.s)
-        elif self.s.LLM_PRIMARY == "anthropic":
-            self.primary = AnthropicProvider(self.s)
         else:
             raise ValueError("Unsupported LLM_PRIMARY")
 
-        self.fallback = None
-        if self.s.LLM_FALLBACK == "ollama":
-            self.fallback = OllamaProvider(self.s)
+        # Disable cloud fallback by default when LLM_FALLBACK is 'none'
+        self.fallback = None if self.s.LLM_FALLBACK == "none" else self.fallback
 
     async def chat(self, prompt: str, system: str | None = None) -> str:
         if not self.cb_primary.is_open:

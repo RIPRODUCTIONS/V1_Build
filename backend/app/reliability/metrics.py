@@ -5,6 +5,7 @@ from collections.abc import Awaitable, Callable
 from fastapi import APIRouter, Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from app.core.config import Settings
 from app.services.llm.router import get_llm_router
 
 
@@ -39,3 +40,11 @@ def readyz():
 async def llm_ready():
     _ = get_llm_router()
     return {"status": "ready"}
+
+
+@router.get("/llm/ping")
+async def llm_ping():
+    s = Settings()
+    msg = await get_llm_router().chat("Respond with: PONG")
+    model = getattr(s, f"{s.LLM_PRIMARY.upper()}_MODEL", "local")
+    return {"provider": s.LLM_PRIMARY, "model": model, "reply": msg[:200]}
