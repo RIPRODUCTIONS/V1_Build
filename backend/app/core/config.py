@@ -23,6 +23,7 @@ class Settings(BaseSettings):
 
     # Feature flags
     PROTOTYPE_BUILDER_ENABLED: bool = Field(default=True, env="PROTOTYPE_BUILDER_ENABLED")
+    RESEARCH_ENABLED: bool = Field(default=False, env="RESEARCH_ENABLED")
 
     # LLM routing (local-first defaults)
     LLM_PRIMARY: str = Field(

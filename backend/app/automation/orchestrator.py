@@ -6,12 +6,21 @@ from app.automation.compensation import get_comp
 from app.automation.metrics import runs_failed, runs_retried, runs_started, runs_success
 from app.automation.registry import get_dag, get_skill, register_dag
 from app.automation.state import set_status
+from app.core.config import get_settings
 
 
 async def run_dag(run_id: str, steps: list[str], context: dict[str, Any]) -> None:
     await set_status(run_id, "running", {"steps": steps})
     executed: list[str] = []
     try:
+        # Optional research hook (no-op unless enabled)
+        with suppress(Exception):
+            s = get_settings()
+            if getattr(s, "RESEARCH_ENABLED", False) and context.get("_blocker"):
+                # import locally to avoid hard dep at import-time
+                from tools.web_research import plan_queries
+
+                _ = plan_queries(str(context["_blocker"]))
         for step in steps:
             fn = get_skill(step)
             context = await fn(context)
