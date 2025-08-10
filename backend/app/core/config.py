@@ -30,6 +30,13 @@ class Settings(BaseSettings):
     RESEARCH_FETCH_RPS: float = Field(default=2.0, env="RESEARCH_FETCH_RPS")
     RESEARCH_FETCH_TIMEOUT_S: int = Field(default=6, env="RESEARCH_FETCH_TIMEOUT_S")
     RESEARCH_FETCH_MAX_BYTES: int = Field(default=2_000_000, env="RESEARCH_FETCH_MAX_BYTES")
+    # Aliases for alternative env variable names
+    RESEARCH_CACHE_TTL_SECONDS: int = Field(default=3600, env="RESEARCH_CACHE_TTL_SECONDS")
+    RESEARCH_TOKENS_PER_SECOND: float = Field(default=2.0, env="RESEARCH_TOKENS_PER_SECOND")
+    RESEARCH_BURST: int = Field(default=5, env="RESEARCH_BURST")
+    RESEARCH_OFFLINE_FIXTURES_DIR: str = Field(
+        default="tools/web_research/fixtures", env="RESEARCH_OFFLINE_FIXTURES_DIR"
+    )
 
     # LLM routing (local-first defaults)
     LLM_PRIMARY: str = Field(
