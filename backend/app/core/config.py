@@ -24,6 +24,12 @@ class Settings(BaseSettings):
     # Feature flags
     PROTOTYPE_BUILDER_ENABLED: bool = Field(default=True, env="PROTOTYPE_BUILDER_ENABLED")
     RESEARCH_ENABLED: bool = Field(default=False, env="RESEARCH_ENABLED")
+    RESEARCH_CACHE_TTL_S: int = Field(default=900, env="RESEARCH_CACHE_TTL_S")
+    RESEARCH_CACHE_MAX_ITEMS: int = Field(default=512, env="RESEARCH_CACHE_MAX_ITEMS")
+    RESEARCH_SEARCH_QPS: float = Field(default=2.0, env="RESEARCH_SEARCH_QPS")
+    RESEARCH_FETCH_RPS: float = Field(default=2.0, env="RESEARCH_FETCH_RPS")
+    RESEARCH_FETCH_TIMEOUT_S: int = Field(default=6, env="RESEARCH_FETCH_TIMEOUT_S")
+    RESEARCH_FETCH_MAX_BYTES: int = Field(default=2_000_000, env="RESEARCH_FETCH_MAX_BYTES")
 
     # LLM routing (local-first defaults)
     LLM_PRIMARY: str = Field(
