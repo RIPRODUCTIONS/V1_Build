@@ -337,6 +337,22 @@ export default function Dashboard() {
           >
             Ops Brief (demo)
           </button>
+          <button
+            className="border px-3 py-1 rounded"
+            onClick={async () => {
+              try {
+                const res = await apiFetch<{ run_id: string; status: string }>("/business/simulate_cycle", {
+                  method: "POST",
+                  body: JSON.stringify({ topic: "autonomous business engine", count: 5 }),
+                });
+                show(`Cycle run queued: ${res.run_id}`, "success");
+              } catch {
+                show("Failed to enqueue cycle run", "error");
+              }
+            }}
+          >
+            Simulate Business Cycle (demo)
+          </button>
           <Link className="text-blue-600 text-sm" href="/automation">View runs</Link>
         </div>
       </div>

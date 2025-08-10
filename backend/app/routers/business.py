@@ -62,3 +62,15 @@ async def sales_outreach(req: SalesOutreachRequest) -> EnqueuedResponse:
 @router.post("/ops/brief", response_model=EnqueuedResponse)
 async def ops_brief() -> EnqueuedResponse:
     return await _enqueue("business.ops_brief", {}, None)
+
+
+class SimulateCycleRequest(BaseModel):
+    topic: str = Field(default="new venture")
+    count: int | None = 5
+    idempotency_key: str | None = None
+
+
+@router.post("/simulate_cycle", response_model=EnqueuedResponse)
+async def simulate_cycle(req: SimulateCycleRequest) -> EnqueuedResponse:
+    payload: dict[str, Any] = {"topic": req.topic, "count": req.count or 5}
+    return await _enqueue("business.simulate_cycle", payload, req.idempotency_key)

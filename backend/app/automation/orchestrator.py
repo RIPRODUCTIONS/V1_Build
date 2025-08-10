@@ -36,6 +36,18 @@ register_dag(
     ["business.prepare_outreach", "business.send_outreach"],
 )
 register_dag("business.ops_brief", ["business.ops_daily_briefing"])
+register_dag(
+    "business.simulate_cycle",
+    [
+        "ideation.generate",
+        "business.prepare_campaign",
+        "business.launch_campaign",
+        "business.collect_metrics",
+        "business.prepare_outreach",
+        "business.send_outreach",
+        "business.ops_daily_briefing",
+    ],
+)
 
 
 @celery.task(name="automation.run_dag", bind=True, acks_late=True, max_retries=2)
