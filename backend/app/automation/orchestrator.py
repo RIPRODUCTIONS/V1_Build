@@ -27,6 +27,15 @@ register_dag("finance.pay_bill", ["finance.ocr_and_categorize", "finance.schedul
 register_dag("agent.prototype", ["prototype.enqueue_build"])
 register_dag("ideation.generate", ["ideation.generate"])
 register_dag("relationship.openers", ["relationship.generate_openers"])
+register_dag(
+    "business.marketing_launch",
+    ["business.prepare_campaign", "business.launch_campaign", "business.collect_metrics"],
+)
+register_dag(
+    "business.sales_outreach",
+    ["business.prepare_outreach", "business.send_outreach"],
+)
+register_dag("business.ops_brief", ["business.ops_daily_briefing"])
 
 
 @celery.task(name="automation.run_dag", bind=True, acks_late=True, max_retries=2)

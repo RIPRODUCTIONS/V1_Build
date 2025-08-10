@@ -286,6 +286,60 @@ export default function Dashboard() {
           <Link className="text-blue-600 text-sm" href="/automation">View runs</Link>
         </div>
       </div>
+
+      <div>
+        <h2 className="text-xl font-medium mb-2">Business</h2>
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
+          <button
+            className="border px-3 py-1 rounded"
+            onClick={async () => {
+              try {
+                const res = await apiFetch<{ run_id: string; status: string }>("/business/marketing/launch", {
+                  method: "POST",
+                  body: JSON.stringify({ campaign_name: "Q4 Launch", channels: ["email", "social"] }),
+                });
+                show(`Marketing launch queued: ${res.run_id}`, "success");
+              } catch {
+                show("Failed to enqueue marketing launch", "error");
+              }
+            }}
+          >
+            Launch Marketing (demo)
+          </button>
+          <button
+            className="border px-3 py-1 rounded"
+            onClick={async () => {
+              try {
+                const res = await apiFetch<{ run_id: string; status: string }>("/business/sales/outreach", {
+                  method: "POST",
+                  body: JSON.stringify({ leads: ["lead@example.com"], template: "Hi {{name}}, quick intro…" }),
+                });
+                show(`Sales outreach queued: ${res.run_id}`, "success");
+              } catch {
+                show("Failed to enqueue sales outreach", "error");
+              }
+            }}
+          >
+            Sales Outreach (demo)
+          </button>
+          <button
+            className="border px-3 py-1 rounded"
+            onClick={async () => {
+              try {
+                const res = await apiFetch<{ run_id: string; status: string }>("/business/ops/brief", {
+                  method: "POST",
+                });
+                show(`Ops brief queued: ${res.run_id}`, "success");
+              } catch {
+                show("Failed to enqueue ops brief", "error");
+              }
+            }}
+          >
+            Ops Brief (demo)
+          </button>
+          <Link className="text-blue-600 text-sm" href="/automation">View runs</Link>
+        </div>
+      </div>
     </section>
   );
 }
