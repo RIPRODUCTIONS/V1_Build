@@ -206,6 +206,33 @@ export default function Dashboard() {
           <div role="status" className="mt-2 animate-pulse text-gray-600">Loading more tasks…</div>
         )}
       </div>
+
+      <div>
+        <h2 className="text-xl font-medium mb-2">Finance</h2>
+        <div className="flex items-center gap-2 mb-3">
+          <button
+            className="border px-3 py-1 rounded"
+            onClick={async () => {
+              try {
+                const res = await apiFetch<{ run_id: string; status: string }>("/finance/pay_bill", {
+                  method: "POST",
+                  body: JSON.stringify({
+                    vendor: "Acme Cloud",
+                    amount: 123.45,
+                    memo: "Test payment",
+                  }),
+                });
+                show(`Finance run queued: ${res.run_id}`, "success");
+              } catch (e) {
+                show("Failed to enqueue finance run", "error");
+              }
+            }}
+          >
+            Run: Pay Bill (demo)
+          </button>
+          <Link className="text-blue-600 text-sm" href="/automation">View runs</Link>
+        </div>
+      </div>
     </section>
   );
 }

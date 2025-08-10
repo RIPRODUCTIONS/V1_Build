@@ -26,6 +26,7 @@ from app.routers.health import router as health_router
 from app.routers.leads import router as leads_router
 from app.routers.physical import router as physical_router
 from app.routers.predictive import router as predictive_router
+from app.routers.finance import router as finance_router
 from app.routers.prototype import router as prototype_router
 from app.routers.tasks import router as tasks_router
 from app.routers.users import router as users_router
@@ -117,6 +118,7 @@ def create_app() -> FastAPI:
     app.include_router(predictive_router)
     app.include_router(content_router)
     app.include_router(physical_router)
+    app.include_router(finance_router)
     app.include_router(prototype_router)
     app.include_router(automation_router)
     app.include_router(cursor_bridge)
