@@ -35,7 +35,7 @@ Paths are defined in `.env` and also exposed via `toolkits/` symlinks. Update `.
 
 ### Web `.env` keys
 
-- `NEXT_PUBLIC_API_BASE` (e.g. http://127.0.0.1:8000)
+- `NEXT_PUBLIC_API_BASE_URL` (e.g. http://127.0.0.1:8000)
 - `NEXT_PUBLIC_WEB_ORIGIN` (e.g. http://localhost:3000)
 
 ## Testing with cleanup
@@ -56,7 +56,7 @@ The teardown calls `DELETE /admin/cleanup/all` with `X-CI-Token` to clear test d
 
 ### Notes
 
-- Cleanup endpoints are rate limited: 5 requests/min/IP. The 6th within a minute returns `429 {"detail":"Rate limit exceeded"}`.
+- Cleanup endpoints are rate-limited: 5 requests/min/IP. The 6th within a minute returns `429 {"detail":"Rate limit exceeded"}`.
 - `ALLOWED_ORIGINS` should be a comma-separated list of valid http/https origins (scheme + host). Invalid entries are ignored. If unset, defaults to `http://localhost:3000`.
 - Example local `.env` values:
   - API: `DATABASE_URL=sqlite:///./dev.db`, `ALLOWED_ORIGINS=http://localhost:3000`, `CI_ENV=true`, `CI_CLEANUP_TOKEN=local-secret`
