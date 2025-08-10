@@ -6,7 +6,7 @@ from fastapi import APIRouter, Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.core.config import Settings
-from app.services.llm.router import get_llm_router
+from app.services.llm.router import _reset_router, get_llm_router
 
 
 class SimpleTimingMetrics(BaseHTTPMiddleware):
@@ -48,3 +48,18 @@ async def llm_ping():
     msg = await get_llm_router().chat("Respond with: PONG")
     model = getattr(s, f"{s.LLM_PRIMARY.upper()}_MODEL", "local")
     return {"provider": s.LLM_PRIMARY, "model": model, "reply": msg[:200]}
+
+
+@router.post("/llm/mode")
+def set_llm_mode(mode: str, model: str | None = None):
+    s = Settings(LLM_PRIMARY=mode)
+    if model:
+        key = f"{mode.upper()}_MODEL"
+        if hasattr(s, key):
+            setattr(s, key, model)
+    _reset_router(s)
+    return {
+        "status": "ok",
+        "primary": s.LLM_PRIMARY,
+        "model": model or getattr(s, f"{mode.upper()}_MODEL", "unchanged"),
+    }

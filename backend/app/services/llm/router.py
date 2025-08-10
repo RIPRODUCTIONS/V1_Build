@@ -58,3 +58,8 @@ def get_llm_router() -> LLMRouter:
         globals()["_router_singleton"] = router
         return router
     return _router_singleton  # type: ignore[return-value]
+
+
+def _reset_router(new_settings: Settings | None = None) -> None:
+    router = LLMRouter(new_settings or Settings())
+    globals()["_router_singleton"] = router

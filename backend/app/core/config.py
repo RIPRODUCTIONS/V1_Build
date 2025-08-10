@@ -43,6 +43,12 @@ class Settings(BaseSettings):
     # Caching/Queue
     REDIS_URL: str = Field(default="redis://localhost:6379/0", env="REDIS_URL")
 
+    # Celery queues for automation
+    CELERY_BROKER_URL: str = Field(default="redis://127.0.0.1:6379/1", env="CELERY_BROKER_URL")
+    CELERY_RESULT_BACKEND: str = Field(
+        default="redis://127.0.0.1:6379/2", env="CELERY_RESULT_BACKEND"
+    )
+
     # Note: Pydantic v2 uses model_config; do not also define class Config
 
 
