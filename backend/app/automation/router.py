@@ -7,7 +7,7 @@ from app.automation.idempotency import claim_or_get, store_result
 from app.automation.orchestrator import run_dag_task
 from app.automation.registry import get_dag
 from app.automation.schemas import AutomationEnqueued, AutomationStatus, AutomationSubmit
-from app.automation.state import get_status, set_status
+from app.automation.state import get_status, list_recent, record_run_meta, set_status
 
 router = APIRouter(prefix="/automation", tags=["automation"])
 
@@ -21,6 +21,7 @@ async def submit(req: AutomationSubmit):
         return AutomationEnqueued(**cached)
     run_id = str(uuid.uuid4())
     await set_status(run_id, "queued", {"intent": req.intent})
+    await record_run_meta(run_id, req.intent, req.payload)
     run_dag_task.delay(run_id, req.intent, req.payload)
     resp = {"run_id": run_id, "status": "queued"}
     await store_result(key, resp)
@@ -31,3 +32,9 @@ async def submit(req: AutomationSubmit):
 async def status(run_id: str):
     st = await get_status(run_id)
     return AutomationStatus(run_id=run_id, status=st["status"], detail=st.get("detail"))
+
+
+@router.get("/recent")
+async def recent(limit: int = 20):
+    items = await list_recent(limit=limit)
+    return {"items": items}

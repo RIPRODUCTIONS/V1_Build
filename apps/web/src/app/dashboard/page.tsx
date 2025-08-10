@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { apiFetch } from "@/lib/api";
 import { usePagedList } from "@/hooks/usePagedList";
 import { useToast } from "@/components/ToastProvider";
@@ -234,6 +234,8 @@ export default function Dashboard() {
         </div>
       </div>
 
+      <RecentRuns />
+
       <div>
         <h2 className="text-xl font-medium mb-2">Ideation</h2>
         <div className="flex items-center gap-2 mb-3">
@@ -285,5 +287,43 @@ export default function Dashboard() {
         </div>
       </div>
     </section>
+  );
+}
+
+function RecentRuns() {
+  const [items, setItems] = useState<{ run_id: string; status: string; meta?: any; detail?: any }[]>([]);
+  const { show } = useToast();
+  async function load() {
+    try {
+      const res = await apiFetch<{ items: any[] }>("/automation/recent");
+      setItems(res.items ?? []);
+    } catch {
+      show("Failed to load recent runs", "error");
+    }
+  }
+  // simple poll
+  React.useEffect(() => {
+    load();
+    const t = setInterval(load, 3500);
+    return () => clearInterval(t);
+  }, []);
+  if (!items.length) return null;
+  return (
+    <div>
+      <h2 className="text-xl font-medium mb-2">Recent Runs</h2>
+      <ul className="space-y-2">
+        {items.slice(0, 10).map((it) => (
+          <li key={it.run_id} className="p-3 rounded border bg-white">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-sm">{it.run_id}</span>
+              <span className="text-sm">{it.status}</span>
+            </div>
+            <div className="text-xs text-gray-600">
+              {it?.meta?.intent} {it?.detail?.executed ? `— ${it.detail.executed.join(" → ")}` : ""}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
