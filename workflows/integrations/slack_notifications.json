@@ -1,0 +1,276 @@
+{
+  "name": "Slack Team Notifications",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyDay",
+              "hours": 9
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "daily-trigger",
+      "name": "Daily Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.openweathermap.org/data/2.5/weather",
+        "options": {
+          "qs": {
+            "q": "New York",
+            "appid": "YOUR_API_KEY",
+            "units": "metric"
+          }
+        }
+      },
+      "id": "get-weather",
+      "name": "Get Weather",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.github.com/repos/OWNER/REPO/issues",
+        "options": {
+          "qs": {
+            "state": "open",
+            "sort": "created",
+            "direction": "desc"
+          }
+        }
+      },
+      "id": "get-github-issues",
+      "name": "Get GitHub Issues",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "channel": "#general",
+        "text": "Good morning team! 🌅\n\nToday's weather: {{ $json.weather[0].description }}, {{ $json.main.temp }}°C\n\nHave a productive day!",
+        "options": {}
+      },
+      "id": "send-morning-message",
+      "name": "Send Morning Message",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "issues-count-greater-than-5",
+              "leftValue": "={{ $json.length }}",
+              "rightValue": 5,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "high-issues-filter",
+      "name": "High Issues Filter",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [900, 400]
+    },
+    {
+      "parameters": {
+        "channel": "#dev-team",
+        "text": "⚠️ Alert: High number of open issues detected!\n\nTotal open issues: {{ $json.length }}\n\nPlease review and prioritize these issues.",
+        "options": {}
+      },
+      "id": "send-issues-alert",
+      "name": "Send Issues Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [1120, 400]
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyHour"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "hourly-trigger",
+      "name": "Hourly Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [240, 600]
+    },
+    {
+      "parameters": {
+        "url": "https://api.github.com/repos/OWNER/REPO/pulls",
+        "options": {
+          "qs": {
+            "state": "open",
+            "sort": "updated",
+            "direction": "desc"
+          }
+        }
+      },
+      "id": "get-pull-requests",
+      "name": "Get Pull Requests",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [460, 600]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "prs-need-review",
+              "leftValue": "={{ $json.requested_reviewers.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "review-needed-filter",
+      "name": "Review Needed Filter",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [680, 600]
+    },
+    {
+      "parameters": {
+        "channel": "#code-reviews",
+        "text": "🔍 Code Review Needed!\n\nPR: {{ $json.title }}\nAuthor: {{ $json.user.login }}\nReviewers: {{ $json.requested_reviewers.map(r => r.login).join(', ') }}\n\nPlease review when you have time.",
+        "options": {}
+      },
+      "id": "send-review-reminder",
+      "name": "Send Review Reminder",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [900, 600]
+    }
+  ],
+  "connections": {
+    "Daily Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Weather",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Weather": {
+      "main": [
+        [
+          {
+            "node": "Get GitHub Issues",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get GitHub Issues": {
+      "main": [
+        [
+          {
+            "node": "Send Morning Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "High Issues Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "High Issues Filter": {
+      "main": [
+        [
+          {
+            "node": "Send Issues Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hourly Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Pull Requests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Pull Requests": {
+      "main": [
+        [
+          {
+            "node": "Review Needed Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Review Needed Filter": {
+      "main": [
+        [
+          {
+            "node": "Send Review Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1"
+} 

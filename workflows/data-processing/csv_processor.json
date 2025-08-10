@@ -1,0 +1,280 @@
+{
+  "name": "CSV Data Processor",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "every5Minutes"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "file-trigger",
+      "name": "File Trigger",
+      "type": "n8n-nodes-base.fileTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "file-extension-csv",
+              "leftValue": "={{ $json.fileName }}",
+              "rightValue": ".csv",
+              "operator": {
+                "type": "string",
+                "operation": "endsWith"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "csv-filter",
+      "name": "CSV File Filter",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "read-csv",
+      "name": "Read CSV File",
+      "type": "n8n-nodes-base.fileRead",
+      "typeVersion": 1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "options": {
+          "delimiter": ",",
+          "headerRow": true
+        }
+      },
+      "id": "parse-csv",
+      "name": "Parse CSV",
+      "type": "n8n-nodes-base.csv",
+      "typeVersion": 1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "amount-greater-than-1000",
+              "leftValue": "={{ $json.amount }}",
+              "rightValue": 1000,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "high-value-filter",
+      "name": "High Value Filter",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1120, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "status-pending",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "pending",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "pending-filter",
+      "name": "Pending Filter",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1120, 400]
+    },
+    {
+      "parameters": {
+        "toEmail": "finance@company.com",
+        "subject": "High Value Transaction Alert",
+        "text": "High value transaction detected:\n\nTransaction ID: {{ $json.id }}\nAmount: ${{ $json.amount }}\nCustomer: {{ $json.customer }}\nDate: {{ $json.date }}\n\nPlease review this transaction.",
+        "options": {}
+      },
+      "id": "send-high-value-alert",
+      "name": "Send High Value Alert",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [1340, 200]
+    },
+    {
+      "parameters": {
+        "toEmail": "operations@company.com",
+        "subject": "Pending Transaction Alert",
+        "text": "Pending transaction detected:\n\nTransaction ID: {{ $json.id }}\nAmount: ${{ $json.amount }}\nCustomer: {{ $json.customer }}\nDate: {{ $json.date }}\n\nPlease process this transaction.",
+        "options": {}
+      },
+      "id": "send-pending-alert",
+      "name": "Send Pending Alert",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [1340, 400]
+    },
+    {
+      "parameters": {
+        "options": {
+          "delimiter": ",",
+          "headerRow": true
+        }
+      },
+      "id": "create-processed-csv",
+      "name": "Create Processed CSV",
+      "type": "n8n-nodes-base.csv",
+      "typeVersion": 1,
+      "position": [1340, 600]
+    },
+    {
+      "parameters": {
+        "fileName": "processed_data.csv",
+        "options": {}
+      },
+      "id": "save-processed-file",
+      "name": "Save Processed File",
+      "type": "n8n-nodes-base.fileWrite",
+      "typeVersion": 1,
+      "position": [1560, 600]
+    }
+  ],
+  "connections": {
+    "File Trigger": {
+      "main": [
+        [
+          {
+            "node": "CSV File Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CSV File Filter": {
+      "main": [
+        [
+          {
+            "node": "Read CSV File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read CSV File": {
+      "main": [
+        [
+          {
+            "node": "Parse CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse CSV": {
+      "main": [
+        [
+          {
+            "node": "High Value Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "High Value Filter": {
+      "main": [
+        [
+          {
+            "node": "Send High Value Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pending Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pending Filter": {
+      "main": [
+        [
+          {
+            "node": "Send Pending Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Processed CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Processed CSV": {
+      "main": [
+        [
+          {
+            "node": "Save Processed File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1"
+} 

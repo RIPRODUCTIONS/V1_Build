@@ -1,0 +1,5 @@
+id,amount,customer,date,status
+1,1500,John Doe,2024-01-15,completed
+2,500,Jane Smith,2024-01-15,pending
+3,2500,Bob Johnson,2024-01-15,completed
+4,750,Alice Brown,2024-01-15,pending

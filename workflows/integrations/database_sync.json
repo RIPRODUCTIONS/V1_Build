@@ -1,0 +1,225 @@
+{
+  "name": "Database Synchronization",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "every10Minutes"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "sync-trigger",
+      "name": "Sync Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM customers WHERE updated_at > ?",
+        "options": {
+          "queryReplacement": "2024-01-01 00:00:00"
+        }
+      },
+      "id": "source-db-query",
+      "name": "Source DB Query",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-new-records",
+              "leftValue": "={{ $json.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "new-records-filter",
+      "name": "New Records Filter",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "table": "customers",
+        "columns": "id, name, email, phone, created_at, updated_at",
+        "options": {}
+      },
+      "id": "target-db-upsert",
+      "name": "Target DB Upsert",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "toEmail": "admin@company.com",
+        "subject": "Database Sync Report",
+        "text": "Database synchronization completed:\n\nRecords processed: {{ $json.length }}\nSync time: {{ $now }}\n\nStatus: Success",
+        "options": {}
+      },
+      "id": "send-sync-report",
+      "name": "Send Sync Report",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT COUNT(*) as count FROM customers WHERE created_at >= CURRENT_DATE",
+        "options": {}
+      },
+      "id": "daily-stats-query",
+      "name": "Daily Stats Query",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.1,
+      "position": [900, 500]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "high-customer-count",
+              "leftValue": "={{ $json[0].count }}",
+              "rightValue": 100,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "high-count-filter",
+      "name": "High Count Filter",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1120, 500]
+    },
+    {
+      "parameters": {
+        "toEmail": "management@company.com",
+        "subject": "High Customer Registration Alert",
+        "text": "High customer registration detected!\n\nNew customers today: {{ $json[0].count }}\n\nThis is above the normal threshold. Please review.",
+        "options": {}
+      },
+      "id": "send-high-count-alert",
+      "name": "Send High Count Alert",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [1340, 500]
+    }
+  ],
+  "connections": {
+    "Sync Trigger": {
+      "main": [
+        [
+          {
+            "node": "Source DB Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Source DB Query": {
+      "main": [
+        [
+          {
+            "node": "New Records Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "New Records Filter": {
+      "main": [
+        [
+          {
+            "node": "Target DB Upsert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Daily Stats Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Target DB Upsert": {
+      "main": [
+        [
+          {
+            "node": "Send Sync Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Stats Query": {
+      "main": [
+        [
+          {
+            "node": "High Count Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "High Count Filter": {
+      "main": [
+        [
+          {
+            "node": "Send High Count Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1"
+} 

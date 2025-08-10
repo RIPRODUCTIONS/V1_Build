@@ -1,0 +1,19 @@
+import { Octokit } from '@octokit/rest';
+import { createClient } from '@supabase/supabase-js';
+
+const octokit = new Octokit({ auth: 'sbp_5ea1ed7db5842c37dbfe2d15abd2f6b34d4b795c' });
+const supabase = createClient('https://dyscvnhucpccaicmgmjw.supabase.co', 'your-supabase-anon-key');
+
+async function test() {
+  const { data } = await octokit.repos.getContent({
+    owner: 'your-github-username',
+    repo: 'usa-property-rehab',
+    path: 'supabase/migrations',
+  });
+  console.log('GitHub Files:', data);
+
+  const { data: projects } = await supabase.from('projects').select('*');
+  console.log('Supabase Projects:', projects);
+}
+
+test();

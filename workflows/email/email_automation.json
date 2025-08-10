@@ -1,0 +1,173 @@
+{
+  "name": "Email Processing Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "email-trigger",
+      "name": "Email Trigger",
+      "type": "n8n-nodes-base.emailTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "subject-contains-urgent",
+              "leftValue": "={{ $json.subject }}",
+              "rightValue": "urgent",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "urgent-filter",
+      "name": "Urgent Email Filter",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "toEmail": "admin@company.com",
+        "subject": "URGENT: {{ $json.subject }}",
+        "text": "An urgent email was received:\n\nFrom: {{ $json.from }}\nSubject: {{ $json.subject }}\nBody: {{ $json.text }}\n\nPlease respond immediately.",
+        "options": {}
+      },
+      "id": "send-urgent-notification",
+      "name": "Send Urgent Notification",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [680, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "subject-contains-invoice",
+              "leftValue": "={{ $json.subject }}",
+              "rightValue": "invoice",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "invoice-filter",
+      "name": "Invoice Email Filter",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [680, 400]
+    },
+    {
+      "parameters": {
+        "toEmail": "finance@company.com",
+        "subject": "Invoice Received: {{ $json.subject }}",
+        "text": "An invoice email was received:\n\nFrom: {{ $json.from }}\nSubject: {{ $json.subject }}\n\nPlease process this invoice.",
+        "options": {}
+      },
+      "id": "send-invoice-notification",
+      "name": "Send Invoice Notification",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [900, 400]
+    },
+    {
+      "parameters": {
+        "toEmail": "archive@company.com",
+        "subject": "Email Archived: {{ $json.subject }}",
+        "text": "Email archived:\n\nFrom: {{ $json.from }}\nSubject: {{ $json.subject }}\n\nThis email has been automatically archived.",
+        "options": {}
+      },
+      "id": "archive-email",
+      "name": "Archive Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [900, 600]
+    }
+  ],
+  "connections": {
+    "Email Trigger": {
+      "main": [
+        [
+          {
+            "node": "Urgent Email Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Urgent Email Filter": {
+      "main": [
+        [
+          {
+            "node": "Send Urgent Notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Invoice Email Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Invoice Email Filter": {
+      "main": [
+        [
+          {
+            "node": "Send Invoice Notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Archive Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1"
+} 
