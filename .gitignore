@@ -25,3 +25,9 @@ apps/web/.vercel/
 # Editors
 .vscode/
 .idea/
+
+# Backups
+backups/
+
+# Local DB
+/dev.db
