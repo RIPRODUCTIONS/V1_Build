@@ -233,6 +233,29 @@ export default function Dashboard() {
           <Link className="text-blue-600 text-sm" href="/automation">View runs</Link>
         </div>
       </div>
+
+      <div>
+        <h2 className="text-xl font-medium mb-2">Ideation</h2>
+        <div className="flex items-center gap-2 mb-3">
+          <button
+            className="border px-3 py-1 rounded"
+            onClick={async () => {
+              try {
+                const res = await apiFetch<{ run_id: string; status: string }>("/ideation/generate", {
+                  method: "POST",
+                  body: JSON.stringify({ topic: "automation business engine", count: 5 }),
+                });
+                show(`Ideation run queued: ${res.run_id}`, "success");
+              } catch (e) {
+                show("Failed to enqueue ideation run", "error");
+              }
+            }}
+          >
+            Generate Ideas (demo)
+          </button>
+          <Link className="text-blue-600 text-sm" href="/automation">View runs</Link>
+        </div>
+      </div>
     </section>
   );
 }

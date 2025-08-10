@@ -25,6 +25,7 @@ async def run_dag(run_id: str, steps: list[str], context: dict[str, Any]) -> Non
 register_dag("lead.intake", ["lead.create_record", "lead.schedule_followup"])
 register_dag("finance.pay_bill", ["finance.ocr_and_categorize", "finance.schedule_payment"])
 register_dag("agent.prototype", ["prototype.enqueue_build"])
+register_dag("ideation.generate", ["ideation.generate"])
 
 
 @celery.task(name="automation.run_dag", bind=True, acks_late=True, max_retries=2)
