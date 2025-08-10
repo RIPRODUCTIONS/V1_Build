@@ -356,6 +356,50 @@ export default function Dashboard() {
           <Link className="text-blue-600 text-sm" href="/automation">View runs</Link>
         </div>
       </div>
+
+      <div>
+        <h2 className="text-xl font-medium mb-2">Communication</h2>
+        <div className="flex items-center gap-2 mb-3">
+          <button
+            className="border px-3 py-1 rounded"
+            onClick={async () => {
+              try {
+                const res = await apiFetch<{ reply: string }>("/comm/auto_reply", {
+                  method: "POST",
+                  body: JSON.stringify({ channel: "email", body: "Can we schedule a meeting next week?" }),
+                });
+                show(res.reply, "success");
+              } catch {
+                show("Auto-reply failed", "error");
+              }
+            }}
+          >
+            Test Auto-Reply (demo)
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <h2 className="text-xl font-medium mb-2">Documents</h2>
+        <div className="flex items-center gap-2 mb-3">
+          <button
+            className="border px-3 py-1 rounded"
+            onClick={async () => {
+              try {
+                const res = await apiFetch<{ run_id: string; status: string }>("/documents/ingest_scan", {
+                  method: "POST",
+                  body: JSON.stringify({ files: ["/tmp/sample1.png", "/tmp/sample2.pdf"] }),
+                });
+                show(`Docs ingest queued: ${res.run_id}`, "success");
+              } catch {
+                show("Docs ingest failed", "error");
+              }
+            }}
+          >
+            Ingest & Scan (demo)
+          </button>
+        </div>
+      </div>
     </section>
   );
 }

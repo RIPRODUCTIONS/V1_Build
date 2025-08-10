@@ -16,6 +16,7 @@ async def run_dag(run_id: str, steps: list[str], context: dict[str, Any]) -> Non
             fn = get_skill(step)
             context = await fn(context)
             executed.append(step)
+            await set_status(run_id, "running", {"executed": executed})
         await set_status(run_id, "succeeded", {"executed": executed, "result": context})
     except Exception as e:  # pragma: no cover - simplest failure path
         await set_status(run_id, "failed", {"executed": executed, "error": str(e)})
@@ -46,6 +47,24 @@ register_dag(
         "business.prepare_outreach",
         "business.send_outreach",
         "business.ops_daily_briefing",
+    ],
+)
+register_dag(
+    "documents.ingest_scan",
+    [
+        "documents.ocr_scan",
+        "documents.classify",
+        "documents.layout_analyze",
+        "documents.extract_text",
+    ],
+)
+register_dag(
+    "finance.receipt_pipeline",
+    [
+        "finance.receipt_ocr",
+        "finance.parse_amount",
+        "finance.categorize",
+        "finance.sync_accounting",
     ],
 )
 

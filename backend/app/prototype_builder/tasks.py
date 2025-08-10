@@ -6,20 +6,24 @@ from celery import Celery
 from .cursor_controller import drive_cursor_action
 
 try:
-    from app.agent.tasks import celery_app as _existing_celery_app  # reuse existing Celery app
+    from app.automation.celery_app import celery as _automation_celery
 except Exception:  # pragma: no cover - fallback stub
-    _existing_celery_app = None
+    _automation_celery = None
 
-celery_app = _existing_celery_app or Celery(__name__, broker="memory://", backend="rpc://")
+celery_app = _automation_celery or Celery(__name__, broker="memory://", backend="rpc://")
 
 logger = logging.getLogger(__name__)
 
 
 async def enqueue_build(name: str, prompt: str, repo_dir: str | None = None) -> str:
     run_id = str(uuid.uuid4())
-    celery_app.send_task(
-        "app.prototype_builder.tasks._build_task", args=[run_id, name, prompt, repo_dir]
-    )
+    try:
+        celery_app.send_task(
+            "app.prototype_builder.tasks._build_task", args=[run_id, name, prompt, repo_dir]
+        )
+    except Exception:
+        # Inline fallback
+        _build_task(run_id, name, prompt, repo_dir)
     return run_id
 
 

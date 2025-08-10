@@ -26,8 +26,17 @@ class LLMRouter:
         else:
             raise ValueError("Unsupported LLM_PRIMARY")
 
-        # Disable cloud fallback by default when LLM_FALLBACK is 'none'
-        self.fallback = None if self.s.LLM_FALLBACK == "none" else self.fallback
+        # Configure fallback provider
+        self.fallback = None
+        if self.s.LLM_FALLBACK == "lmstudio":
+            self.fallback = LMStudioProvider(self.s)
+        elif self.s.LLM_FALLBACK == "ollama":
+            self.fallback = OllamaProvider(self.s)
+        elif self.s.LLM_FALLBACK == "vllm":
+            self.fallback = VLLMProvider(self.s)
+        elif self.s.LLM_FALLBACK == "openai":
+            self.fallback = OpenAIProvider(self.s)
+        # if 'none' or unknown, keep None
 
     async def chat(self, prompt: str, system: str | None = None) -> str:
         if not self.cb_primary.is_open:

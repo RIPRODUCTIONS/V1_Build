@@ -30,6 +30,9 @@ Paths are defined in `.env` and also exposed via `toolkits/` symlinks. Update `.
 - `JWT_SECRET`, `JWT_ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES`
 - `ADMIN_USERNAME`, `ADMIN_PASSWORD`
 - `SENTRY_DSN` (optional)
+- `REDIS_URL` (e.g., redis://127.0.0.1:6379/0)
+- `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND` (e.g., redis://127.0.0.1:6379/1 and /2)
+- `OTEL_EXPORTER_OTLP_ENDPOINT` (optional)
 - `ALLOWED_ORIGINS` (comma separated, e.g. http://localhost:3000)
 - `CI_ENV` (true/false), `CI_CLEANUP_TOKEN` (secret for cleanup)
 

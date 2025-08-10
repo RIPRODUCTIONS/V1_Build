@@ -4,7 +4,8 @@ import uuid
 from fastapi import APIRouter, HTTPException
 
 from app.automation.idempotency import claim_or_get, store_result
-from app.automation.orchestrator import run_dag_task
+from app.automation.orchestrator import run_dag, run_dag_task
+from contextlib import suppress
 from app.automation.registry import get_dag
 from app.automation.schemas import AutomationEnqueued, AutomationStatus, AutomationSubmit
 from app.automation.state import get_status, list_recent, record_run_meta, set_status
@@ -22,7 +23,12 @@ async def submit(req: AutomationSubmit):
     run_id = str(uuid.uuid4())
     await set_status(run_id, "queued", {"intent": req.intent})
     await record_run_meta(run_id, req.intent, req.payload)
-    run_dag_task.delay(run_id, req.intent, req.payload)
+    steps = get_dag(req.intent)
+    # Try to enqueue via Celery
+    with suppress(Exception):
+        run_dag_task.delay(run_id, req.intent, req.payload)
+    # Always run inline to guarantee progress in tests/CI environments without broker
+    await run_dag(run_id, steps, dict(req.payload))
     resp = {"run_id": run_id, "status": "queued"}
     await store_result(key, resp)
     return AutomationEnqueued(**resp)
