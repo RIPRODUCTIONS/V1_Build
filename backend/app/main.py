@@ -7,9 +7,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.db import Base, engine
 from app.db import engine as sa_engine
+
+# ruff: noqa: I001
 from app.reliability.circuit_breaker import SimpleCircuitBreaker
 from app.reliability.metrics import SimpleTimingMetrics
 from app.reliability.rate_limiter import SlidingWindowRateLimiter
+from app.automation.router import router as automation_router
 from app.routers.admin import router as admin_router
 from app.routers.agent import router as agent_router
 from app.routers.ai_agents import router as ai_agents_router
@@ -90,12 +93,9 @@ def create_app() -> FastAPI:
             pass
 
     # Reliability middlewares (no-op unless env flags are set)
-    try:
-        app.add_middleware(SimpleTimingMetrics)
-        app.add_middleware(SimpleCircuitBreaker)
-        app.add_middleware(SlidingWindowRateLimiter)
-    except Exception:
-        pass
+    app.add_middleware(SimpleTimingMetrics)
+    app.add_middleware(SimpleCircuitBreaker)
+    app.add_middleware(SlidingWindowRateLimiter)
 
     app.include_router(health_router)
     app.include_router(auto_reply_router)
@@ -111,6 +111,7 @@ def create_app() -> FastAPI:
     app.include_router(content_router)
     app.include_router(physical_router)
     app.include_router(prototype_router)
+    app.include_router(automation_router)
     Base.metadata.create_all(bind=engine)
     return app
 

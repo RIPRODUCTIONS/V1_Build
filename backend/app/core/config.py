@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     LLM_CB_FAIL_THRESHOLD: int = Field(default=3, env="LLM_CB_FAIL_THRESHOLD")
     LLM_CB_RESET_S: float = Field(default=30.0, env="LLM_CB_RESET_S")
 
+    # Caching/Queue
+    REDIS_URL: str = Field(default="redis://localhost:6379/0", env="REDIS_URL")
+
     # Note: Pydantic v2 uses model_config; do not also define class Config
 
 
