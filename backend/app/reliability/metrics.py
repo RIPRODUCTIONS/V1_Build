@@ -5,6 +5,8 @@ from collections.abc import Awaitable, Callable
 from fastapi import APIRouter, Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from app.services.llm.router import get_llm_router
+
 
 class SimpleTimingMetrics(BaseHTTPMiddleware):
     def __init__(self, app) -> None:
@@ -30,4 +32,10 @@ def healthz():
 
 @router.get("/readyz")
 def readyz():
+    return {"status": "ready"}
+
+
+@router.get("/llm/ready")
+async def llm_ready():
+    _ = get_llm_router()
     return {"status": "ready"}
