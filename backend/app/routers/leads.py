@@ -44,10 +44,22 @@ def list_leads(  # noqa: PLR0913 - FastAPI dependency signature
         like = f"%{q}%"
         stmt = stmt.where(or_(Lead.name.ilike(like), Lead.email.ilike(like)))
     if sort:
-        if sort.lstrip("-") not in {"name", "created_at"}:
+        # Accept multiple sort syntaxes:
+        # - Canonical: "name", "-name", "created_at", "-created_at"
+        # - UI-friendly: "name_asc", "name_desc", "created_asc", "created_desc"
+        desc = False
+        field = sort
+        if "_" in sort:
+            base, direction = sort.split("_", 1)
+            field = "created_at" if base == "created" else base
+            desc = direction.lower() == "desc"
+        else:
+            desc = sort.startswith("-")
+            field = sort.lstrip("-")
+
+        if field not in {"name", "created_at"}:
             raise HTTPException(status_code=400, detail="invalid sort field")
-        desc = sort.startswith("-")
-        col = getattr(Lead, sort.lstrip("-"))
+        col = getattr(Lead, field)
         stmt = stmt.order_by(col.desc() if desc else col.asc())
     stmt = stmt.limit(limit).offset(offset)
     rows = db.scalars(stmt).all()

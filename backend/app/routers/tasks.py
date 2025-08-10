@@ -45,10 +45,22 @@ def list_tasks(  # noqa: PLR0913 - FastAPI dependency signature
     if status_filter:
         stmt = stmt.where(Task.status == status_filter)
     if sort:
-        if sort.lstrip("-") not in {"title", "status", "created_at"}:
+        # Accept multiple sort syntaxes:
+        # - Canonical: "title", "-title", "status", "-status", "created_at", "-created_at"
+        # - UI-friendly: "title_asc", "title_desc", "status_asc", ..., "created_asc", "created_desc"
+        desc = False
+        field = sort
+        if "_" in sort:
+            base, direction = sort.split("_", 1)
+            field = "created_at" if base == "created" else base
+            desc = direction.lower() == "desc"
+        else:
+            desc = sort.startswith("-")
+            field = sort.lstrip("-")
+
+        if field not in {"title", "status", "created_at"}:
             raise HTTPException(status_code=400, detail="invalid sort field")
-        desc = sort.startswith("-")
-        col = getattr(Task, sort.lstrip("-"))
+        col = getattr(Task, field)
         stmt = stmt.order_by(col.desc() if desc else col.asc())
     stmt = stmt.limit(limit).offset(offset)
     rows = db.scalars(stmt).all()
