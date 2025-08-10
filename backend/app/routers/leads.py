@@ -29,6 +29,7 @@ def create_lead(
 
 
 @router.get("/", response_model=list[LeadOut])
+@router.get("", response_model=list[LeadOut])
 def list_leads(  # noqa: PLR0913 - FastAPI dependency signature
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
@@ -64,6 +65,18 @@ def list_leads(  # noqa: PLR0913 - FastAPI dependency signature
     stmt = stmt.limit(limit).offset(offset)
     rows = db.scalars(stmt).all()
     return rows
+
+
+@router.get("/{lead_id}", response_model=LeadOut)
+def get_lead(
+    lead_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    lead = db.get(Lead, lead_id)
+    if not lead or lead.owner_id != current_user.id:
+        raise HTTPException(status_code=404, detail="lead not found")
+    return lead
 
 
 @router.put("/{lead_id}", response_model=LeadOut)

@@ -47,7 +47,7 @@ def create_app() -> FastAPI:
         )
         trace.set_tracer_provider(provider)
 
-    app = FastAPI(title="Builder API", version="0.1.0")
+    app = FastAPI(title="Builder API", version="0.1.0", redirect_slashes=False)
     allowed_origins_env = os.getenv("ALLOWED_ORIGINS") or os.getenv("NEXT_PUBLIC_WEB_ORIGIN")
     if allowed_origins_env:
         candidates = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]

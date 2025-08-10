@@ -27,6 +27,7 @@ def create_task(
 
 
 @router.get("/", response_model=list[TaskOut])
+@router.get("", response_model=list[TaskOut])
 def list_tasks(  # noqa: PLR0913 - FastAPI dependency signature
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
@@ -65,6 +66,18 @@ def list_tasks(  # noqa: PLR0913 - FastAPI dependency signature
     stmt = stmt.limit(limit).offset(offset)
     rows = db.scalars(stmt).all()
     return rows
+
+
+@router.get("/{task_id}", response_model=TaskOut)
+def get_task(
+    task_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    task = db.get(Task, task_id)
+    if not task or task.owner_id != current_user.id:
+        raise HTTPException(status_code=404, detail="task not found")
+    return task
 
 
 @router.put("/{task_id}", response_model=TaskOut)
