@@ -11,7 +11,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 type LeadOut = components["schemas"]["LeadOut"];
 type LeadUpdate = components["schemas"]["LeadUpdate"];
 type AgentRunRequest = components["schemas"]["AgentRunRequest"];
-type ArtifactOut = components["schemas"]["ArtifactOut"];
+type ArtifactOut = components["schemas"]["ArtifactOut"] & {
+  file_path?: string | null;
+  status?: string | null;
+};
 
 export default function LeadDetail({ params }: { params: { id: string } }) {
   const id = Number(params.id);

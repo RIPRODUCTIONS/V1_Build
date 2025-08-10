@@ -109,8 +109,8 @@ test.describe("Dashboard network params", () => {
       params: { sort: 'name_asc', limit: 15, offset: 0 },
     });
     expect(res.ok).toBeTruthy();
-    const body = await res.json();
-    const list = Array.isArray(body) ? body : (body.items ?? []);
+    const body: unknown = await res.json();
+    const list = Array.isArray(body) ? body : (typeof body === 'object' && body && (body as any).items ? (body as any).items : []);
     expect(list.length).toBeGreaterThan(2);
     const names = list.slice(0, 5).map((l: any) => String(l.name));
     for (let i = 1; i < names.length; i++) {
