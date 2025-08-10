@@ -67,6 +67,44 @@ register_dag(
         "finance.sync_accounting",
     ],
 )
+register_dag(
+    "health.wellness_daily",
+    [
+        "health.collect_biometrics",
+        "health.detect_anomaly",
+        "health.trend_analyze",
+    ],
+)
+register_dag(
+    "nutrition.plan",
+    [
+        "nutrition.analyze",
+        "nutrition.plan_meals",
+    ],
+)
+register_dag(
+    "home.evening_scene",
+    [
+        "home.presence_detect",
+        "home.scene_evening",
+        "home.energy_optimize",
+    ],
+)
+register_dag(
+    "transport.commute",
+    [
+        "transport.plan_route",
+        "transport.optimize_cost",
+    ],
+)
+register_dag(
+    "learning.upskill",
+    [
+        "learning.assess_skills",
+        "learning.plan_path",
+        "learning.schedule",
+    ],
+)
 
 
 @celery.task(name="automation.run_dag", bind=True, acks_late=True, max_retries=2)

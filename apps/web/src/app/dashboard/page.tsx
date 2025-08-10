@@ -400,6 +400,37 @@ export default function Dashboard() {
           </button>
         </div>
       </div>
+
+      <div>
+        <h2 className="text-xl font-medium mb-2">Life Automation</h2>
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
+          {[
+            { path: "/life/health/wellness", label: "Wellness Daily" },
+            { path: "/life/nutrition/plan", label: "Nutrition Plan" },
+            { path: "/life/home/evening", label: "Home Evening" },
+            { path: "/life/transport/commute", label: "Commute" },
+            { path: "/life/learning/upskill", label: "Upskill" },
+          ].map((a) => (
+            <button
+              key={a.path}
+              className="border px-3 py-1 rounded"
+              onClick={async () => {
+                try {
+                  const res = await apiFetch<{ run_id: string; status: string }>(a.path, {
+                    method: "POST",
+                    body: JSON.stringify({}),
+                  });
+                  show(`${a.label} queued: ${res.run_id}`, "success");
+                } catch {
+                  show(`${a.label} failed`, "error");
+                }
+              }}
+            >
+              {a.label}
+            </button>
+          ))}
+        </div>
+      </div>
     </section>
   );
 }

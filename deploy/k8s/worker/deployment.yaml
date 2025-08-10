@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: builder
+  labels:
+    app.kubernetes.io/name: worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: worker
+    spec:
+      containers:
+        - name: worker
+          image: 123456789012.dkr.ecr.us-west-2.amazonaws.com/builder-worker:latest # TODO: replace via CI
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: REDIS_URL
+              value: "redis://redis.builder.svc.cluster.local:6379/0"
+            - name: LLM_MODE
+              value: "lmstudio"
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

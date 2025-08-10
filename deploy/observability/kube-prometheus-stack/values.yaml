@@ -1,0 +1,20 @@
+grafana:
+  defaultDashboardsEnabled: true
+  dashboardsConfigMaps:
+    self-heal: grafana-dashboard-self-heal
+
+prometheus:
+  prometheusSpec:
+    podMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorSelectorNilUsesHelmValues: false
+
+additionalServiceMonitors:
+  - name: api-metrics
+    namespaceSelector:
+      matchNames: ["builder"]
+    selector:
+      matchLabels:
+        app.kubernetes.io/name: api
+    endpoints:
+      - port: http
+        path: /metrics

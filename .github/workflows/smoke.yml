@@ -1,0 +1,36 @@
+name: smoke
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["deploy"]
+    types: ["completed"]
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+          aws-region: us-west-2
+      - name: Update Kubeconfig
+        run: |
+          aws eks update-kubeconfig --name self-healing-mvp --region us-west-2
+      - name: Get Ingress Host
+        id: host
+        run: |
+          H=$(kubectl get ing -n builder -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}')
+          echo "host=$H" >> $GITHUB_OUTPUT
+      - name: Smoke
+        run: |
+          set -e
+          HOST=${{ steps.host.outputs.host }}
+          echo "Testing http://$HOST"
+          curl -fsS http://$HOST/healthz
+          curl -fsS http://$HOST/metrics | grep -E "fastapi|http"
+          curl -fsS http://$HOST/automation || true

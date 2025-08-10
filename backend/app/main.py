@@ -15,6 +15,7 @@ from app.reliability.rate_limiter import SlidingWindowRateLimiter
 from app.automation.router import router as automation_router
 from app.ops.cursor_bridge import router as cursor_bridge
 from app.ops.metrics import setup_metrics
+from app.ops.internal_guard import InternalTokenGuard
 from contextlib import suppress
 from app.routers.admin import router as admin_router
 from app.routers.agent import router as agent_router
@@ -32,6 +33,7 @@ from app.routers.prototype import router as prototype_router
 from app.routers.relationship import router as relationship_router
 from app.routers.business import router as business_router
 from app.routers.documents import router as documents_router
+from app.routers.life import router as life_router
 from app.routers.tasks import router as tasks_router
 from app.routers.users import router as users_router
 from app.routers.comm import router as comm_router
@@ -108,6 +110,8 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    # Security toggle: protect /cursor and /ops routes when SECURE_MODE is set
+    app.add_middleware(InternalTokenGuard)
     _wire_instrumentation(app)
 
     app.include_router(health_router)
@@ -129,6 +133,7 @@ def create_app() -> FastAPI:
     app.include_router(relationship_router)
     app.include_router(business_router)
     app.include_router(documents_router)
+    app.include_router(life_router)
     app.include_router(prototype_router)
     app.include_router(automation_router)
     app.include_router(cursor_bridge)

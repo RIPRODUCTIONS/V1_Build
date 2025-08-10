@@ -1,0 +1,36 @@
+name: deploy
+on:
+  workflow_run:
+    workflows: ["build-and-push"]
+    types:
+      - completed
+  workflow_dispatch:
+jobs:
+  deploy-dev:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+          aws-region: us-west-2
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+      - name: Update Kubeconfig
+        run: |
+          aws eks update-kubeconfig --name self-healing-mvp --region us-west-2
+      - name: Deploy Kustomize overlay
+        run: |
+          kubectl apply -k deploy/k8s/overlays/dev
+      - name: Install kube-prometheus-stack
+        run: |
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo update
+          helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
+            --namespace builder --create-namespace \
+            -f deploy/observability/kube-prometheus-stack/values.yaml
