@@ -29,6 +29,7 @@ from app.routers.predictive import router as predictive_router
 from app.routers.ideation import router as ideation_router
 from app.routers.finance import router as finance_router
 from app.routers.prototype import router as prototype_router
+from app.routers.relationship import router as relationship_router
 from app.routers.tasks import router as tasks_router
 from app.routers.users import router as users_router
 
@@ -121,6 +122,7 @@ def create_app() -> FastAPI:
     app.include_router(physical_router)
     app.include_router(ideation_router)
     app.include_router(finance_router)
+    app.include_router(relationship_router)
     app.include_router(prototype_router)
     app.include_router(automation_router)
     app.include_router(cursor_bridge)
