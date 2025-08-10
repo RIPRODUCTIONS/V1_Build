@@ -13,6 +13,8 @@ from app.reliability.circuit_breaker import SimpleCircuitBreaker
 from app.reliability.metrics import SimpleTimingMetrics
 from app.reliability.rate_limiter import SlidingWindowRateLimiter
 from app.automation.router import router as automation_router
+from app.ops.metrics import setup_metrics
+from contextlib import suppress
 from app.routers.admin import router as admin_router
 from app.routers.agent import router as agent_router
 from app.routers.ai_agents import router as ai_agents_router
@@ -96,6 +98,9 @@ def create_app() -> FastAPI:
     app.add_middleware(SimpleTimingMetrics)
     app.add_middleware(SimpleCircuitBreaker)
     app.add_middleware(SlidingWindowRateLimiter)
+    # Prometheus metrics
+    with suppress(Exception):
+        setup_metrics(app)
 
     app.include_router(health_router)
     app.include_router(auto_reply_router)

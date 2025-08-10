@@ -1,7 +1,13 @@
 from typing import Any
 
 from app.automation.celery_app import celery
-from app.automation.registry import get_dag, get_skill
+from app.automation.metrics import (
+    runs_failed,
+    runs_retried,
+    runs_started,
+    runs_success,
+)
+from app.automation.registry import get_dag, get_skill, register_dag
 from app.automation.state import set_status
 
 
@@ -18,11 +24,18 @@ async def run_dag(run_id: str, steps: list[str], context: dict[str, Any]) -> Non
         await set_status(run_id, "failed", {"executed": executed, "error": str(e)})
 
 
+# Register default DAGs at import so both API and worker see them
+register_dag("lead.intake", ["lead.create_record", "lead.schedule_followup"])
+register_dag("finance.pay_bill", ["finance.ocr_and_categorize", "finance.schedule_payment"])
+register_dag("agent.prototype", ["prototype.enqueue_build"])
+
+
 @celery.task(name="automation.run_dag", bind=True, acks_late=True, max_retries=2)
 def run_dag_task(self, run_id: str, intent: str, context: dict[str, Any]):
     import asyncio
 
     async def _run():
+        runs_started.labels(intent).inc()
         steps: list[str] = get_dag(intent)
         await set_status(run_id, "running", {"steps": steps})
         executed: list[str] = []
@@ -34,10 +47,13 @@ def run_dag_task(self, run_id: str, intent: str, context: dict[str, Any]):
                 executed.append(step)
                 await set_status(run_id, "running", {"executed": executed})
             await set_status(run_id, "succeeded", {"executed": executed, "result": context})
+            runs_success.labels(intent).inc()
         except Exception as e:  # pragma: no cover - retry path
             if self.request.retries < self.max_retries:
+                runs_retried.labels(intent).inc()
                 await set_status(run_id, "retrying", {"error": str(e), "executed": executed})
                 raise self.retry(exc=e, countdown=2 * (self.request.retries + 1)) from None
             await set_status(run_id, "failed", {"error": str(e), "executed": executed})
+            runs_failed.labels(intent).inc()
 
     asyncio.run(_run())

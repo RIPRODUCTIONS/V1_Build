@@ -30,3 +30,32 @@ async def claim_once(intent: str, payload: dict, idem_key: str | None, ttl_s: in
             raise RuntimeError("Duplicate request (idempotency)") from None
         _IDEM_SEEN.add(namespaced)
     return key
+
+
+# Store-and-return idempotency (Stripe-style)
+def _fp(intent: str, payload: dict) -> str:
+    return hashlib.sha256(
+        json.dumps({"i": intent, "p": payload}, sort_keys=True).encode()
+    ).hexdigest()
+
+
+async def claim_or_get(intent: str, payload: dict, idem_key: str | None, ttl_s: int = 3600):
+    s = Settings()
+    r = aioredis.from_url(s.REDIS_URL, decode_responses=True)
+    key = f"idem:{idem_key or _fp(intent, payload)}"
+    ok = await r.set(key, "__PENDING__", ex=ttl_s, nx=True)
+    if ok:
+        return key, None
+    val = await r.get(key)
+    if val and val != "__PENDING__":
+        try:
+            return key, json.loads(val)
+        except Exception:  # pragma: no cover - tolerate bad cache
+            return key, None
+    return key, None
+
+
+async def store_result(key: str, response_obj: dict, ttl_s: int = 3600) -> None:
+    s = Settings()
+    r = aioredis.from_url(s.REDIS_URL, decode_responses=True)
+    await r.set(key, json.dumps(response_obj), ex=ttl_s)
