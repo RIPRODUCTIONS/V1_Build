@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     s3_secret_key: str | None = Field(default=None, env="S3_SECRET_KEY")
     s3_bucket: str | None = Field(default="artifacts", env="S3_BUCKET")
 
+    # Feature flags
+    PROTOTYPE_BUILDER_ENABLED: bool = Field(default=True, env="PROTOTYPE_BUILDER_ENABLED")
+
     # Note: Pydantic v2 uses model_config; do not also define class Config
 
 

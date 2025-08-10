@@ -7,12 +7,20 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.db import Base, engine
 from app.db import engine as sa_engine
+from app.reliability.circuit_breaker import SimpleCircuitBreaker
+from app.reliability.metrics import SimpleTimingMetrics
+from app.reliability.rate_limiter import SlidingWindowRateLimiter
 from app.routers.admin import router as admin_router
 from app.routers.agent import router as agent_router
+from app.routers.ai_agents import router as ai_agents_router
 from app.routers.auth import router as auth_router
 from app.routers.auto_reply import router as auto_reply_router
+from app.routers.content import router as content_router
 from app.routers.health import router as health_router
 from app.routers.leads import router as leads_router
+from app.routers.physical import router as physical_router
+from app.routers.predictive import router as predictive_router
+from app.routers.prototype import router as prototype_router
 from app.routers.tasks import router as tasks_router
 from app.routers.users import router as users_router
 
@@ -81,6 +89,14 @@ def create_app() -> FastAPI:
             # If instrumentation fails at runtime, continue without tracing
             pass
 
+    # Reliability middlewares (no-op unless env flags are set)
+    try:
+        app.add_middleware(SimpleTimingMetrics)
+        app.add_middleware(SimpleCircuitBreaker)
+        app.add_middleware(SlidingWindowRateLimiter)
+    except Exception:
+        pass
+
     app.include_router(health_router)
     app.include_router(auto_reply_router)
     app.include_router(auth_router)
@@ -89,6 +105,12 @@ def create_app() -> FastAPI:
     app.include_router(tasks_router)
     app.include_router(agent_router)
     app.include_router(admin_router)
+    # New additive routers
+    app.include_router(ai_agents_router)
+    app.include_router(predictive_router)
+    app.include_router(content_router)
+    app.include_router(physical_router)
+    app.include_router(prototype_router)
     Base.metadata.create_all(bind=engine)
     return app
 
