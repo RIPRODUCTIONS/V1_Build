@@ -1,191 +1,149 @@
 import json
 import os
 import signal
-import threading
 import time
 from dataclasses import dataclass
-from http.server import BaseHTTPRequestHandler, HTTPServer
-from typing import Any
+
+# Import planner
+try:
+    from planner import planner
+except ImportError:
+    import sys
+
+    sys.path.append(os.path.dirname(__file__))
+    from planner import planner
 
 
 @dataclass
 class ConsumerConfig:
-    stream: str = "events"
-    group: str | None = None
-    consumer: str | None = None
-    block_ms: int = 1000
-    backoff_initial_ms: int = 250
-    backoff_max_ms: int = 5000
+    input_stream: str = "events"
+    output_stream: str = "manager_events"
+    consumer_group: str = "manager_group"
+    consumer_name: str = "manager_1"
 
 
 class GracefulExit(Exception):
     pass
 
 
-def _install_signal_handlers():  # pragma: no cover
-    def _raise(sig, frame):  # noqa: ARG001
+def _install_signal_handlers():
+    def _raise(sig, frame):
         raise GracefulExit
 
     for s in (signal.SIGINT, signal.SIGTERM):
         signal.signal(s, _raise)
 
 
-def _maybe_start_metrics_server() -> None:
-    port_raw = os.getenv("MANAGER_METRICS_PORT", "9109")
+def _publish(r, stream: str, event: dict):
     try:
-        port = int(port_raw)
-    except Exception:
-        port = 9109
-    try:
-        from prometheus_client import Counter, Gauge, Histogram, start_http_server
-
-        start_http_server(port)
-        global METRIC_EVENTS, METRIC_ERRORS, METRIC_LATENCY, METRIC_HEALTH  # noqa: PLW0603
-        METRIC_EVENTS = Counter(
-            "manager_events_consumed_total",
-            "Total events consumed",
-            ["stream"],
-        )
-        METRIC_ERRORS = Counter(
-            "manager_consume_errors_total",
-            "Total errors during consumption",
-            []
-        )
-        METRIC_LATENCY = Histogram(
-            "manager_consume_batch_latency_ms",
-            "Latency per batch read in ms",
-            []
-        )
-        METRIC_HEALTH = Gauge(
-            "manager_health",
-            "1 if healthy",
-            []
-        )
-        METRIC_HEALTH.set(1)
-        print(json.dumps({"level": "info", "msg": "metrics.start", "port": port}))
-    except Exception as err:  # noqa: BLE001
-        print(json.dumps({"level": "warn", "msg": "metrics.disabled", "error": str(err)}))
+        r.xadd(stream, {"data": json.dumps(event)})
+        print(f"Published: {event.get('event_type')}")
+    except Exception as e:
+        print(f"Publish error: {e}")
 
 
-def _metric_inc(name: str, *labels: Any) -> None:
-    # Avoid dynamic globals indexing per lint guidance
-    m = METRIC_EVENTS if name == "METRIC_EVENTS" else (METRIC_ERRORS if name == "METRIC_ERRORS" else None)
-    try:
-        if m is not None:
-            if labels:
-                m.labels(*labels).inc()
-            else:
-                m.inc()
-    except Exception:
-        pass
+def handle_event(evt: dict) -> list[dict]:
+    """Handle automation.run.requested events."""
+    if evt.get("event_type") != "automation.run.requested":
+        return []
 
+    intent = evt.get("intent")
+    if not intent:
+        return []
 
-def _metric_observe(name: str, value: float) -> None:
-    # Avoid dynamic globals indexing per lint guidance
-    m = METRIC_LATENCY if name == "METRIC_LATENCY" else None
-    try:
-        if m is not None:
-            m.observe(value)
-    except Exception:
-        pass
+    # Create plan
+    plan = planner.create_plan(
+        run_id=evt.get("run_id") or "unknown",
+        intent=intent,
+        correlation_id=evt.get("correlation_id"),
+    )
 
-
-def extract_correlation_id(evt: dict[str, Any]) -> str | None:
-    candidates = [
-        evt.get("correlation_id"),
-        (evt.get("headers") or {}).get("correlation_id"),
-        (evt.get("meta") or {}).get("correlation_id"),
+    # Return events to publish
+    return [
+        {
+            "event_type": "run.started",
+            "run_id": plan.run_id,
+            "intent": plan.intent,
+            "department": plan.department,
+            "correlation_id": plan.correlation_id,
+        },
+        {
+            "event_type": "run.status.updated",
+            "run_id": plan.run_id,
+            "status": "started",
+            "intent": plan.intent,
+            "department": plan.department,
+            "correlation_id": plan.correlation_id,
+        },
     ]
-    for c in candidates:
-        if isinstance(c, str) and c.strip():
-            return c
-    return None
 
 
-def _maybe_start_health_server() -> None:
-    port_raw = os.getenv("MANAGER_HEALTH_PORT", "8011")
-    try:
-        port = int(port_raw)
-    except Exception:
-        port = 8011
-
-    class Handler(BaseHTTPRequestHandler):  # pragma: no cover
-        def do_GET(self):  # noqa: N802
-            if self.path == "/health":
-                self.send_response(200)
-                self.send_header("Content-Type", "application/json")
-                self.end_headers()
-                self.wfile.write(b'{"status":"ok"}')
-            else:
-                self.send_response(404)
-                self.end_headers()
-
-        def log_message(self, format: str, *args):  # noqa: A003
-            return
-
-    def run():  # pragma: no cover
-        try:
-            httpd = HTTPServer(("0.0.0.0", port), Handler)
-            httpd.serve_forever()
-        except Exception as err:  # noqa: BLE001
-            print(json.dumps({"level": "warn", "msg": "health.disabled", "error": str(err)}))
-
-    t = threading.Thread(target=run, daemon=True)
-    t.start()
-    print(json.dumps({"level": "info", "msg": "health.start", "port": port}))
-
-
-def consume_loop(cfg: ConsumerConfig) -> None:  # pragma: no cover - dev utility
+def consume_loop(cfg: ConsumerConfig):
     url = os.getenv("REDIS_URL")
     if not url:
-        print(json.dumps({"level": "warn", "msg": "REDIS_URL not set; consumer idle"}))
+        print("REDIS_URL not set")
         return
+
     try:
-        import redis  # type: ignore
-    except Exception:
-        print(json.dumps({"level": "warn", "msg": "redis client not installed"}))
+        import redis
+    except ImportError:
+        print("redis not installed")
         return
+
     r = redis.Redis.from_url(url, decode_responses=True)
-    stream = cfg.stream
-    last_id = ">$" if not cfg.group else "0-0"
-    backoff = cfg.backoff_initial_ms
+    stream = cfg.input_stream
+    group = cfg.consumer_group
+    consumer = cfg.consumer_name
+
+    # Setup consumer group
+    try:
+        r.xgroup_create(stream, group, id="0", mkstream=True)
+        print(f"Created group {group} on {stream}")
+    except Exception as e:
+        if "BUSYGROUP" not in str(e):
+            print(f"Group setup error: {e}")
+
     _install_signal_handlers()
-    _maybe_start_metrics_server()
-    _maybe_start_health_server()
-    print(json.dumps({"level": "info", "msg": "consumer.start", "stream": stream}))
+    print(f"Consumer started: {consumer} in {group} on {stream}")
+
     try:
         while True:
             try:
-                if cfg.group:
-                    resp = r.xreadgroup(cfg.group, cfg.consumer or "c1", {stream: last_id}, block=cfg.block_ms, count=1)
-                else:
-                    resp = r.xread({stream: last_id}, block=cfg.block_ms, count=1)
+                # Read new messages only
+                resp = r.xreadgroup(group, consumer, {stream: ">"}, block=1000, count=1)
+
                 if not resp:
-                    backoff = cfg.backoff_initial_ms
+                    time.sleep(0.1)  # Small sleep to prevent spinning
                     continue
+
                 for s, entries in resp:
-                    for _id, fields in entries:
-                        data = fields.get("data")
+                    for msg_id, fields in entries:
+                        data = fields.get("data", "{}")
                         try:
-                            evt = json.loads(data or "{}")
-                        except Exception:
+                            evt = json.loads(data)
+                        except:
                             evt = {"raw": data}
-                        cid = extract_correlation_id(evt)
-                        print(json.dumps({"level": "info", "msg": "consume", "stream": s, "id": _id, "correlation_id": cid, "event": evt}))
-                        _metric_inc("METRIC_EVENTS", s)
-                        if cfg.group:
-                            r.xack(stream, cfg.group, _id)
-                backoff = cfg.backoff_initial_ms
+
+                        print(f"Processing: {evt.get('event_type', 'unknown')}")
+
+                        # Handle event
+                        events = handle_event(evt)
+                        for event in events:
+                            _publish(r, cfg.output_stream, event)
+
+                        # Acknowledge
+                        r.xack(stream, group, msg_id)
+                        print(f"Acked: {msg_id}")
+
             except GracefulExit:
                 raise
-            except Exception as err:  # noqa: BLE001
-                print(json.dumps({"level": "error", "msg": "consume.error", "error": str(err)}))
-                _metric_inc("METRIC_ERRORS")
-                time.sleep(backoff / 1000.0)
-                backoff = min(cfg.backoff_max_ms, backoff * 2)
+            except Exception as e:
+                print(f"Error: {e}")
+                time.sleep(1)
+
     except GracefulExit:
-        print(json.dumps({"level": "info", "msg": "consumer.stop"}))
+        print("Consumer stopped")
 
 
-if __name__ == "__main__":  # pragma: no cover
+if __name__ == "__main__":
     consume_loop(ConsumerConfig())

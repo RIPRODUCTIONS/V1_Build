@@ -4,6 +4,7 @@ import os
 from collections.abc import Generator
 
 from sqlalchemy import create_engine
+from sqlalchemy import text
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./dev.db")
@@ -23,3 +24,25 @@ def get_db() -> Generator:
         yield db
     finally:
         db.close()
+
+
+def migrate_dev_sqlite() -> None:
+    """Additive, best-effort migration for sqlite in dev/CI.
+
+    Creates missing columns on known tables to keep tests green when models evolve.
+    """
+    if not DATABASE_URL.startswith("sqlite"):  # only for sqlite
+        return
+    with engine.begin() as conn:
+        try:
+            conn.execute(text("ALTER TABLE agent_runs ADD COLUMN intent VARCHAR(128)"))
+        except Exception:
+            pass
+        try:
+            conn.execute(text("ALTER TABLE agent_runs ADD COLUMN department VARCHAR(64)"))
+        except Exception:
+            pass
+        try:
+            conn.execute(text("ALTER TABLE agent_runs ADD COLUMN correlation_id VARCHAR(64)"))
+        except Exception:
+            pass

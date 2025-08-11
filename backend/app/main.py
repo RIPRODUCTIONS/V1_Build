@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.db import Base, engine
 from app.db import engine as sa_engine
+from app.db import migrate_dev_sqlite
 
 # ruff: noqa: I001
 from app.reliability.circuit_breaker import SimpleCircuitBreaker
@@ -148,6 +149,11 @@ def create_app() -> FastAPI:
     app.include_router(cursor_bridge)
     app.include_router(runs_router)
     Base.metadata.create_all(bind=engine)
+    # Dev/CI sqlite additive migrations (ignore errors on non-sqlite)
+    try:  # pragma: no cover
+        migrate_dev_sqlite()
+    except Exception:
+        pass
     return app
 
 

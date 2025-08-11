@@ -7,6 +7,7 @@ from app.automation.idempotency import claim_or_get, store_result
 from app.automation.orchestrator import run_dag
 from app.automation.state import set_status
 from app.dependencies.auth import require_scope_hs256, require_subject_hs256
+from app.services.queue.redis_bus import RedisEventBus
 from fastapi import APIRouter, Body, Depends, Request
 from pydantic import BaseModel
 
@@ -49,7 +50,23 @@ async def _inline(
     if cached:
         return EnqueuedResponse(**cached)
     run_id = str(uuid.uuid4())
-    await set_status(run_id, "queued", {"intent": intent})
+    await set_status(
+        run_id, "queued", {"intent": intent, "correlation_id": p.get("correlation_id")}
+    )
+    # Emit domain event
+    try:
+        bus = RedisEventBus()
+        event = {
+            "event_type": "automation.run.requested",
+            "version": "v1",
+            "intent": intent,
+            "payload": p,
+            "idempotency_key": idem_key,
+            "correlation_id": p.get("correlation_id"),
+        }
+        bus.publish(event)
+    except Exception:
+        pass
     # Directly enqueue orchestration; steps are resolved by orchestrator from registered DAGs
     await run_dag(run_id, [], dict(p))
     resp = {"run_id": run_id, "status": "queued"}
@@ -83,7 +100,9 @@ _auth_responses = {
 
 
 @router.post("/health/wellness", response_model=EnqueuedResponse, responses=_auth_responses)
-async def wellness(_: SimpleReq, subject: str = Depends(require_subject_hs256), request: Request = None) -> EnqueuedResponse:
+async def wellness(
+    _: SimpleReq, subject: str = Depends(require_subject_hs256), request: Request = None
+) -> EnqueuedResponse:
     """Trigger daily wellness automation. Requires bearerAuth (JWT)."""
     _ = subject
     corr = getattr(request.state, "correlation_id", None) if request is not None else None
@@ -92,30 +111,38 @@ async def wellness(_: SimpleReq, subject: str = Depends(require_subject_hs256), 
 
 @router.post("/nutrition/plan", response_model=EnqueuedResponse, responses=_auth_responses)
 async def nutrition(
-    _: SimpleReq, subject: str = Depends(require_subject_hs256)
+    _: SimpleReq, subject: str = Depends(require_subject_hs256), request: Request = None
 ) -> EnqueuedResponse:
     """Plan nutrition tasks. Requires bearerAuth (JWT)."""
-    return await _inline("nutrition.plan", {}, None)
+    corr = getattr(request.state, "correlation_id", None) if request is not None else None
+    return await _inline("nutrition.plan", {"correlation_id": corr} if corr else {}, None)
 
 
 @router.post("/home/evening", response_model=EnqueuedResponse, responses=_auth_responses)
-async def home(_: SimpleReq, subject: str = Depends(require_subject_hs256)) -> EnqueuedResponse:
+async def home(
+    _: SimpleReq, subject: str = Depends(require_subject_hs256), request: Request = None
+) -> EnqueuedResponse:
     """Run evening home scene. Requires bearerAuth (JWT)."""
-    return await _inline("home.evening_scene", {}, None)
+    corr = getattr(request.state, "correlation_id", None) if request is not None else None
+    return await _inline("home.evening_scene", {"correlation_id": corr} if corr else {}, None)
 
 
 @router.post("/transport/commute", response_model=EnqueuedResponse, responses=_auth_responses)
 async def transport(
-    _: SimpleReq, subject: str = Depends(require_subject_hs256)
+    _: SimpleReq, subject: str = Depends(require_subject_hs256), request: Request = None
 ) -> EnqueuedResponse:
     """Commute helper. Requires bearerAuth (JWT)."""
-    return await _inline("transport.commute", {}, None)
+    corr = getattr(request.state, "correlation_id", None) if request is not None else None
+    return await _inline("transport.commute", {"correlation_id": corr} if corr else {}, None)
 
 
 @router.post("/learning/upskill", response_model=EnqueuedResponse, responses=_auth_responses)
-async def learning(_: SimpleReq, subject: str = Depends(require_subject_hs256)) -> EnqueuedResponse:
+async def learning(
+    _: SimpleReq, subject: str = Depends(require_subject_hs256), request: Request = None
+) -> EnqueuedResponse:
     """Upskill plan. Requires bearerAuth (JWT)."""
-    return await _inline("learning.upskill", {}, None)
+    corr = getattr(request.state, "correlation_id", None) if request is not None else None
+    return await _inline("learning.upskill", {"correlation_id": corr} if corr else {}, None)
 
 
 @router.post(
@@ -157,10 +184,14 @@ async def finance_investments(
         ),
     ],
     subject: str = Depends(require_scope_hs256("life.finance")),
+    request: Request = None,
 ) -> EnqueuedResponse:
     _ = subject  # subject is currently unused; provided for future auditing/attribution
     """Analyze investments. Requires bearerAuth (JWT)."""
-    return await _inline("finance.investments_daily", {}, None)
+    corr = getattr(request.state, "correlation_id", None) if request is not None else None
+    return await _inline(
+        "finance.investments_daily", {"correlation_id": corr} if corr else {}, None
+    )
 
 
 @router.post(
@@ -202,10 +233,12 @@ async def finance_bills(
         ),
     ],
     subject: str = Depends(require_scope_hs256("life.finance")),
+    request: Request = None,
 ) -> EnqueuedResponse:
     _ = subject
     """Detect and schedule bills. Requires bearerAuth (JWT)."""
-    return await _inline("finance.bills_monthly", {}, None)
+    corr = getattr(request.state, "correlation_id", None) if request is not None else None
+    return await _inline("finance.bills_monthly", {"correlation_id": corr} if corr else {}, None)
 
 
 @router.post(
@@ -247,10 +280,12 @@ async def security_sweep(
         ),
     ],
     subject: str = Depends(require_subject_hs256),
+    request: Request = None,
 ) -> EnqueuedResponse:
     _ = subject
     """Run weekly security sweep. Requires bearerAuth (JWT)."""
-    return await _inline("security.weekly_sweep", {}, None)
+    corr = getattr(request.state, "correlation_id", None) if request is not None else None
+    return await _inline("security.weekly_sweep", {"correlation_id": corr} if corr else {}, None)
 
 
 @router.post(
@@ -294,10 +329,12 @@ async def travel_plan(
         ),
     ],
     subject: str = Depends(require_subject_hs256),
+    request: Request = None,
 ) -> EnqueuedResponse:
     _ = subject
     """Plan travel. Requires bearerAuth (JWT)."""
-    return await _inline("travel.plan", {}, None)
+    corr = getattr(request.state, "correlation_id", None) if request is not None else None
+    return await _inline("travel.plan", {"correlation_id": corr} if corr else {}, None)
 
 
 @router.post(
@@ -331,10 +368,12 @@ async def calendar_organize(
         ),
     ],
     subject: str = Depends(require_subject_hs256),
+    request: Request = None,
 ) -> EnqueuedResponse:
     _ = subject
     """Organize calendar. Requires bearerAuth (JWT)."""
-    return await _inline("calendar.organize_day", {}, None)
+    corr = getattr(request.state, "correlation_id", None) if request is not None else None
+    return await _inline("calendar.organize_day", {"correlation_id": corr} if corr else {}, None)
 
 
 @router.post(
@@ -368,7 +407,9 @@ async def shopping_optimize(
         ),
     ],
     subject: str = Depends(require_subject_hs256),
+    request: Request = None,
 ) -> EnqueuedResponse:
     _ = subject
     """Optimize shopping. Requires bearerAuth (JWT)."""
-    return await _inline("shopping.optimize", {}, None)
+    corr = getattr(request.state, "correlation_id", None) if request is not None else None
+    return await _inline("shopping.optimize", {"correlation_id": corr} if corr else {}, None)

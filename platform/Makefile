@@ -12,8 +12,8 @@ up:
 	docker compose -f platform/infra/docker-compose.yml up -d
 	@echo "Grafana: http://localhost:3001 (admin/admin)"
 	@echo "Prometheus: http://localhost:9090"
-    @echo "Manager Health: http://localhost:8011/health"
-    @echo "Manager Metrics: http://localhost:9109/metrics"
+	@echo "Manager Health: http://localhost:8011/health"
+	@echo "Manager Metrics: http://localhost:9109/metrics"
 
 down:
 	@echo "Stopping local infra and removing volumes..."
@@ -21,7 +21,7 @@ down:
 
 schema:
 	@echo "Exporting JSON Schemas..."
-	$(PY) platform/shared/scripts/export_json_schema.py
+	PYTHONPATH=. $(PY) shared/scripts/export_json_schema.py
 
 fmt:
 	ruff format platform
@@ -34,21 +34,21 @@ test:
 	@echo "No platform tests yet; add under platform/**"
 
 manager:
-    @echo "Run manager consumer"
-    PYTHONPATH=. python platform/orchestration/manager/consumer.py
+	@echo "Run manager consumer"
+	PYTHONPATH=. python platform/orchestration/manager/consumer.py
 
 manager-image:
-    @echo "Build manager consumer image"
-    docker build -f platform/orchestration/manager/Dockerfile -t manager-consumer:dev .
+	@echo "Build manager consumer image"
+	docker build -f platform/orchestration/manager/Dockerfile -t manager-consumer:dev .
 
 manager-up:
-    @echo "Starting manager in compose"
-    docker compose -f platform/infra/docker-compose.yml up -d manager
+	@echo "Starting manager in compose"
+	docker compose -f platform/infra/docker-compose.yml up -d manager
 
 manager-down:
-    @echo "Stopping manager in compose"
-    docker compose -f platform/infra/docker-compose.yml rm -sf manager
+	@echo "Stopping manager in compose"
+	docker compose -f platform/infra/docker-compose.yml rm -sf manager
 
 manager-logs:
-    @echo "Tailing manager logs"
-    docker compose -f platform/infra/docker-compose.yml logs -f manager
+	@echo "Tailing manager logs"
+	docker compose -f platform/infra/docker-compose.yml logs -f manager

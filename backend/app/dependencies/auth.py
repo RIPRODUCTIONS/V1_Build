@@ -157,3 +157,18 @@ def require_scope_hs256(
         return subject
 
     return _dep
+
+
+def optional_require_life_read(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
+) -> str | None:
+    """Optional dependency: if SECURE_MODE is on, enforce life.read; otherwise no-op.
+
+    Returns subject when enforced, or None when SECURE_MODE is disabled.
+    """
+    from app.core.config import get_settings  # local import to avoid cycles at import time
+
+    if get_settings().SECURE_MODE:
+        # Delegate to scope-enforcing dependency using the provided credentials
+        return require_scope_hs256("life.read")(credentials)  # type: ignore[arg-type]
+    return None
