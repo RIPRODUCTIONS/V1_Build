@@ -1,0 +1,29 @@
+{
+  "departments": [
+    {
+      "name": "life",
+      "tasks": [
+        { "key": "health.wellness_daily", "auth": "bearer" },
+        { "key": "nutrition.plan", "auth": "bearer" },
+        { "key": "home.evening_scene", "auth": "bearer" },
+        { "key": "transport.commute", "auth": "bearer" },
+        { "key": "learning.upskill", "auth": "bearer" },
+        { "key": "calendar.organize_day", "auth": "bearer" },
+        { "key": "shopping.optimize", "auth": "bearer" }
+      ]
+    },
+    {
+      "name": "finance",
+      "tasks": [
+        { "key": "finance.investments_daily", "auth": "scope:life.finance" },
+        { "key": "finance.bills_monthly", "auth": "scope:life.finance" }
+      ]
+    },
+    {
+      "name": "safety",
+      "tasks": [
+        { "key": "security.weekly_sweep", "auth": "bearer" }
+      ]
+    }
+  ]
+}

@@ -40,6 +40,7 @@ from app.routers.life import router as life_router
 from app.routers.tasks import router as tasks_router
 from app.routers.users import router as users_router
 from app.routers.comm import router as comm_router
+from app.routers.departments import router as departments_router
 
 # Optional OpenTelemetry imports
 try:  # pragma: no cover - optional dependency
@@ -140,6 +141,7 @@ def create_app() -> FastAPI:
     app.include_router(business_router)
     app.include_router(documents_router)
     app.include_router(life_router)
+    app.include_router(departments_router)
     app.include_router(prototype_router)
     app.include_router(automation_router)
     app.include_router(cursor_bridge)
