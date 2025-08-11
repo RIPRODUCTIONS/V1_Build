@@ -14,3 +14,4 @@ Metrics
 Local infra
 - Start: `make -C platform up` (Prometheus/Grafana/Temporal/Redis/MinIO)
 - Stop: `make -C platform down`
+- Alerts: edit `platform/infra/alerts.yml` and `platform/infra/prometheus.yml`

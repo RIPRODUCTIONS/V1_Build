@@ -10,6 +10,8 @@ bootstrap:
 up:
 	@echo "Starting local infra (docker-compose)..."
 	docker compose -f platform/infra/docker-compose.yml up -d
+	@echo "Grafana: http://localhost:3001 (admin/admin)"
+	@echo "Prometheus: http://localhost:9090"
 
 down:
 	@echo "Stopping local infra and removing volumes..."

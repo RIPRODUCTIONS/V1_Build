@@ -74,6 +74,7 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: admin
     depends_on:
       - prometheus
+      - alertmanager
     ports:
       - "3001:3000"
     volumes:
@@ -83,6 +84,13 @@ services:
       sh -c "mkdir -p /etc/grafana/provisioning/dashboards && \
       printf '%s' '{\n  "apiVersion": 1,\n  "providers": [{\n    "name": "default",\n    "orgId": 1,\n    "type": "file",\n    "disableDeletion": false,\n    "options": {"path": "/var/lib/grafana/dashboards"}\n  }]\n}\n' > /etc/grafana/provisioning/dashboards/provider.yaml && \
       /run.sh"
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
 
 volumes:
   pgdata: {}

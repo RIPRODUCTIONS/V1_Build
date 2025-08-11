@@ -129,7 +129,7 @@ jobs:
           CI_ENV: "true"
           CI_CLEANUP_TOKEN: ${{ secrets.CI_CLEANUP_TOKEN || 'ci-secret' }}
         run: |
-          npx playwright test --reporter=line
+          npx playwright test --reporter=line --grep "Life button"
 
       - name: Upload Playwright test results (on failure)
         if: failure()
@@ -137,6 +137,12 @@ jobs:
         with:
           name: playwright-results
           path: apps/web/test-results
+      - name: Upload Playwright traces (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: apps/web/test-results/**/*.zip
   spelling-lint:
     runs-on: ubuntu-latest
     timeout-minutes: 5

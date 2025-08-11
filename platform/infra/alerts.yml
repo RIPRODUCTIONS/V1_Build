@@ -1,0 +1,11 @@
+groups:
+  - name: api_rules
+    rules:
+      - alert: HighErrorRate
+        expr: sum(rate(http_requests_total{code=~"5.."}[5m])) / sum(rate(http_requests_total[5m])) > 0.005
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: High 5xx error rate (>0.5% for 5m)
+          description: Investigate /metrics and recent deploys.
