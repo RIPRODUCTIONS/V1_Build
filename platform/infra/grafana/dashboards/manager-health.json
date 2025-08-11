@@ -1,0 +1,215 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Manager Health Dashboard",
+    "tags": ["manager", "orchestrator", "planning"],
+    "style": "dark",
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Planning Duration P50",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.5, rate(manager_planning_duration_seconds_bucket[5m]))",
+            "legendFormat": "{{intent}} - {{department}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 0.1},
+                {"color": "red", "value": 0.5}
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": 2,
+        "title": "Planning Duration P95",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(manager_planning_duration_seconds_bucket[5m]))",
+            "legendFormat": "{{intent}} - {{department}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 0.5},
+                {"color": "red", "value": 1.0}
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        }
+      },
+      {
+        "id": 3,
+        "title": "Step Count Distribution",
+        "type": "histogram",
+        "targets": [
+          {
+            "expr": "rate(manager_step_count_bucket[5m])",
+            "legendFormat": "{{intent}} - {{department}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 8
+        }
+      },
+      {
+        "id": 4,
+        "title": "Failure Reasons",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "sum(rate(manager_failures_total[5m])) by (reason)",
+            "legendFormat": "{{reason}}"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 8
+        }
+      },
+      {
+        "id": 5,
+        "title": "Planning Success Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "1 - (sum(rate(manager_failures_total[5m])) / sum(rate(manager_planning_duration_seconds_count[5m])))",
+            "legendFormat": "Success Rate"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 0.95},
+                {"color": "green", "value": 0.99}
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 16
+        }
+      },
+      {
+        "id": 6,
+        "title": "Planning Duration by Department",
+        "type": "heatmap",
+        "targets": [
+          {
+            "expr": "sum(rate(manager_planning_duration_seconds_bucket[5m])) by (le, department)",
+            "format": "heatmap",
+            "legendFormat": "{{department}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              }
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 24
+        }
+      },
+      {
+        "id": 7,
+        "title": "Failure Rate by Intent",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(manager_failures_total[5m])",
+            "legendFormat": "{{intent}} - {{department}} - {{reason}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 32
+        }
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "timepicker": {},
+    "templating": {
+      "list": []
+    },
+    "annotations": {
+      "list": []
+    },
+    "refresh": "10s",
+    "schemaVersion": 27,
+    "version": 1
+  }
+}

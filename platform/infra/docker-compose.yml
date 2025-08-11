@@ -80,6 +80,9 @@ services:
     volumes:
       - grafana-data:/var/lib/grafana
       - ../../deploy/observability/grafana/dashboard_life_metrics.json:/var/lib/grafana/dashboards/life.json:ro
+      - ./grafana/dashboards/api-slo.json:/var/lib/grafana/dashboards/api-slo.json:ro
+      - ./grafana/dashboards/orchestrator.json:/var/lib/grafana/dashboards/orchestrator.json:ro
+      - ./grafana/dashboards/manager-health.json:/var/lib/grafana/dashboards/manager-health.json:ro
     command: >
       sh -c "mkdir -p /etc/grafana/provisioning/dashboards && \
       printf '%s' '{\n  "apiVersion": 1,\n  "providers": [{\n    "name": "default",\n    "orgId": 1,\n    "type": "file",\n    "disableDeletion": false,\n    "options": {"path": "/var/lib/grafana/dashboards"}\n  }]\n}\n' > /etc/grafana/provisioning/dashboards/provider.yaml && \

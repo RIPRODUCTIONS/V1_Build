@@ -11,6 +11,8 @@ type Run = {
   created_at: string;
 };
 
+type ManagerHealth = "healthy" | "degraded" | "down";
+
 export default function RunsPage() {
   const [items, setItems] = React.useState<Run[]>([]);
   const [status, setStatus] = React.useState<string>("");
@@ -19,6 +21,7 @@ export default function RunsPage() {
   const [correlationId, setCorrelationId] = React.useState<string>("");
   const [loading, setLoading] = React.useState(false);
   const [sortBy, setSortBy] = React.useState<string>("created_desc");
+  const [managerHealth, setManagerHealth] = React.useState<ManagerHealth>("down");
 
   async function load() {
     setLoading(true);
@@ -41,8 +44,30 @@ export default function RunsPage() {
     }
   }
 
+  async function checkManagerHealth() {
+    try {
+      const response = await fetch("http://localhost:8080/health");
+      if (response.ok) {
+        setManagerHealth("healthy");
+      } else {
+        setManagerHealth("degraded");
+      }
+    } catch (error) {
+      setManagerHealth("down");
+    }
+  }
+
   React.useEffect(() => {
     load();
+    checkManagerHealth();
+
+    // Set up live polling every 10 seconds
+    const interval = setInterval(() => {
+      load();
+      checkManagerHealth();
+    }, 10000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const clearFilters = () => {
@@ -69,12 +94,30 @@ export default function RunsPage() {
     }
   };
 
+  const getManagerHealthColor = (health: ManagerHealth) => {
+    switch (health) {
+      case "healthy": return "bg-green-100 text-green-800";
+      case "degraded": return "bg-yellow-100 text-yellow-800";
+      case "down": return "bg-red-100 text-red-800";
+      default: return "bg-gray-100 text-gray-800";
+    }
+  };
+
   return (
     <section className="p-6 space-y-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-900">Automation Runs</h1>
-        <div className="text-sm text-gray-600">
-          {items.length} run{items.length !== 1 ? 's' : ''} found
+        <div className="flex items-center gap-4">
+          {/* Manager Health Chip */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600">Manager:</span>
+            <span className={`px-2 py-1 text-xs rounded-full font-medium ${getManagerHealthColor(managerHealth)}`}>
+              {managerHealth === "healthy" ? "OK" : managerHealth === "degraded" ? "Degraded" : "Down"}
+            </span>
+          </div>
+          <div className="text-sm text-gray-600">
+            {items.length} run{items.length !== 1 ? 's' : ''} found
+          </div>
         </div>
       </div>
 
