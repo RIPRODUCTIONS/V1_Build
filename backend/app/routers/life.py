@@ -61,3 +61,33 @@ async def transport(_: SimpleReq) -> EnqueuedResponse:
 @router.post("/learning/upskill", response_model=EnqueuedResponse)
 async def learning(_: SimpleReq) -> EnqueuedResponse:
     return await _inline("learning.upskill", {}, None)
+
+
+@router.post("/finance/investments", response_model=EnqueuedResponse)
+async def finance_investments(_: SimpleReq) -> EnqueuedResponse:
+    return await _inline("finance.investments_daily", {}, None)
+
+
+@router.post("/finance/bills", response_model=EnqueuedResponse)
+async def finance_bills(_: SimpleReq) -> EnqueuedResponse:
+    return await _inline("finance.bills_monthly", {}, None)
+
+
+@router.post("/security/sweep", response_model=EnqueuedResponse)
+async def security_sweep(_: SimpleReq) -> EnqueuedResponse:
+    return await _inline("security.weekly_sweep", {}, None)
+
+
+@router.post("/travel/plan", response_model=EnqueuedResponse)
+async def travel_plan(_: SimpleReq) -> EnqueuedResponse:
+    return await _inline("travel.plan", {}, None)
+
+
+@router.post("/calendar/organize", response_model=EnqueuedResponse)
+async def calendar_organize(_: SimpleReq) -> EnqueuedResponse:
+    return await _inline("calendar.organize_day", {}, None)
+
+
+@router.post("/shopping/optimize", response_model=EnqueuedResponse)
+async def shopping_optimize(_: SimpleReq) -> EnqueuedResponse:
+    return await _inline("shopping.optimize", {}, None)

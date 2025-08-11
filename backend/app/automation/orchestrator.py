@@ -114,6 +114,52 @@ register_dag(
         "learning.schedule",
     ],
 )
+register_dag(
+    "finance.investments_daily",
+    [
+        "finance.portfolio_snapshot",
+        "finance.rebalance_suggest",
+    ],
+)
+register_dag(
+    "finance.bills_monthly",
+    [
+        "finance.bill_detect",
+        "finance.bill_schedule",
+    ],
+)
+register_dag(
+    "security.weekly_sweep",
+    [
+        "security.password_audit",
+        "security.breach_scan",
+        "security.device_posture_check",
+    ],
+)
+register_dag(
+    "travel.plan",
+    [
+        "travel.find_deals",
+        "travel.build_itinerary",
+        "travel.check_in_reminders",
+    ],
+)
+register_dag(
+    "calendar.organize_day",
+    [
+        "calendar.find_slots",
+        "calendar.schedule_tasks",
+        "calendar.auto_followups",
+    ],
+)
+register_dag(
+    "shopping.optimize",
+    [
+        "shopping.price_track",
+        "shopping.cart_optimize",
+        "shopping.receipt_categorize",
+    ],
+)
 
 
 @celery.task(name="automation.run_dag", bind=True, acks_late=True, max_retries=2)

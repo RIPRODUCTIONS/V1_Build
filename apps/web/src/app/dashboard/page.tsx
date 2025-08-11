@@ -410,6 +410,12 @@ export default function Dashboard() {
             { path: "/life/home/evening", label: "Home Evening" },
             { path: "/life/transport/commute", label: "Commute" },
             { path: "/life/learning/upskill", label: "Upskill" },
+            { path: "/life/finance/investments", label: "Finance Investments" },
+            { path: "/life/finance/bills", label: "Finance Bills" },
+            { path: "/life/security/sweep", label: "Security Sweep" },
+            { path: "/life/travel/plan", label: "Travel Plan" },
+            { path: "/life/calendar/organize", label: "Calendar Organize" },
+            { path: "/life/shopping/optimize", label: "Shopping Optimize" },
           ].map((a) => (
             <button
               key={a.path}
