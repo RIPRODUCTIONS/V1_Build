@@ -36,6 +36,11 @@ Paths are defined in `.env` and also exposed via `toolkits/` symlinks. Update `.
 - `ALLOWED_ORIGINS` (comma separated, e.g. http://localhost:3000)
 - `CI_ENV` (true/false), `CI_CLEANUP_TOKEN` (secret for cleanup)
 
+### Dev tokens
+
+- Mint: `PYTHONPATH=backend python3 scripts/mint_jwt.py you@example.com --scopes life.finance`
+- Use: `curl -H "Authorization: Bearer <token>" -H "Content-Type: application/json" -d '{}' http://127.0.0.1:8000/life/finance/bills`
+
 ### Web `.env` keys
 
 - `NEXT_PUBLIC_API_BASE_URL` (e.g. http://127.0.0.1:8000)
@@ -72,12 +77,12 @@ The teardown calls `DELETE /admin/cleanup/all` with `X-CI-Token` to clear test d
 
 | Endpoint | Method | Purpose | Auth | Status Codes | Request Example | Response Example |
 |---|---|---|---|---|---|---|
-| /life/finance/investments | POST | Investment analysis / rebalance | none | 200/202, 400/422 | See OpenAPI examples (happy_path, validation_error) | EnqueuedResponse |
-| /life/finance/bills | POST | Detect and schedule bills | none | 200/202, 400/422 | OpenAPI | EnqueuedResponse |
-| /life/security/sweep | POST | Weekly security sweep | none | 200/202, 400/422 | OpenAPI | EnqueuedResponse |
-| /life/travel/plan | POST | Build travel plan | none | 200/202, 400/422 | OpenAPI | EnqueuedResponse |
-| /life/calendar/organize | POST | Organize daily schedule | none | 200/202 | OpenAPI | EnqueuedResponse |
-| /life/shopping/optimize | POST | Optimize shopping | none | 200/202 | OpenAPI | EnqueuedResponse |
+| /life/finance/investments | POST | Investment analysis / rebalance | bearerAuth + scope: life.finance | 200/202, 400/422 | See OpenAPI examples (happy_path, validation_error) | EnqueuedResponse |
+| /life/finance/bills | POST | Detect and schedule bills | bearerAuth + scope: life.finance | 200/202, 400/422 | OpenAPI | EnqueuedResponse |
+| /life/security/sweep | POST | Weekly security sweep | bearerAuth | 200/202, 400/422 | OpenAPI | EnqueuedResponse |
+| /life/travel/plan | POST | Build travel plan | bearerAuth | 200/202, 400/422 | OpenAPI | EnqueuedResponse |
+| /life/calendar/organize | POST | Organize daily schedule | bearerAuth | 200/202 | OpenAPI | EnqueuedResponse |
+| /life/shopping/optimize | POST | Optimize shopping | bearerAuth | 200/202 | OpenAPI | EnqueuedResponse |
 
 Notes:
 - Correlation: header `X-Correlation-Id` is accepted and echoed on responses.
