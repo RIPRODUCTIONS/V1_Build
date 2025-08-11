@@ -40,6 +40,7 @@ register_dag(
     "ideation.full_pipeline",
     ["ideation.generate", "ideation.research_validate", "ideation.market_analysis"],
 )
+register_dag("research.market_gap_scanner", ["research.market_gap_scanner"])
 register_dag("relationship.openers", ["relationship.generate_openers"])
 register_dag(
     "business.marketing_launch",

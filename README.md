@@ -1,223 +1,213 @@
-# AI Business Engine
+# 🚀 AI Business Engine
 
-A complete autonomous business automation platform that replaces traditional business roles with AI agents, handling everything from idea generation to deployment and scaling.
+**Your personal AI-powered business empire-in-a-box** - designed to run 24/7, learn over time, and execute at a scale and speed no human team could match.
+
+## 🎯 What This Is
+
+This system is **built solely for you** — a fully autonomous AI-driven business cockpit designed to replace an entire company's operations with a single operator: **you**.
+
+Instead of being a SaaS product or something intended for small businesses or enterprises, every feature is tuned for **your own control, privacy, and rapid execution**.
+
+The AI Business Engine is your **central command center**, integrating research, development, testing, deployment, scaling, and ongoing management into one cohesive and secure platform. All decisions, data, and automation stay entirely within your control — no external dependencies, no shared access, and no compromises.
+
+## 🏗️ Architecture Overview
+
+- **Frontend**: Next.js 14 with TypeScript and Tailwind CSS
+- **Backend**: FastAPI with Python 3.13, SQLAlchemy ORM
+- **Database**: SQLite (dev) / PostgreSQL (prod)
+- **Queue**: Redis Streams with Celery workers
+- **Orchestrator**: Manager orchestrator with Redis event bus
+- **Observability**: Prometheus metrics + Grafana dashboards
+- **Security**: JWT-based RBAC with scope-based permissions
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Python 3.11+
+- Python 3.13+
 - Node.js 18+
-- Docker & Docker Compose
-- Redis
-- PostgreSQL (optional, SQLite for development)
+- Redis (for production features)
+- Docker (optional, for full stack)
 
 ### 1. Clone & Setup
 ```bash
-git clone <repository>
+git clone <your-repo>
 cd "V1 of builder"
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-pip install -r backend/requirements.txt
-cd apps/web && npm install
 ```
 
-### 2. Environment Variables
-```bash
-# Backend (.env)
-JWT_SECRET=your-secret-key
-JWT_ALGORITHM=HS256
-SECURE_MODE=1  # Enable RBAC enforcement
-REDIS_URL=redis://localhost:6379
-DATABASE_URL=sqlite:///./dev.db
-
-# Frontend (.env.local)
-NEXT_PUBLIC_API_URL=http://localhost:8000
-NEXT_PUBLIC_WEB_ORIGIN=http://localhost:3000
-```
-
-### 3. Start Services
-```bash
-# Start platform infrastructure
-cd platform/infra
-docker-compose up -d
-
-# Start backend
-cd ../../backend
-uvicorn app.main:app --host 0.0.0.0 --port 8000
-
-# Start frontend
-cd ../apps/web
-npm run dev
-
-# Start manager orchestrator
-cd ../../platform/orchestration/manager
-REDIS_URL=redis://localhost:6379 python consumer.py
-```
-
-### 4. Access Services
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:8000
-- **Grafana**: http://localhost:3001 (admin/admin)
-- **Prometheus**: http://localhost:9090
-- **Manager Health**: http://localhost:8080/health
-
-## 🔐 Authentication & Scopes
-
-### JWT Token Structure
-```json
-{
-  "sub": "user_id",
-  "scopes": ["life.read", "runs.write", "admin.*"],
-  "exp": 1234567890
-}
-```
-
-### Required Scopes by Endpoint
-
-#### Life Automation (`/life/*`)
-- **POST** `/life/health/wellness_daily` → `life.read` + `life.write`
-- **POST** `/life/nutrition/plan` → `life.read` + `life.write`
-- **POST** `/life/home/evening_scene` → `life.read` + `life.write`
-
-#### Runs Management (`/runs/*`)
-- **GET** `/runs` → `runs.read` (or `life.read` if SECURE_MODE=0)
-- **GET** `/runs/{id}` → `runs.read`
-- **PATCH** `/runs/{id}` → `runs.write`
-- **GET** `/runs/{id}/artifacts` → `artifacts.read`
-
-#### Departments (`/departments/*`)
-- **GET** `/departments` → `departments.read`
-- **GET** `/departments/tasks/catalog` → `departments.read`
-
-#### Administrative
-- **All admin routes** → `admin.*`
-- **Health/metrics** → No auth required
-
-## 📊 API Endpoints
-
-### Core Endpoints
-- `GET /health` - Service health check
-- `GET /metrics` - Prometheus metrics
-- `GET /docs` - OpenAPI documentation
-
-### Life Automation
-- `POST /life/health/wellness_daily` - Daily wellness automation
-- `POST /life/nutrition/plan` - Nutrition planning
-- `POST /life/home/evening_scene` - Home automation
-- `POST /life/transport/commute` - Transport optimization
-- `POST /life/learning/upskill` - Learning automation
-
-### Runs & Artifacts
-- `GET /runs` - List automation runs with filtering
-- `GET /runs/{id}` - Get run details
-- `PATCH /runs/{id}` - Update run status
-- `GET /runs/{id}/artifacts` - Get run artifacts
-
-### Departments
-- `GET /departments` - List AI departments
-- `GET /departments/tasks/catalog` - Get task catalog
-
-## 🏗️ Architecture
-
-### Core Components
-1. **Backend API** (FastAPI + SQLAlchemy)
-2. **Frontend Dashboard** (Next.js + TypeScript)
-3. **Event Processing Engine** (Redis Streams)
-4. **Manager Orchestrator** (Rule-based planning)
-5. **AI Department System** (Specialized automation domains)
-6. **Observability Stack** (Prometheus + Grafana)
-
-### Event Flow
-```
-automation.run.requested → Manager → Department → Artifacts
-```
-
-### Data Flow
-1. User triggers automation via UI
-2. Backend emits `automation.run.requested` event
-3. Manager consumes event and creates execution plan
-4. Manager emits `run.started` and `run.status.updated` events
-5. Results stored as artifacts with correlation IDs
-
-## 📈 Monitoring & Observability
-
-### Metrics Available
-- **API Performance**: Request rate, latency (p50/p95), error rate
-- **Orchestrator Health**: Redis Stream lag, queue depth, reprocessing
-- **Manager Health**: Planning duration, step count, failure reasons
-- **Agent Metrics**: Token usage, costs, latency (Batch E)
-
-### Dashboards
-- **API SLO**: Performance and error monitoring
-- **Orchestrator**: Redis Streams and queue health
-- **Manager Health**: Planning and execution metrics
-
-### Health Checks
-- Backend: `GET /health`, `GET /readyz`
-- Manager: `GET /health/manager`
-- Metrics: `GET /metrics`
-
-## 🧪 Testing
-
-### Backend Tests
+### 2. Backend Setup
 ```bash
 cd backend
-pytest tests/ -v
+python3 -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+pip install -r requirements.txt
 ```
 
-### Frontend Tests
+### 3. Frontend Setup
 ```bash
 cd apps/web
-npm run test
-npm run test:e2e
+npm install
 ```
 
-### Load Testing
+### 4. Start Development Servers
 ```bash
-# Using k6 (install separately)
-k6 run scripts/load-test.js
+# Terminal 1: Backend
+cd backend && source .venv/bin/activate
+python -m uvicorn app.main:app --reload --port 8000
+
+# Terminal 2: Frontend
+cd apps/web
+npm run dev
+```
+
+### 5. Access the System
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8000
+- **API Docs**: http://localhost:8000/docs
+- **Metrics**: http://localhost:8000/metrics
+
+## 🔐 Security & Authentication
+
+### RBAC Scopes
+The system uses JWT-based authentication with scope-based access control:
+
+- **`life.read`** - Access to life management features
+- **`runs.read`** - View automation runs and status
+- **`runs.write`** - Modify run status and metadata
+- **`departments.read`** - View department information
+- **`artifacts.read`** - Access run artifacts
+- **`admin.*`** - Full administrative access
+
+### Getting a Token
+```bash
+# Generate a JWT token with specific scopes
+cd backend
+source .venv/bin/activate
+python scripts/mint_jwt.py --scopes "runs.read,runs.write,departments.read"
+```
+
+## 📊 Core Endpoints
+
+### Health & Status
+- `GET /health` - Basic health check
+- `GET /health/manager` - Manager orchestrator health
+- `GET /metrics` - Prometheus metrics
+
+### Automation & Runs
+- `GET /runs` - List automation runs with filtering
+- `GET /runs/{id}` - Get specific run details
+- `GET /runs/{id}/artifacts` - Get run artifacts
+- `PATCH /runs/{id}` - Update run status
+
+### Business Department
+- `POST /business/idea-engine/run` - Launch Idea Engine
+- `GET /business/idea-engine/results/{run_id}` - Get results
+
+### Research Department
+- `POST /research/market-gaps/run` - Run Market Gap Scanner
+- `GET /research/market-gaps/results` - Get scanner results
+
+## 🎯 Key Features
+
+### ✅ Idea Engine (Production Ready)
+- AI-powered business idea generation
+- Market research and validation
+- Comprehensive business analysis
+- Opportunity scoring and ranking
+
+### 🚧 Runs Console (Batch D)
+- Real-time run monitoring
+- Advanced filtering and search
+- Live status updates
+- Manager health monitoring
+
+### 🚧 Market Gap Scanner (Batch E)
+- Automated market opportunity detection
+- Competitive landscape analysis
+- Trend identification and scoring
+
+## 📈 Observability
+
+### Metrics Available
+- **API Performance**: Request rate, latency (p50/p95), error rates
+- **Orchestrator Health**: Redis stream lag, planning duration, step counts
+- **Idea Engine**: Run counts, execution latency, ideas generated
+- **System Health**: Queue depths, consumer group status
+
+### Grafana Dashboards
+- **AI Business Engine Dashboard**: Complete system overview
+- **API SLO Dashboard**: Performance and reliability metrics
+- **Orchestrator Dashboard**: Event processing and health
+
+## 🔧 Development
+
+### Running Tests
+```bash
+cd backend
+source .venv/bin/activate
+python -m pytest tests/ -v
+```
+
+### Code Quality
+```bash
+cd backend
+source .venv/bin/activate
+ruff check --fix .
+black .
+```
+
+### Database Migrations
+```bash
+cd backend
+source .venv/bin/activate
+alembic upgrade head
 ```
 
 ## 🚀 Deployment
 
-### Local Development
+### Local with Docker Compose
 ```bash
-make up          # Start all services
-make down        # Stop all services
-make logs        # View logs
-make test        # Run tests
+docker-compose up -d
 ```
 
-### Production
+### Production (Kubernetes)
 ```bash
-# Build and deploy
-docker build -t ai-business-engine .
-docker run -p 8000:8000 ai-business-engine
+cd deploy/k8s
+kubectl apply -k .
 ```
 
 ## 📚 Documentation
 
-- [Architecture Overview](docs/ARCHITECTURE.md)
-- [API Contracts](docs/contracts/)
-- [Operations Guide](docs/operations.md)
-- [Contributing Guidelines](docs/CONTRIBUTING.md)
+- **Architecture**: `docs/ARCHITECTURE.md` - Complete system breakdown
+- **Operations**: `docs/operations.md` - Day-to-day operations guide
+- **Idea Engine**: `docs/IDEA_ENGINE.md` - Detailed usage guide
+
+## 🎯 Current Status: Batch D
+
+**✅ Completed**
+- Core infrastructure (backend, frontend, database)
+- Idea Engine with full pipeline
+- Basic RBAC and security
+- Metrics and observability foundation
+- Runs Console with filtering and live updates
+
+**🚧 In Progress**
+- Enhanced RBAC enforcement
+- Grafana dashboard provisioning
+- Error taxonomy and retry policies
+
+**📋 Next: Batch E**
+- Research Department integration
+- Advanced automation patterns
+- Self-healing capabilities
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests
-5. Submit a pull request
-
-See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for detailed guidelines.
+This is a **personal automation platform** built for single-operator use. All contributions should focus on enhancing personal productivity and business automation capabilities.
 
 ## 📄 License
 
-This project is proprietary and confidential.
+Private use only - not for distribution or commercial use.
 
 ---
 
-**Status**: Batch D (Web UI & Docs) - In Progress
-**Version**: v0.85.0-pre
-**Next Milestone**: Batch E (AI Agent Integration)
+**Built for maximum leverage, minimum dependency, and absolute control.**

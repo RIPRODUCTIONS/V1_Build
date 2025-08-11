@@ -2,17 +2,14 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.orm import Session
-
 from app.db import get_db
-from app.dependencies.auth import optional_require_life_read
+from app.dependencies.auth import require_runs_read_scope, require_runs_write_scope
 from app.models import AgentRun, Artifact
 from app.obs.run_logger import run_logger
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from sqlalchemy.orm import Session
 
-router = APIRouter(
-    prefix="/runs", tags=["runs"], dependencies=[Depends(optional_require_life_read)]
-)
+router = APIRouter(prefix="/runs", tags=["runs"])
 get_db_dep = Depends(get_db)
 
 
@@ -26,6 +23,7 @@ def list_runs(  # noqa: PLR0913
     intent: str | None = Query(default=None),
     department: str | None = Query(default=None),
     correlation_id: str | None = Query(default=None),
+    subject: str = Depends(require_runs_read_scope),
 ) -> dict[str, Any]:
     """List automation runs with filtering and pagination."""
     q = db.query(AgentRun)
@@ -87,11 +85,20 @@ def list_runs(  # noqa: PLR0913
 
 
 @router.get("/{run_id}")
-def get_run(run_id: int, db: Session = get_db_dep) -> dict[str, Any]:
+def get_run(
+    run_id: int,
+    db: Session = get_db_dep,
+    subject: str = Depends(require_runs_read_scope),
+    request: Request = None,
+) -> dict[str, Any]:
     """Get details of a specific automation run."""
     r = db.get(AgentRun, run_id)
     if not r:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="not_found")
+        correlation_id = getattr(request.state, "correlation_id", None) if request else None
+        detail = {"error": "not_found"}
+        if correlation_id:
+            detail["correlation_id"] = correlation_id
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=detail)
 
     # Log the access
     run_logger.log_run_event(
@@ -121,18 +128,27 @@ def update_run(
     department: str | None = None,
     correlation_id: str | None = None,
     db: Session = get_db_dep,
+    subject: str = Depends(require_runs_write_scope),
+    request: Request = None,
 ) -> dict[str, Any]:
     """Update run status and metadata (internal use only)."""
     r = db.get(AgentRun, run_id)
     if not r:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="not_found")
+        req_correlation_id = getattr(request.state, "correlation_id", None) if request else None
+        detail = {"error": "not_found"}
+        if req_correlation_id:
+            detail["correlation_id"] = req_correlation_id
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=detail)
 
     # Validate status if provided
     if status and status not in ["pending", "started", "completed", "failed", "cancelled"]:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid status: {status}. Must be one of: pending, started, completed, failed, cancelled",
-        )
+        req_correlation_id = getattr(request.state, "correlation_id", None) if request else None
+        detail = {
+            "error": f"Invalid status: {status}. Must be one of: pending, started, completed, failed, cancelled"
+        }
+        if req_correlation_id:
+            detail["correlation_id"] = req_correlation_id
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
 
     # Track what's being updated
     updates = {}
@@ -177,11 +193,20 @@ def update_run(
 
 
 @router.get("/{run_id}/artifacts")
-def run_artifacts(run_id: int, db: Session = get_db_dep) -> dict[str, Any]:
+def run_artifacts(
+    run_id: int,
+    db: Session = get_db_dep,
+    subject: str = Depends(require_runs_read_scope),
+    request: Request = None,
+) -> dict[str, Any]:
     """Get artifacts for a specific automation run."""
     r = db.get(AgentRun, run_id)
     if not r:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="not_found")
+        correlation_id = getattr(request.state, "correlation_id", None) if request else None
+        detail = {"error": "not_found"}
+        if correlation_id:
+            detail["correlation_id"] = correlation_id
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=detail)
 
     arts = db.query(Artifact).filter(Artifact.run_id == run_id).order_by(Artifact.id).all()
     items = [

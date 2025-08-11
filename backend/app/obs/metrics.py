@@ -100,6 +100,38 @@ QUEUE_DEPTH = Gauge(
     ["stream", "consumer_group"],
 )
 
+# Idea Engine & Automation Metrics
+IDEA_ENGINE_RUNS = Counter(
+    "idea_engine_runs_total",
+    "Total Idea Engine runs by pipeline type",
+    ["pipeline_type", "status", "department"],
+)
+
+IDEA_ENGINE_LATENCY = Histogram(
+    "idea_engine_latency_seconds",
+    "Idea Engine execution latency in seconds",
+    ["pipeline_type", "department"],
+    buckets=[0.1, 0.25, 0.5, 1, 2, 5, 10, 30, 60],
+)
+
+IDEA_ENGINE_IDEAS_GENERATED = Counter(
+    "idea_engine_ideas_total",
+    "Total business ideas generated",
+    ["department", "complexity", "market_size"],
+)
+
+AUTOMATION_RUNS_BY_INTENT = Counter(
+    "automation_runs_total",
+    "Total automation runs by intent",
+    ["intent", "department", "status"],
+)
+
+AUTOMATION_ARTIFACTS_CREATED = Counter(
+    "automation_artifacts_total",
+    "Total artifacts created by automation runs",
+    ["kind", "department", "status"],
+)
+
 # Agent Metrics (for Batch E)
 AGENT_TOKENS_TOTAL = Counter(
     "agent_tokens_total",

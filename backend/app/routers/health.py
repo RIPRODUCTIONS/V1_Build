@@ -35,3 +35,28 @@ def readyz():
 def metrics():
     """Prometheus metrics endpoint"""
     return metrics_endpoint()
+
+
+@router.get("/health/manager")
+def manager_health():
+    """Manager orchestrator health check"""
+    try:
+        # TODO: Add actual manager health check when orchestrator is running
+        # For now, return basic health status
+        return {
+            "status": "healthy",
+            "component": "manager_orchestrator",
+            "timestamp": "2025-08-11T23:00:00Z",
+            "details": {
+                "redis_connection": "unknown",
+                "event_processing": "unknown",
+                "last_heartbeat": "unknown",
+            },
+        }
+    except Exception as exc:
+        return {
+            "status": "unhealthy",
+            "component": "manager_orchestrator",
+            "error": str(exc),
+            "timestamp": "2025-08-11T23:00:00Z",
+        }

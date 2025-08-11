@@ -1,458 +1,418 @@
-# AI Business Engine Operations Guide
+# 🚀 AI Business Engine Operations Guide
 
-## Overview
+**Your complete guide to running, monitoring, and maintaining the AI Business Engine in production.**
 
-This guide provides operational procedures for running, monitoring, and maintaining the AI Business Engine in both development and production environments.
+## 📋 Table of Contents
 
-## Quick Start
+1. [Daily Operations](#daily-operations)
+2. [Security & Key Management](#security--key-management)
+3. [Monitoring & Alerting](#monitoring--alerting)
+4. [Troubleshooting](#troubleshooting)
+5. [Recovery Procedures](#recovery-procedures)
+6. [Performance Tuning](#performance-tuning)
+7. [Backup & Disaster Recovery](#backup--disaster-recovery)
 
-### 1. Start All Services
+## 🏃‍♂️ Daily Operations
+
+### Health Check Routine
 ```bash
-# Start platform infrastructure
-cd platform/infra
-docker-compose up -d
-
-# Start backend
-cd ../../backend
-uvicorn app.main:app --host 0.0.0.0 --port 8000
-
-# Start frontend
-cd ../apps/web
-npm run dev
-
-# Start manager orchestrator
-cd ../../platform/orchestration/manager
-REDIS_URL=redis://localhost:6379 python consumer.py
-```
-
-### 2. Verify Health
-```bash
-# Backend health
+# 1. Check system health
 curl http://localhost:8000/health
+curl http://localhost:8000/health/manager
 
-# Manager health
-curl http://localhost:8080/health
+# 2. Check metrics
+curl http://localhost:8000/metrics | grep -E "(up|error|latency)"
 
-# Metrics
-curl http://localhost:8000/metrics
+# 3. Check recent runs
+curl http://localhost:8000/runs?limit=5
+
+# 4. Check queue depths
+curl http://localhost:8000/metrics | grep queue_depth
 ```
 
-### 3. Access Services
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:8000
-- **Grafana**: http://localhost:3001 (admin/admin)
-- **Prometheus**: http://localhost:9090
+### Key Metrics to Monitor
+- **API Latency**: p95 < 300ms
+- **Error Rate**: < 1% (4xx/5xx responses)
+- **Redis Stream Lag**: < 60 seconds
+- **Manager Health**: Status = "healthy"
+- **Queue Depth**: < 100 items per stream
 
-## Key Management
+## 🔐 Security & Key Management
 
 ### JWT Secret Rotation
-
-#### 1. Generate New Secret
 ```bash
-# Generate new secret
+# 1. Generate new secret
 openssl rand -hex 32
 
-# Update environment variable
-export JWT_SECRET=new-secret-here
-```
+# 2. Update environment
+export JWT_SECRET="new-secret-here"
 
-#### 2. Update Configuration
-```bash
-# Backend .env
-JWT_SECRET=new-secret-here
-
-# Restart backend service
-pkill -f "uvicorn app.main:app"
+# 3. Restart backend services
 cd backend
-uvicorn app.main:app --host 0.0.0.0 --port 8000
+pkill -f uvicorn
+source .venv/bin/activate
+python -m uvicorn app.main:app --reload --port 8000
+
+# 4. Verify new tokens work
+python scripts/mint_jwt.py --scopes "runs.read"
 ```
 
-#### 3. Verify Rotation
+### API Key Rotation
 ```bash
-# Test with old token (should fail)
-curl -H "Authorization: Bearer old-token" http://localhost:8000/life/health/wellness_daily
+# 1. Check current keys in use
+grep -r "API_KEY" backend/app/
 
-# Test with new token (should work)
-curl -H "Authorization: Bearer new-token" http://localhost:8000/life/health/wellness_daily
+# 2. Generate new keys
+openssl rand -hex 16
+
+# 3. Update environment variables
+export GOOGLE_API_KEY="new-key"
+export REDDIT_API_KEY="new-key"
+
+# 4. Restart services
+docker-compose restart backend
 ```
 
-### Admin Token Management
+### Scope Management
 ```bash
-# Mint new admin token
-cd backend
-python scripts/mint_jwt.py admin@example.com --scopes admin.*,life.read,runs.write
+# View current user scopes
+curl -H "Authorization: Bearer $TOKEN" http://localhost:8000/auth/me
 
-# Use token
-export ADMIN_TOKEN="your-token-here"
-curl -H "Authorization: Bearer $ADMIN_TOKEN" http://localhost:8000/admin/status
+# Generate token with specific scopes
+python scripts/mint_jwt.py --scopes "runs.read,runs.write,departments.read"
+
+# Revoke token (if using Redis for token storage)
+redis-cli DEL "token:$TOKEN_HASH"
 ```
 
-## Redis Stream Management
+## 📊 Monitoring & Alerting
 
-### 1. Check Stream Health
+### Grafana Dashboard Setup
 ```bash
-# Connect to Redis
-redis-cli
+# 1. Access Grafana
+open http://localhost:3001
+# Default: admin/admin
 
-# Check stream info
-XINFO STREAM events
-XINFO GROUPS events
-XINFO CONSUMERS events manager_group
+# 2. Import dashboards
+# - AI Business Engine Dashboard: deploy/observability/grafana/dashboard_ai_business_engine.json
+# - API SLO Dashboard: deploy/observability/grafana/dashboard_api_slo.json
+
+# 3. Set up alerts
+# - High latency: p95 > 1s for 5 minutes
+# - High error rate: > 5% for 2 minutes
+# - Manager down: status != "healthy"
 ```
 
-### 2. Recover Stuck Streams
-
-#### Identify Stuck Consumers
-```bash
-# Check consumer lag
-XINFO GROUPS events
-
-# Check pending messages
-XPENDING events manager_group
-```
-
-#### Reset Consumer Group
-```bash
-# Reset to beginning of stream
-XGROUP SETID events manager_group 0
-
-# Or reset to specific message ID
-XGROUP SETID events manager_group 1234567890-0
-```
-
-#### Clear Pending Messages
-```bash
-# Claim pending messages
-XCLAIM events manager_group manager_1 0 1234567890-0
-
-# Or acknowledge all pending
-XPENDING events manager_group - + 10 manager_1
-```
-
-### 3. Dead Letter Queue Management
-
-#### Check DLQ
-```bash
-# View DLQ contents
-XREAD COUNT 10 STREAMS automation.dlq 0
-
-# Check DLQ size
-XLEN automation.dlq
-```
-
-#### Reprocess DLQ Messages
-```bash
-# Move messages back to main stream
-XADD events * data "reprocessed-message"
-XDEL automation.dlq message-id
-```
-
-## Database Operations
-
-### 1. Schema Management
-```bash
-# Check current schema
-cd backend
-python -c "from app.db import engine; from app.models import Base; Base.metadata.create_all(engine)"
-
-# Run migrations
-alembic upgrade head
-
-# Check migration status
-alembic current
-alembic history
-```
-
-### 2. Data Recovery
-```bash
-# Backup database
-sqlite3 dev.db ".backup backup_$(date +%Y%m%d_%H%M%S).db"
-
-# Restore from backup
-sqlite3 dev.db ".restore backup_20241201_120000.db"
-```
-
-### 3. Performance Monitoring
-```bash
-# Check slow queries
-sqlite3 dev.db "PRAGMA stats;"
-
-# Analyze table performance
-sqlite3 dev.db "ANALYZE;"
-```
-
-## Monitoring & Alerting
-
-### 1. Prometheus Metrics
-
-#### Key Metrics to Monitor
-- **API Performance**: `api_request_latency_seconds`
-- **Error Rate**: `api_errors_total`
-- **Redis Health**: `redis_stream_lag_seconds`
-- **Manager Health**: `manager_planning_duration_seconds`
-
-#### Check Metrics
-```bash
-# Get current metrics
-curl http://localhost:8000/metrics
-
-# Query specific metric
-curl "http://localhost:9090/api/v1/query?query=rate(api_requests_total[5m])"
-```
-
-### 2. Grafana Dashboards
-
-#### Dashboard Access
-- **API SLO**: http://localhost:3001/d/api-slo
-- **Orchestrator**: http://localhost:3001/d/orchestrator
-- **Manager Health**: http://localhost:3001/d/manager-health
-
-#### Create Alerts
+### Prometheus Alerts
 ```yaml
-# Example alert rule
+# Example alert rules
 groups:
-  - name: api_alerts
+  - name: ai-business-engine
     rules:
-      - alert: HighErrorRate
-        expr: rate(api_errors_total[5m]) > 0.05
-        for: 2m
+      - alert: HighAPILatency
+        expr: histogram_quantile(0.95, rate(api_request_latency_seconds_bucket[5m])) > 1
+        for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "High API error rate detected"
+          summary: "API latency is high"
+          description: "P95 latency is {{ $value }}s"
+
+      - alert: ManagerDown
+        expr: up{job="manager"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Manager orchestrator is down"
 ```
 
-### 3. Health Check Endpoints
-
-#### Backend Health
+### Log Monitoring
 ```bash
-# Basic health
-curl http://localhost:8000/health
+# Check application logs
+tail -f backend/logs/app.log | grep -E "(ERROR|WARN|CRITICAL)"
 
-# Readiness check
+# Check system logs
+journalctl -u ai-business-engine -f
+
+# Check Redis logs
+tail -f /var/log/redis/redis-server.log
+```
+
+## 🚨 Troubleshooting
+
+### Common Issues & Solutions
+
+#### 1. High API Latency
+```bash
+# Check current latency
+curl http://localhost:8000/metrics | grep "api_request_latency_seconds"
+
+# Check database performance
+curl http://localhost:8000/metrics | grep "db_connection_pool"
+
+# Check Redis performance
+redis-cli --latency
+redis-cli --latency-history
+```
+
+**Solutions:**
+- Increase database connection pool size
+- Add Redis connection pooling
+- Enable query result caching
+- Check for N+1 queries
+
+#### 2. Redis Stream Lag
+```bash
+# Check stream lag
+curl http://localhost:8000/metrics | grep "redis_stream_lag_seconds"
+
+# Check consumer groups
+redis-cli XINFO GROUPS automation.events
+redis-cli XINFO CONSUMERS automation.events manager
+```
+
+**Solutions:**
+- Increase consumer concurrency
+- Check consumer health
+- Restart stuck consumers
+- Scale consumer instances
+
+#### 3. Manager Orchestrator Issues
+```bash
+# Check manager health
+curl http://localhost:8000/health/manager
+
+# Check manager logs
+tail -f platform/orchestration/manager/manager.log
+
+# Check Redis connection
+redis-cli PING
+```
+
+**Solutions:**
+- Restart manager service
+- Check Redis connectivity
+- Verify event stream health
+- Check consumer group status
+
+## 🔄 Recovery Procedures
+
+### Stuck Stream Recovery
+```bash
+# 1. Identify stuck streams
+redis-cli XINFO STREAM automation.events
+redis-cli XINFO GROUPS automation.events
+
+# 2. Check pending messages
+redis-cli XPENDING automation.events manager
+
+# 3. Claim stuck messages
+redis-cli XCLAIM automation.events manager consumer2 3600000 1234567890-0
+
+# 4. Reset consumer group (if necessary)
+redis-cli XGROUP DELCONSUMER automation.events manager consumer1
+redis-cli XGROUP SETID automation.events manager 0
+```
+
+### Dead Letter Queue (DLQ) Recovery
+```bash
+# 1. Check DLQ contents
+redis-cli XRANGE automation.dlq - + COUNT 10
+
+# 2. Analyze failed events
+redis-cli XINFO STREAM automation.dlq
+
+# 3. Reprocess specific events
+redis-cli XREAD COUNT 1 STREAMS automation.dlq 0
+
+# 4. Move back to main stream
+redis-cli XADD automation.events * event_type "automation.run.requested" ...
+```
+
+### Database Recovery
+```bash
+# 1. Check database health
 curl http://localhost:8000/readyz
 
-# Metrics endpoint
+# 2. Check connection pool
+curl http://localhost:8000/metrics | grep "db_connections"
+
+# 3. Restart database (if using Docker)
+docker-compose restart postgres
+
+# 4. Run migrations
+cd backend
+alembic upgrade head
+```
+
+### Service Recovery
+```bash
+# 1. Restart backend
+cd backend
+pkill -f uvicorn
+source .venv/bin/activate
+python -m uvicorn app.main:app --reload --port 8000
+
+# 2. Restart frontend
+cd apps/web
+pkill -f "next dev"
+npm run dev
+
+# 3. Restart manager
+cd platform/orchestration/manager
+pkill -f consumer.py
+python consumer.py
+```
+
+## ⚡ Performance Tuning
+
+### Backend Optimization
+```python
+# 1. Increase worker processes
+uvicorn app.main:app --workers 4 --port 8000
+
+# 2. Enable connection pooling
+DATABASE_URL="postgresql://user:pass@localhost/db?pool_size=20&max_overflow=30"
+
+# 3. Enable Redis connection pooling
+REDIS_URL="redis://localhost:6379?max_connections=50"
+```
+
+### Frontend Optimization
+```bash
+# 1. Enable production build
+npm run build
+npm start
+
+# 2. Enable compression
+# Add to next.config.mjs
+const nextConfig = {
+  compress: true,
+  poweredByHeader: false,
+}
+```
+
+### Redis Optimization
+```bash
+# 1. Check Redis memory usage
+redis-cli INFO memory
+
+# 2. Enable persistence
+redis-cli CONFIG SET save "900 1 300 10 60 10000"
+
+# 3. Set memory limits
+redis-cli CONFIG SET maxmemory "2gb"
+redis-cli CONFIG SET maxmemory-policy "allkeys-lru"
+```
+
+## 💾 Backup & Disaster Recovery
+
+### Database Backup
+```bash
+# SQLite backup
+cp backend/dev.db backend/dev.db.backup.$(date +%Y%m%d_%H%M%S)
+
+# PostgreSQL backup
+pg_dump -h localhost -U username -d ai_business_engine > backup_$(date +%Y%m%d).sql
+
+# Automated backup script
+#!/bin/bash
+BACKUP_DIR="/backups/$(date +%Y%m%d)"
+mkdir -p $BACKUP_DIR
+pg_dump -h localhost -U username -d ai_business_engine > $BACKUP_DIR/db_backup.sql
+cp -r backend/artifacts $BACKUP_DIR/
+tar -czf $BACKUP_DIR/backup.tar.gz $BACKUP_DIR/
+```
+
+### Configuration Backup
+```bash
+# Backup environment files
+cp .env .env.backup.$(date +%Y%m%d)
+
+# Backup configuration files
+tar -czf config_backup_$(date +%Y%m%d).tar.gz \
+  backend/app/core/config.py \
+  deploy/ \
+  docker-compose.yml
+```
+
+### Recovery Procedures
+```bash
+# 1. Restore database
+psql -h localhost -U username -d ai_business_engine < backup_20241201.sql
+
+# 2. Restore configuration
+tar -xzf config_backup_20241201.tar.gz
+
+# 3. Restart services
+docker-compose down
+docker-compose up -d
+
+# 4. Verify recovery
+curl http://localhost:8000/health
 curl http://localhost:8000/metrics
 ```
 
-#### Manager Health
-```bash
-# Manager status
-curl http://localhost:8080/health
+## 🧪 Testing & Validation
 
-# Manager metrics
-curl http://localhost:8080/metrics
+### Load Testing
+```bash
+# Using k6
+k6 run tools/k6/life_smoke.js
+
+# Using Apache Bench
+ab -n 1000 -c 10 http://localhost:8000/health
+
+# Using wrk
+wrk -t12 -c400 -d30s http://localhost:8000/health
 ```
 
-## Troubleshooting
-
-### 1. Common Issues
-
-#### Backend Won't Start
+### Chaos Testing
 ```bash
-# Check dependencies
-pip install -r requirements.txt
+# Kill Redis
+docker-compose stop redis
+# Wait 30 seconds
+docker-compose start redis
 
-# Check environment variables
-echo $JWT_SECRET
-echo $DATABASE_URL
+# Kill database
+docker-compose stop postgres
+# Wait 60 seconds
+docker-compose start postgres
 
-# Check port availability
-lsof -i :8000
+# Kill manager
+pkill -f consumer.py
+# Wait 30 seconds
+python consumer.py
 ```
 
-#### Manager Consumer Issues
-```bash
-# Check Redis connection
-redis-cli ping
-
-# Check consumer logs
-cd platform/orchestration/manager
-REDIS_URL=redis://localhost:6379 python consumer.py
-
-# Reset consumer group if needed
-redis-cli XGROUP SETID events manager_group 0
-```
-
-#### Frontend Issues
-```bash
-# Check API connectivity
-curl http://localhost:8000/health
-
-# Check environment variables
-echo $NEXT_PUBLIC_API_URL
-
-# Clear Next.js cache
-rm -rf .next
-npm run dev
-```
-
-### 2. Performance Issues
-
-#### High Latency
-```bash
-# Check API metrics
-curl http://localhost:8000/metrics | grep latency
-
-# Check database performance
-sqlite3 dev.db "PRAGMA stats;"
-
-# Check Redis performance
-redis-cli INFO stats
-```
-
-#### Memory Issues
-```bash
-# Check process memory
-ps aux | grep python
-ps aux | grep node
-
-# Check Docker memory
-docker stats
-
-# Restart services if needed
-docker-compose restart
-```
-
-### 3. Security Issues
-
-#### Authentication Failures
-```bash
-# Check JWT secret
-echo $JWT_SECRET
-
-# Verify token format
-python -c "import jwt; print(jwt.decode('your-token', options={'verify_signature': False})"
-
-# Check scope requirements
-curl -H "Authorization: Bearer your-token" http://localhost:8000/runs
-```
-
-#### CORS Issues
-```bash
-# Check allowed origins
-echo $ALLOWED_ORIGINS
-
-# Test CORS headers
-curl -H "Origin: http://localhost:3000" -v http://localhost:8000/health
-```
-
-## Backup & Recovery
-
-### 1. Regular Backups
-```bash
-# Database backup
-sqlite3 dev.db ".backup backup_$(date +%Y%m%d).db"
-
-# Configuration backup
-tar -czf config_backup_$(date +%Y%m%d).tar.gz .env platform/infra/
-
-# Log backup
-tar -czf logs_backup_$(date +%Y%m%d).tar.gz logs/
-```
-
-### 2. Disaster Recovery
-```bash
-# Stop all services
-docker-compose down
-pkill -f "uvicorn app.main:app"
-pkill -f "python consumer.py"
-
-# Restore from backup
-sqlite3 dev.db ".restore backup_20241201.db"
-cp config_backup_20241201.tar.gz ./
-tar -xzf config_backup_20241201.tar.gz
-
-# Restart services
-docker-compose up -d
-cd backend && uvicorn app.main:app --host 0.0.0.0 --port 8000 &
-cd ../platform/orchestration/manager && REDIS_URL=redis://localhost:6379 python consumer.py &
-```
-
-## Maintenance Procedures
-
-### 1. Daily Checks
-- [ ] Check service health endpoints
-- [ ] Review error logs
-- [ ] Monitor dashboard metrics
-- [ ] Verify Redis stream health
-
-### 2. Weekly Tasks
-- [ ] Review performance metrics
-- [ ] Check disk space usage
-- [ ] Update dependencies
-- [ ] Review security logs
-
-### 3. Monthly Tasks
-- [ ] Rotate JWT secrets
-- [ ] Review and update alerts
-- [ ] Performance optimization
-- [ ] Security audit
-
-## Emergency Procedures
-
-### 1. Service Outage
-```bash
-# Immediate response
-docker-compose restart
-pkill -f "uvicorn app.main:app"
-cd backend && uvicorn app.main:app --host 0.0.0.0 --port 8000 &
-
-# Check logs
-docker-compose logs -f
-tail -f backend/logs/app.log
-```
-
-### 2. Data Corruption
-```bash
-# Stop all services
-docker-compose down
-pkill -f "uvicorn app.main:app"
-
-# Restore from backup
-sqlite3 dev.db ".restore latest_backup.db"
-
-# Verify data integrity
-sqlite3 dev.db "PRAGMA integrity_check;"
-
-# Restart services
-docker-compose up -d
-cd backend && uvicorn app.main:app --host 0.0.0.0 --port 8000 &
-```
-
-### 3. Security Breach
-```bash
-# Immediate actions
-export JWT_SECRET=new-emergency-secret
-pkill -f "uvicorn app.main:app"
-
-# Restart with new secret
-cd backend && uvicorn app.main:app --host 0.0.0.0 --port 8000 &
-
-# Review access logs
-tail -f logs/access.log | grep suspicious_ip
-```
-
-## Contact Information
-
-### On-Call Engineer
-- **Primary**: [Primary Engineer Name] - [Phone/Email]
-- **Secondary**: [Secondary Engineer Name] - [Phone/Email]
+## 📞 Emergency Contacts
 
 ### Escalation Path
-1. On-call engineer (immediate)
-2. Team lead (within 30 minutes)
-3. Engineering manager (within 1 hour)
-4. CTO (within 2 hours)
+1. **Level 1**: Automated monitoring and self-healing
+2. **Level 2**: Manual intervention and recovery procedures
+3. **Level 3**: System administrator (you)
 
-### External Dependencies
-- **Redis**: Managed by platform team
-- **Database**: Managed by DBA team
-- **Monitoring**: Managed by SRE team
+### Emergency Procedures
+```bash
+# 1. Stop all services
+docker-compose down
+pkill -f "uvicorn\|next\|python.*consumer"
+
+# 2. Check system resources
+df -h
+free -h
+top
+
+# 3. Restart core services
+docker-compose up -d redis postgres
+cd backend && python -m uvicorn app.main:app --port 8000
+cd apps/web && npm run dev
+
+# 4. Verify recovery
+curl http://localhost:8000/health
+```
 
 ---
 
-**Last Updated**: 2024-12-01
-**Version**: v0.85.0-pre
-**Next Review**: 2024-12-15
+**Remember**: This is your personal AI business engine. Keep it running smoothly, and it will keep your business running autonomously! 🚀

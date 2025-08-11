@@ -110,7 +110,7 @@ export default function Dashboard() {
             Manager: {managerStatus}
           </div>
           <Link href="/runs" className="text-blue-600 hover:underline">
-            View All Runs
+            Runs Console
           </Link>
         </div>
       </div>

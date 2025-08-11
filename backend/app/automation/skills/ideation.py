@@ -4,7 +4,14 @@ import logging
 from datetime import UTC, datetime
 from typing import Any
 
+import time
+
 from app.automation.registry import skill
+from app.obs.metrics import (
+    IDEA_ENGINE_IDEAS_GENERATED,
+    IDEA_ENGINE_LATENCY,
+    IDEA_ENGINE_RUNS,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +27,8 @@ TREND_SOURCES = {
 @skill("ideation.generate")
 async def generate_ideas(context: dict[str, Any]) -> dict[str, Any]:
     """Generate market-validated business ideas using AI and trend analysis"""
+    start_time = time.time()
+
     topic = (context.get("topic") or "business automation").strip()
     count = int(context.get("count") or 5)
     include_research = context.get("include_research", True)
@@ -30,9 +39,27 @@ async def generate_ideas(context: dict[str, Any]) -> dict[str, Any]:
     if include_research:
         # Enhance with market research
         enhanced_ideas = await _enhance_with_research(base_ideas, topic)
-        return {**context, "ideas": enhanced_ideas, "research_included": True}
+        result = {**context, "ideas": enhanced_ideas, "research_included": True}
+    else:
+        result = {**context, "ideas": base_ideas, "research_included": False}
 
-    return {**context, "ideas": base_ideas, "research_included": False}
+    # Record metrics
+    execution_time = time.time() - start_time
+    pipeline_type = "full" if include_research else "basic"
+
+    IDEA_ENGINE_RUNS.labels(
+        pipeline_type=pipeline_type, status="success", department="business"
+    ).inc()
+
+    IDEA_ENGINE_LATENCY.labels(pipeline_type=pipeline_type, department="business").observe(
+        execution_time
+    )
+
+    IDEA_ENGINE_IDEAS_GENERATED.labels(
+        department="business", complexity="mixed", market_size="mixed"
+    ).inc(count)
+
+    return result
 
 
 @skill("ideation.research_validate")
