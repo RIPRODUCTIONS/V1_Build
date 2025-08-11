@@ -209,6 +209,72 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Research Department */}
+      <div>
+        <h2 className="text-2xl font-semibold mb-4">Research Department</h2>
+        <div className="bg-white border rounded-lg p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-medium text-gray-900">Market Gap Scanner</h3>
+              <p className="text-gray-600 text-sm">AI-powered market opportunity identification</p>
+            </div>
+            <Link
+              href="/research/market-gaps"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Open Scanner
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div>
+              <span className="font-medium text-gray-700">Capability:</span>
+              <span className="ml-2 text-gray-600">Market Analysis</span>
+            </div>
+            <div>
+              <span className="font-medium text-gray-700">Output:</span>
+              <span className="ml-2 text-gray-600">Business Opportunities</span>
+            </div>
+            <div>
+              <span className="font-medium text-gray-700">Frequency:</span>
+              <span className="ml-2 text-gray-600">On-Demand</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Business Department */}
+      <div>
+        <h2 className="text-2xl font-semibold mb-4">Business Department</h2>
+        <div className="bg-white border rounded-lg p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-medium text-gray-900">Idea Engine</h3>
+              <p className="text-gray-600 text-sm">AI-powered business idea generation and market validation</p>
+            </div>
+            <Link
+              href="/business"
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            >
+              Launch Idea Engine
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div>
+              <span className="font-medium text-gray-700">Capability:</span>
+              <span className="ml-2 text-gray-600">Idea Generation & Validation</span>
+            </div>
+            <div>
+              <span className="font-medium text-gray-700">Output:</span>
+              <span className="ml-2 text-gray-600">Market-Validated Business Ideas</span>
+            </div>
+            <div>
+              <span className="font-medium text-gray-700">Frequency:</span>
+              <span className="ml-2 text-gray-600">On-Demand</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Recent Automation Runs */}
       <div>
         <h2 className="text-2xl font-semibold mb-4">Recent Automation Runs</h2>

@@ -43,6 +43,7 @@ from app.routers.users import router as users_router
 from app.routers.comm import router as comm_router
 from app.routers.departments import router as departments_router
 from app.routers.runs import router as runs_router
+from app.routers.research import router as research_router
 
 # Optional OpenTelemetry imports
 try:  # pragma: no cover - optional dependency
@@ -148,12 +149,11 @@ def create_app() -> FastAPI:
     app.include_router(automation_router)
     app.include_router(cursor_bridge)
     app.include_router(runs_router)
+    app.include_router(research_router)
     Base.metadata.create_all(bind=engine)
     # Dev/CI sqlite additive migrations (ignore errors on non-sqlite)
-    try:  # pragma: no cover
+    with suppress(Exception):  # pragma: no cover
         migrate_dev_sqlite()
-    except Exception:
-        pass
     return app
 
 

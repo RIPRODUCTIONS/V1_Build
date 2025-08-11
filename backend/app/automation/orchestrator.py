@@ -36,6 +36,10 @@ register_dag("lead.intake", ["lead.create_record", "lead.schedule_followup"])
 register_dag("finance.pay_bill", ["finance.ocr_and_categorize", "finance.schedule_payment"])
 register_dag("agent.prototype", ["prototype.enqueue_build"])
 register_dag("ideation.generate", ["ideation.generate"])
+register_dag(
+    "ideation.full_pipeline",
+    ["ideation.generate", "ideation.research_validate", "ideation.market_analysis"],
+)
 register_dag("relationship.openers", ["relationship.generate_openers"])
 register_dag(
     "business.marketing_launch",
