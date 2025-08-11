@@ -7,6 +7,12 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
     jwt_secret: str = Field(default="change-me", env="JWT_SECRET")
     jwt_algorithm: str = Field(default="HS256", env="JWT_ALGORITHM")
+    jwt_issuer: str | None = Field(default=None, env="JWT_ISSUER")
+    jwt_audience: str | None = Field(default=None, env="JWT_AUDIENCE")
+    jwt_leeway_seconds: int = Field(default=0, env="JWT_LEEWAY_SECONDS")
+    jwt_verify_exp: bool = Field(default=True, env="JWT_VERIFY_EXP")
+    jwt_verify_iat: bool = Field(default=True, env="JWT_VERIFY_IAT")
+    jwt_verify_nbf: bool = Field(default=True, env="JWT_VERIFY_NBF")
     access_token_expire_minutes: int = Field(default=60, env="ACCESS_TOKEN_EXPIRE_MINUTES")
 
     admin_username: str = Field(default="admin", env="ADMIN_USERNAME")

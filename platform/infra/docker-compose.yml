@@ -59,6 +59,32 @@ services:
     depends_on:
       - temporal
 
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    command: --config.file=/etc/prometheus/prometheus.yml --storage.tsdb.retention.time=24h
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:10.4.3
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    depends_on:
+      - prometheus
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ../../deploy/observability/grafana/dashboard_life_metrics.json:/var/lib/grafana/dashboards/life.json:ro
+    command: >
+      sh -c "mkdir -p /etc/grafana/provisioning/dashboards && \
+      printf '%s' '{\n  "apiVersion": 1,\n  "providers": [{\n    "name": "default",\n    "orgId": 1,\n    "type": "file",\n    "disableDeletion": false,\n    "options": {"path": "/var/lib/grafana/dashboards"}\n  }]\n}\n' > /etc/grafana/provisioning/dashboards/provider.yaml && \
+      /run.sh"
+
 volumes:
   pgdata: {}
   minio: {}
+  grafana-data: {}

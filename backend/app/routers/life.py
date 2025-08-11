@@ -84,6 +84,7 @@ _auth_responses = {
 
 @router.post("/health/wellness", response_model=EnqueuedResponse, responses=_auth_responses)
 async def wellness(_: SimpleReq, subject: str = Depends(require_subject_hs256)) -> EnqueuedResponse:
+    """Trigger daily wellness automation. Requires bearerAuth (JWT)."""
     return await _inline("health.wellness_daily", {}, None)
 
 
@@ -91,11 +92,13 @@ async def wellness(_: SimpleReq, subject: str = Depends(require_subject_hs256)) 
 async def nutrition(
     _: SimpleReq, subject: str = Depends(require_subject_hs256)
 ) -> EnqueuedResponse:
+    """Plan nutrition tasks. Requires bearerAuth (JWT)."""
     return await _inline("nutrition.plan", {}, None)
 
 
 @router.post("/home/evening", response_model=EnqueuedResponse, responses=_auth_responses)
 async def home(_: SimpleReq, subject: str = Depends(require_subject_hs256)) -> EnqueuedResponse:
+    """Run evening home scene. Requires bearerAuth (JWT)."""
     return await _inline("home.evening_scene", {}, None)
 
 
@@ -103,11 +106,13 @@ async def home(_: SimpleReq, subject: str = Depends(require_subject_hs256)) -> E
 async def transport(
     _: SimpleReq, subject: str = Depends(require_subject_hs256)
 ) -> EnqueuedResponse:
+    """Commute helper. Requires bearerAuth (JWT)."""
     return await _inline("transport.commute", {}, None)
 
 
 @router.post("/learning/upskill", response_model=EnqueuedResponse, responses=_auth_responses)
 async def learning(_: SimpleReq, subject: str = Depends(require_subject_hs256)) -> EnqueuedResponse:
+    """Upskill plan. Requires bearerAuth (JWT)."""
     return await _inline("learning.upskill", {}, None)
 
 
@@ -152,6 +157,7 @@ async def finance_investments(
     subject: str = Depends(require_subject_hs256),
 ) -> EnqueuedResponse:
     _ = subject  # subject is currently unused; provided for future auditing/attribution
+    """Analyze investments. Requires bearerAuth (JWT)."""
     return await _inline("finance.investments_daily", {}, None)
 
 
@@ -196,6 +202,7 @@ async def finance_bills(
     subject: str = Depends(require_subject_hs256),
 ) -> EnqueuedResponse:
     _ = subject
+    """Detect and schedule bills. Requires bearerAuth (JWT)."""
     return await _inline("finance.bills_monthly", {}, None)
 
 
@@ -240,6 +247,7 @@ async def security_sweep(
     subject: str = Depends(require_subject_hs256),
 ) -> EnqueuedResponse:
     _ = subject
+    """Run weekly security sweep. Requires bearerAuth (JWT)."""
     return await _inline("security.weekly_sweep", {}, None)
 
 
@@ -286,6 +294,7 @@ async def travel_plan(
     subject: str = Depends(require_subject_hs256),
 ) -> EnqueuedResponse:
     _ = subject
+    """Plan travel. Requires bearerAuth (JWT)."""
     return await _inline("travel.plan", {}, None)
 
 
@@ -322,6 +331,7 @@ async def calendar_organize(
     subject: str = Depends(require_subject_hs256),
 ) -> EnqueuedResponse:
     _ = subject
+    """Organize calendar. Requires bearerAuth (JWT)."""
     return await _inline("calendar.organize_day", {}, None)
 
 
@@ -358,4 +368,5 @@ async def shopping_optimize(
     subject: str = Depends(require_subject_hs256),
 ) -> EnqueuedResponse:
     _ = subject
+    """Optimize shopping. Requires bearerAuth (JWT)."""
     return await _inline("shopping.optimize", {}, None)

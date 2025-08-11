@@ -29,6 +29,11 @@ select = ["E", "F", "I", "UP", "B", "SIM", "PL"]
 ignore = ["E501"]
 
 [tool.ruff.lint.per-file-ignores]
+"backend/app/automation/orchestrator.py" = ["PLC0415"]
+"backend/app/prototype_builder/tasks.py" = ["PLC0415"]
+"backend/app/reliability/rate_limiter.py" = ["PLC0415"]
+"backend/tests/test_research_flag.py" = ["PLC0415"]
+"backend/tests/test_tools_web_research.py" = ["PLC0415"]
 "backend/tests/**/*.py" = ["PLR2004"]
 
 [tool.mypy]
