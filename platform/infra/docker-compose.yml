@@ -85,6 +85,25 @@ services:
       printf '%s' '{\n  "apiVersion": 1,\n  "providers": [{\n    "name": "default",\n    "orgId": 1,\n    "type": "file",\n    "disableDeletion": false,\n    "options": {"path": "/var/lib/grafana/dashboards"}\n  }]\n}\n' > /etc/grafana/provisioning/dashboards/provider.yaml && \
       /run.sh"
 
+  manager:
+    build:
+      context: ../..
+      dockerfile: platform/orchestration/manager/Dockerfile
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      MANAGER_METRICS_PORT: 9109
+      MANAGER_HEALTH_PORT: 8011
+    depends_on:
+      - redis
+    ports:
+      - "8011:8011"
+      - "9109:9109"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8011/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
   alertmanager:
     image: prom/alertmanager:v0.27.0
     ports:

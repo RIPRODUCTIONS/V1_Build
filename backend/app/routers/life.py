@@ -7,7 +7,7 @@ from app.automation.idempotency import claim_or_get, store_result
 from app.automation.orchestrator import run_dag
 from app.automation.state import set_status
 from app.dependencies.auth import require_scope_hs256, require_subject_hs256
-from fastapi import APIRouter, Body, Depends
+from fastapi import APIRouter, Body, Depends, Request
 from pydantic import BaseModel
 
 router = APIRouter(
@@ -83,9 +83,11 @@ _auth_responses = {
 
 
 @router.post("/health/wellness", response_model=EnqueuedResponse, responses=_auth_responses)
-async def wellness(_: SimpleReq, subject: str = Depends(require_subject_hs256)) -> EnqueuedResponse:
+async def wellness(_: SimpleReq, subject: str = Depends(require_subject_hs256), request: Request = None) -> EnqueuedResponse:
     """Trigger daily wellness automation. Requires bearerAuth (JWT)."""
-    return await _inline("health.wellness_daily", {}, None)
+    _ = subject
+    corr = getattr(request.state, "correlation_id", None) if request is not None else None
+    return await _inline("health.wellness_daily", {"correlation_id": corr} if corr else {}, None)
 
 
 @router.post("/nutrition/plan", response_model=EnqueuedResponse, responses=_auth_responses)
