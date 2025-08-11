@@ -175,6 +175,13 @@ def optional_require_life_read(
 
 
 # New RBAC scopes for enhanced security
+def require_runs_read_scope(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
+) -> str:
+    """Require runs.read scope for viewing run data."""
+    return require_scope_hs256("runs.read")(credentials)
+
+
 def require_runs_write_scope(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
 ) -> str:

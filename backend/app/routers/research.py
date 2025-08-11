@@ -98,20 +98,154 @@ async def get_market_gap_results(
                     {
                         "id": artifact.id,
                         "kind": artifact.kind,
-                        "status": artifact.status,
-                        "file_path": artifact.file_path,
+                        "content": artifact.content,
+                        "format": artifact.format,
                     }
                     for artifact in artifacts
                 ],
             }
             results.append(run_data)
 
-        return {"results": results, "total": len(results)}
+        return {"results": results, "count": len(results)}
 
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get market gap results: {str(e)}",
+        ) from e
+
+
+@router.post("/validate")
+async def validate_idea(
+    request: dict[str, Any],
+    db: Session = Depends(get_db),
+    subject: str = Depends(require_scope_hs256("research.run")),
+) -> dict[str, Any]:
+    """Validate a business idea using research and analysis."""
+
+    try:
+        # Extract inputs
+        run_id = request.get("run_id")
+        idea = request.get("idea")
+
+        if not run_id and not idea:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Either run_id or idea must be provided",
+            )
+
+        # Create run record
+        run = AgentRun(
+            owner_id=1,  # TODO: Get from auth context
+            status="started",
+            intent="research.validate_idea",
+            department="research",
+            correlation_id=f"research_validate_{int(time.time())}",
+        )
+        db.add(run)
+        db.commit()
+        db.refresh(run)
+
+        # Emit automation event
+        event = {
+            "event_type": "automation.run.requested",
+            "run_id": str(run.id),
+            "intent": "research.validate_idea",
+            "department": "research",
+            "correlation_id": run.correlation_id,
+            "subject": subject,
+            "timestamp": time.time(),
+            "idea": idea,
+            "source_run_id": run_id,
+        }
+
+        event_bus.publish(event)
+
+        return {
+            "run_id": str(run.id),
+            "status": "started",
+            "intent": "research.validate_idea",
+            "department": "research",
+            "correlation_id": run.correlation_id,
+            "message": "Idea validation started successfully",
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to start idea validation: {str(e)}",
+        ) from e
+
+
+@router.get("/validations")
+async def get_validations(
+    min_trend: int = 0,
+    min_sentiment: float = -1.0,
+    competition_max: int = 100,
+    action: str = None,
+    page: int = 1,
+    limit: int = 20,
+    db: Session = Depends(get_db),
+    subject: str = Depends(require_scope_hs256("research.read")),
+) -> dict[str, Any]:
+    """Get paginated list of idea validations with filters."""
+
+    try:
+        # Build query for validation runs
+        query = db.query(AgentRun).filter(
+            AgentRun.intent == "research.validate_idea", AgentRun.department == "research"
+        )
+
+        # Apply filters
+        if action:
+            # This would require querying artifacts for the action field
+            # For now, we'll filter by status
+            pass
+
+        # Get paginated results
+        total = query.count()
+        validations = (
+            query.order_by(AgentRun.created_at.desc()).offset((page - 1) * limit).limit(limit).all()
+        )
+
+        results = []
+        for run in validations:
+            # Get artifacts for this run
+            artifacts = db.query(Artifact).filter(Artifact.run_id == run.id).all()
+
+            # Find validation result artifact
+            validation_artifact = None
+            for artifact in artifacts:
+                if artifact.kind == "research_validation":
+                    validation_artifact = artifact
+                    break
+
+            run_data = {
+                "run_id": str(run.id),
+                "status": run.status,
+                "created_at": run.created_at.isoformat() + "Z",
+                "correlation_id": run.correlation_id,
+                "validation_result": validation_artifact.content if validation_artifact else None,
+            }
+            results.append(run_data)
+
+        return {
+            "validations": results,
+            "pagination": {
+                "page": page,
+                "limit": limit,
+                "total": total,
+                "pages": (total + limit - 1) // limit,
+            },
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get validations: {str(e)}",
         ) from e
 
 

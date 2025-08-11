@@ -41,6 +41,8 @@ register_dag(
     ["ideation.generate", "ideation.research_validate", "ideation.market_analysis"],
 )
 register_dag("research.market_gap_scanner", ["research.market_gap_scanner"])
+register_dag("research.validate_idea", ["research.validate_idea"])
+register_dag("ideation.research_pipeline", ["ideation.generate", "research.validate_idea"])
 register_dag("relationship.openers", ["relationship.generate_openers"])
 register_dag(
     "business.marketing_launch",

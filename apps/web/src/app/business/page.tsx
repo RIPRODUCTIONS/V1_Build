@@ -130,6 +130,77 @@ export default function BusinessDepartment() {
     }
   };
 
+  const runFullResearchPipeline = async () => {
+    try {
+      // First, run the idea engine
+      const ideaResponse = await fetch("/api/automation/submit", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          intent: "ideation.generate",
+          payload: {
+            topic: ideaTopic,
+            count: ideaCount,
+            include_research: false, // We'll do research separately
+          },
+          idempotency_key: crypto.randomUUID(),
+        }),
+      });
+
+      const ideaResult = await ideaResponse.json();
+      const ideaRunId = ideaResult.run_id;
+
+      // Add idea run to tracking
+      setRuns((prev) => ({ ...prev, [ideaRunId]: { run_id: ideaRunId, status: "queued" } }));
+
+      // Wait for idea generation to complete, then trigger research validation
+      const pollIdeaCompletion = async () => {
+        try {
+          const ideaRun = await fetch(`/api/automation/runs/${ideaRunId}`).then((x) => x.json());
+
+          if (ideaRun.status === "succeeded" && ideaRun.result?.ideas) {
+            // Idea generation completed, now run research validation
+            const researchResponse = await fetch("/api/research/validate", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({
+                run_id: ideaRunId,
+              }),
+            });
+
+            if (researchResponse.ok) {
+              const researchResult = await researchResponse.json();
+              const researchRunId = researchResult.run_id;
+
+              // Add research run to tracking
+              setRuns((prev) => ({ ...prev, [researchRunId]: { run_id: researchRunId, status: "queued" } }));
+              setCurrentRun(researchRunId);
+
+              console.log("Full pipeline started: Idea → Research", {
+                ideaRunId,
+                researchRunId,
+                correlationId: researchResult.correlation_id,
+              });
+            }
+          } else if (ideaRun.status === "failed") {
+            console.error("Idea generation failed:", ideaRun);
+          } else {
+            // Still running, poll again in 2 seconds
+            setTimeout(pollIdeaCompletion, 2000);
+          }
+        } catch (error) {
+          console.error("Failed to poll idea completion:", error);
+        }
+      };
+
+      // Start polling for idea completion
+      setTimeout(pollIdeaCompletion, 2000);
+
+    } catch (error) {
+      console.error("Failed to start full research pipeline:", error);
+    }
+  };
+
   const getCurrentResults = () => {
     if (!currentRun || !runs[currentRun]) return null;
     return runs[currentRun].result;
@@ -217,6 +288,13 @@ export default function BusinessDepartment() {
               className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
             >
               Full Pipeline (Generate + Research + Analysis)
+            </button>
+
+            <button
+              onClick={() => runFullResearchPipeline()}
+              className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+            >
+              Run Full Pipeline (Idea → Research)
             </button>
           </div>
         </div>

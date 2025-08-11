@@ -112,6 +112,9 @@ export default function Dashboard() {
           <Link href="/runs" className="text-blue-600 hover:underline">
             Runs Console
           </Link>
+          <Link href="/research" className="text-purple-600 hover:underline">
+            Research & Validation
+          </Link>
         </div>
       </div>
 
