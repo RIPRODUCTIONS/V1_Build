@@ -68,6 +68,9 @@ class Settings(BaseSettings):
     # Caching/Queue
     REDIS_URL: str = Field(default="redis://localhost:6379/0", env="REDIS_URL")
 
+    # Security toggle for read RBAC on selected endpoints
+    SECURE_MODE: bool = Field(default=False, env="SECURE_MODE")
+
     # Celery queues for automation
     CELERY_BROKER_URL: str = Field(default="redis://127.0.0.1:6379/1", env="CELERY_BROKER_URL")
     CELERY_RESULT_BACKEND: str = Field(

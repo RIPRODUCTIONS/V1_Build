@@ -30,3 +30,7 @@ lint:
 
 test:
 	@echo "No platform tests yet; add under platform/**"
+
+manager:
+    @echo "Run manager consumer"
+    PYTHONPATH=. python platform/orchestration/manager/consumer.py
