@@ -1,97 +1,223 @@
-# Builder
+# AI Business Engine
 
-A clean, well-structured foundation for AI project scaffolding. Centralized env, consistent tooling, and clear entry points.
+A complete autonomous business automation platform that replaces traditional business roles with AI agents, handling everything from idea generation to deployment and scaling.
 
-## Quick start
+## 🚀 Quick Start
 
+### Prerequisites
+- Python 3.11+
+- Node.js 18+
+- Docker & Docker Compose
+- Redis
+- PostgreSQL (optional, SQLite for development)
+
+### 1. Clone & Setup
 ```bash
-# create and activate venv, install safe deps
-make venv
-make safe-install
-
-# run health check
-make health
+git clone <repository>
+cd "V1 of builder"
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+pip install -r backend/requirements.txt
+cd apps/web && npm install
 ```
 
-## Layout
+### 2. Environment Variables
+```bash
+# Backend (.env)
+JWT_SECRET=your-secret-key
+JWT_ALGORITHM=HS256
+SECURE_MODE=1  # Enable RBAC enforcement
+REDIS_URL=redis://localhost:6379
+DATABASE_URL=sqlite:///./dev.db
 
-- `src/builder`: Typed Python package for scaffolding and orchestration
-- `scripts/`: Operational scripts and automation entrypoints
-- `toolkits/`: Symlinked, space-free pointers to external tool/resource dirs
-- `.venv/`: Project virtual environment
+# Frontend (.env.local)
+NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_WEB_ORIGIN=http://localhost:3000
+```
 
-## Environment
+### 3. Start Services
+```bash
+# Start platform infrastructure
+cd platform/infra
+docker-compose up -d
 
-Paths are defined in `.env` and also exposed via `toolkits/` symlinks. Update `.env` if locations change.
+# Start backend
+cd ../../backend
+uvicorn app.main:app --host 0.0.0.0 --port 8000
 
-### Backend `.env` keys
+# Start frontend
+cd ../apps/web
+npm run dev
 
-- `DATABASE_URL` (default sqlite:///./dev.db)
-- `JWT_SECRET`, `JWT_ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES`
-- `ADMIN_USERNAME`, `ADMIN_PASSWORD`
-- `SENTRY_DSN` (optional)
-- `REDIS_URL` (e.g., redis://127.0.0.1:6379/0)
-- `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND` (e.g., redis://127.0.0.1:6379/1 and /2)
-- `OTEL_EXPORTER_OTLP_ENDPOINT` (optional)
-- `ALLOWED_ORIGINS` (comma separated, e.g. http://localhost:3000)
-- `CI_ENV` (true/false), `CI_CLEANUP_TOKEN` (secret for cleanup)
+# Start manager orchestrator
+cd ../../platform/orchestration/manager
+REDIS_URL=redis://localhost:6379 python consumer.py
+```
 
-### Dev tokens
+### 4. Access Services
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8000
+- **Grafana**: http://localhost:3001 (admin/admin)
+- **Prometheus**: http://localhost:9090
+- **Manager Health**: http://localhost:8080/health
 
-- Mint: `PYTHONPATH=backend python3 scripts/mint_jwt.py you@example.com --scopes life.finance`
-- Use: `curl -H "Authorization: Bearer <token>" -H "Content-Type: application/json" -d '{}' http://127.0.0.1:8000/life/finance/bills`
+## 🔐 Authentication & Scopes
 
-### Web `.env` keys
+### JWT Token Structure
+```json
+{
+  "sub": "user_id",
+  "scopes": ["life.read", "runs.write", "admin.*"],
+  "exp": 1234567890
+}
+```
 
-- `NEXT_PUBLIC_API_BASE_URL` (e.g. http://127.0.0.1:8000)
-- `NEXT_PUBLIC_WEB_ORIGIN` (e.g. http://localhost:3000)
+### Required Scopes by Endpoint
 
-## Testing with cleanup
+#### Life Automation (`/life/*`)
+- **POST** `/life/health/wellness_daily` → `life.read` + `life.write`
+- **POST** `/life/nutrition/plan` → `life.read` + `life.write`
+- **POST** `/life/home/evening_scene` → `life.read` + `life.write`
 
-Run API and web locally, then run Playwright. To enable auto-clean after tests:
+#### Runs Management (`/runs/*`)
+- **GET** `/runs` → `runs.read` (or `life.read` if SECURE_MODE=0)
+- **GET** `/runs/{id}` → `runs.read`
+- **PATCH** `/runs/{id}` → `runs.write`
+- **GET** `/runs/{id}/artifacts` → `artifacts.read`
 
-1. Set API envs while running the API:
-   - `CI_ENV=true`
-   - `CI_CLEANUP_TOKEN=<secret>`
-2. Set Playwright envs:
-   - `API_BASE_URL=http://127.0.0.1:8000`
-   - `CI_ENV=true`
-   - `CI_CLEANUP_TOKEN=<secret>`
-3. Execute tests from `apps/web`:
-   - `npm run test`
+#### Departments (`/departments/*`)
+- **GET** `/departments` → `departments.read`
+- **GET** `/departments/tasks/catalog` → `departments.read`
 
-The teardown calls `DELETE /admin/cleanup/all` with `X-CI-Token` to clear test data.
+#### Administrative
+- **All admin routes** → `admin.*`
+- **Health/metrics** → No auth required
 
-### Notes
+## 📊 API Endpoints
 
-- Cleanup endpoints are rate-limited: 5 requests/min/IP. The 6th within a minute returns `429 {"detail":"Rate limit exceeded"}`.
-- `ALLOWED_ORIGINS` should be a comma-separated list of valid http/https origins (scheme + host). Invalid entries are ignored. If unset, defaults to `http://localhost:3000`.
-- Example local `.env` values:
-  - API: `DATABASE_URL=sqlite:///./dev.db`, `ALLOWED_ORIGINS=http://localhost:3000`, `CI_ENV=true`, `CI_CLEANUP_TOKEN=local-secret`
-  - Web: `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000`
+### Core Endpoints
+- `GET /health` - Service health check
+- `GET /metrics` - Prometheus metrics
+- `GET /docs` - OpenAPI documentation
 
+### Life Automation
+- `POST /life/health/wellness_daily` - Daily wellness automation
+- `POST /life/nutrition/plan` - Nutrition planning
+- `POST /life/home/evening_scene` - Home automation
+- `POST /life/transport/commute` - Transport optimization
+- `POST /life/learning/upskill` - Learning automation
 
-## API Overview
+### Runs & Artifacts
+- `GET /runs` - List automation runs with filtering
+- `GET /runs/{id}` - Get run details
+- `PATCH /runs/{id}` - Update run status
+- `GET /runs/{id}/artifacts` - Get run artifacts
 
-### Skills → DAG → Endpoint Map
+### Departments
+- `GET /departments` - List AI departments
+- `GET /departments/tasks/catalog` - Get task catalog
 
-| Endpoint | Method | Purpose | Auth | Status Codes | Request Example | Response Example |
-|---|---|---|---|---|---|---|
-| /life/finance/investments | POST | Investment analysis / rebalance | bearerAuth + scope: life.finance | 200/202, 400/422 | See OpenAPI examples (happy_path, validation_error) | EnqueuedResponse |
-| /life/finance/bills | POST | Detect and schedule bills | bearerAuth + scope: life.finance | 200/202, 400/422 | OpenAPI | EnqueuedResponse |
-| /life/security/sweep | POST | Weekly security sweep | bearerAuth | 200/202, 400/422 | OpenAPI | EnqueuedResponse |
-| /life/travel/plan | POST | Build travel plan | bearerAuth | 200/202, 400/422 | OpenAPI | EnqueuedResponse |
-| /life/calendar/organize | POST | Organize daily schedule | bearerAuth | 200/202 | OpenAPI | EnqueuedResponse |
-| /life/shopping/optimize | POST | Optimize shopping | bearerAuth | 200/202 | OpenAPI | EnqueuedResponse |
+## 🏗️ Architecture
 
-Notes:
-- Correlation: header `X-Correlation-Id` is accepted and echoed on responses.
-- Metrics: Prometheus counters/histograms at `/metrics` with labels `{route, dag_id, skill, status}`.
-- Auth is currently none for these routes (will change in a follow-up PR).
+### Core Components
+1. **Backend API** (FastAPI + SQLAlchemy)
+2. **Frontend Dashboard** (Next.js + TypeScript)
+3. **Event Processing Engine** (Redis Streams)
+4. **Manager Orchestrator** (Rule-based planning)
+5. **AI Department System** (Specialized automation domains)
+6. **Observability Stack** (Prometheus + Grafana)
 
+### Event Flow
+```
+automation.run.requested → Manager → Department → Artifacts
+```
 
-## Coding standards
+### Data Flow
+1. User triggers automation via UI
+2. Backend emits `automation.run.requested` event
+3. Manager consumes event and creates execution plan
+4. Manager emits `run.started` and `run.status.updated` events
+5. Results stored as artifacts with correlation IDs
 
-- Black, Ruff, Mypy configured via `pyproject.toml`
-- Keep functions short, explicit names, early returns, handle edge cases first
-- Add concise docstrings for non-trivial functions
+## 📈 Monitoring & Observability
+
+### Metrics Available
+- **API Performance**: Request rate, latency (p50/p95), error rate
+- **Orchestrator Health**: Redis Stream lag, queue depth, reprocessing
+- **Manager Health**: Planning duration, step count, failure reasons
+- **Agent Metrics**: Token usage, costs, latency (Batch E)
+
+### Dashboards
+- **API SLO**: Performance and error monitoring
+- **Orchestrator**: Redis Streams and queue health
+- **Manager Health**: Planning and execution metrics
+
+### Health Checks
+- Backend: `GET /health`, `GET /readyz`
+- Manager: `GET /health/manager`
+- Metrics: `GET /metrics`
+
+## 🧪 Testing
+
+### Backend Tests
+```bash
+cd backend
+pytest tests/ -v
+```
+
+### Frontend Tests
+```bash
+cd apps/web
+npm run test
+npm run test:e2e
+```
+
+### Load Testing
+```bash
+# Using k6 (install separately)
+k6 run scripts/load-test.js
+```
+
+## 🚀 Deployment
+
+### Local Development
+```bash
+make up          # Start all services
+make down        # Stop all services
+make logs        # View logs
+make test        # Run tests
+```
+
+### Production
+```bash
+# Build and deploy
+docker build -t ai-business-engine .
+docker run -p 8000:8000 ai-business-engine
+```
+
+## 📚 Documentation
+
+- [Architecture Overview](docs/ARCHITECTURE.md)
+- [API Contracts](docs/contracts/)
+- [Operations Guide](docs/operations.md)
+- [Contributing Guidelines](docs/CONTRIBUTING.md)
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests
+5. Submit a pull request
+
+See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for detailed guidelines.
+
+## 📄 License
+
+This project is proprietary and confidential.
+
+---
+
+**Status**: Batch D (Web UI & Docs) - In Progress
+**Version**: v0.85.0-pre
+**Next Milestone**: Batch E (AI Agent Integration)
