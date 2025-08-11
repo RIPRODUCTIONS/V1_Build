@@ -10,6 +10,13 @@ from urllib.parse import urlsplit, urlunsplit
 if TYPE_CHECKING:  # avoid import cost at runtime
     from .cache import TTLCache
     from .limiter import TokenBucket
+from .metrics import (
+    CACHE_HITS,
+    CACHE_MISSES,
+    SEARCH_ERRORS,
+    SEARCH_LATENCY,
+    SEARCH_REQUESTS,
+)
 
 
 @dataclass
@@ -47,11 +54,15 @@ class SearchAdapter:
         # Import locally but ruff prefers top-level; keeping here to minimize import costs
         from tools.web_research.normalize import normalize_text  # noqa: PLC0415
 
+        adapter_name = self.__class__.__name__
+        SEARCH_REQUESTS.labels(adapter_name).inc()
         key = f"q:{_canon_query(query)}:{limit}"
         if self.cache:
             cached = self.cache.get(key)
             if cached is not None:
+                CACHE_HITS.labels(adapter_name).inc()
                 return cached
+            CACHE_MISSES.labels(adapter_name).inc()
         hits = self.search(query, limit=limit)
         results = []
         for h in hits:
@@ -62,7 +73,12 @@ class SearchAdapter:
             if self.cache:
                 raw_ct_final = self.cache.get(url_key)
             if raw_ct_final is None:
-                raw, ct, final = self.fetch(h.url)
+                try:
+                    with SEARCH_LATENCY.labels(adapter_name).time():
+                        raw, ct, final = self.fetch(h.url)
+                except Exception:
+                    SEARCH_ERRORS.labels(adapter_name).inc()
+                    raw, ct, final = b"", "text/plain", h.url
                 raw_ct_final = (raw, ct, final)
                 if self.cache:
                     self.cache.set(url_key, raw_ct_final)

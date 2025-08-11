@@ -1,3 +1,8 @@
+.PHONY: research-offline
+research-offline:
+	@echo "Running offline research with fixtures..."
+	RESEARCH_ENABLED=1 python -m tools.web_research.cli "hello world"
+
 .PHONY: venv install safe-install dev deps lint fmt type health pre-commit-install cli-health
 
 VENV_DIR=.venv
