@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from typing import Annotated
 
 import jwt
@@ -102,3 +103,57 @@ def require_subject_hs256(
     if not isinstance(subject, str) or not subject.strip():
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="invalid_token")
     return subject
+
+
+def require_scope_hs256(
+    required_scope: str,
+) -> Callable[[Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)]], str]:
+    """Factory for a dependency that enforces a required scope in HS256 JWT.
+
+    Returns the subject when the token is valid and scope is present.
+    Errors:
+      - 401 variants as in require_subject_hs256
+      - 403 forbidden_scope when scope missing
+    """
+
+    def _dep(
+        credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
+    ) -> str:
+        if credentials is None or not credentials.credentials:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="not_authenticated"
+            )
+        settings = get_settings()
+        verifier = HS256JWT(
+            secret=settings.jwt_secret,
+            issuer=None,
+            audience=None,
+            ttl_seconds=settings.access_token_expire_minutes * 60,
+            leeway_seconds=0,
+        )
+        token = credentials.credentials
+        try:
+            claims = verifier.verify(token)
+        except jwt.ExpiredSignatureError as err:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="token_expired"
+            ) from err
+        except jwt.ImmatureSignatureError as err:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="token_not_active"
+            ) from err
+        except jwt.InvalidTokenError as err:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_token"
+            ) from err
+
+        subject = claims.get("sub")
+        if not isinstance(subject, str) or not subject.strip():
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="invalid_token")
+
+        scopes = claims.get("scopes")
+        if not (isinstance(scopes, (list | tuple)) and any(s == required_scope for s in scopes)):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="forbidden_scope")
+        return subject
+
+    return _dep

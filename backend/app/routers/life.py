@@ -6,7 +6,7 @@ from typing import Annotated, Any
 from app.automation.idempotency import claim_or_get, store_result
 from app.automation.orchestrator import run_dag
 from app.automation.state import set_status
-from app.dependencies.auth import require_subject_hs256
+from app.dependencies.auth import require_scope_hs256, require_subject_hs256
 from fastapi import APIRouter, Body, Depends
 from pydantic import BaseModel
 
@@ -154,7 +154,7 @@ async def finance_investments(
             }
         ),
     ],
-    subject: str = Depends(require_subject_hs256),
+    subject: str = Depends(require_scope_hs256("life.finance")),
 ) -> EnqueuedResponse:
     _ = subject  # subject is currently unused; provided for future auditing/attribution
     """Analyze investments. Requires bearerAuth (JWT)."""
@@ -199,7 +199,7 @@ async def finance_bills(
             }
         ),
     ],
-    subject: str = Depends(require_subject_hs256),
+    subject: str = Depends(require_scope_hs256("life.finance")),
 ) -> EnqueuedResponse:
     _ = subject
     """Detect and schedule bills. Requires bearerAuth (JWT)."""
