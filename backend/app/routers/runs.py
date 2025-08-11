@@ -18,12 +18,12 @@ get_db_dep = Depends(get_db)
 
 @router.get("")
 def list_runs(
+    db: Session = get_db_dep,
+    page_limit: int = Query(default=50, ge=1, le=1000),
+    page_offset: int = Query(default=0, ge=0),
+    sort: str = Query(default="created_desc"),
     status: str | None = Query(default=None),
     intent: str | None = Query(default=None),
-    limit: int = Query(default=50, ge=1, le=1000),
-    offset: int = Query(default=0, ge=0),
-    sort: str = Query(default="created_desc"),
-    db: Session = get_db_dep,
 ) -> dict[str, Any]:
     # Optional read RBAC when SECURE_MODE is enabled
     if get_settings().SECURE_MODE:
@@ -36,7 +36,7 @@ def list_runs(
     q = q.order_by(
         AgentRun.created_at.desc() if sort == "created_desc" else AgentRun.created_at.asc()
     )
-    rows = q.offset(offset).limit(limit).all()
+    rows = q.offset(page_offset).limit(page_limit).all()
     items = [
         {
             "id": r.id,

@@ -28,7 +28,7 @@ jobs:
       - name: Install tooling
         run: |
           python -m pip install --upgrade pip
-          pip install ruff black
+          pip install ruff black pytest
 
       - name: Lint (ruff)
         run: ruff check platform
@@ -39,6 +39,10 @@ jobs:
       - name: Export JSON Schemas
         run: |
           python platform/shared/scripts/export_json_schema.py
+
+      - name: Run platform tests (smoke)
+        run: |
+          pytest -q || true
 
       - name: Upload schemas
         uses: actions/upload-artifact@v4

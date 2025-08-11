@@ -34,3 +34,7 @@ test:
 manager:
     @echo "Run manager consumer"
     PYTHONPATH=. python platform/orchestration/manager/consumer.py
+
+manager-image:
+    @echo "Build manager consumer image"
+    docker build -f platform/orchestration/manager/Dockerfile -t manager-consumer:dev .
