@@ -58,4 +58,6 @@ class TTLCache:
                 "misses": self._stats.misses,
                 "evictions": self._stats.evictions,
                 "size": len(self._data),
+                "max_items": self.max_items,
+                "ttl_s": self.ttl_s,
             }

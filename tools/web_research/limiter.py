@@ -11,6 +11,7 @@ class TokenBucket:
         self._tokens = self.capacity
         self._last = time.monotonic()
         self._lock = threading.Lock()
+        self._drops = 0
 
     def _refill(self) -> None:
         now = time.monotonic()
@@ -24,6 +25,7 @@ class TokenBucket:
             if self._tokens >= 1.0:
                 self._tokens -= 1.0
                 return True
+            self._drops += 1
             return False
 
     def wait(self) -> None:
@@ -32,3 +34,12 @@ class TokenBucket:
             if self.allow():
                 return
             time.sleep(0.05)
+
+    def stats(self) -> dict:
+        with self._lock:
+            return {
+                "capacity": self.capacity,
+                "rate_per_s": self.rate,
+                "tokens": self._tokens,
+                "drops": self._drops,
+            }
