@@ -3,6 +3,7 @@ from __future__ import annotations
 from contextlib import suppress
 
 from app.db import engine
+from app.obs.metrics import metrics_endpoint
 from fastapi import APIRouter
 from sqlalchemy import text
 
@@ -28,3 +29,9 @@ def readyz():
         return {"status": "ready"}
     except Exception as exc:  # pragma: no cover - readiness failure path
         return {"status": "not_ready", "detail": str(exc)}
+
+
+@router.get("/metrics")
+def metrics():
+    """Prometheus metrics endpoint"""
+    return metrics_endpoint()

@@ -172,3 +172,60 @@ def optional_require_life_read(
         # Delegate to scope-enforcing dependency using the provided credentials
         return require_scope_hs256("life.read")(credentials)  # type: ignore[arg-type]
     return None
+
+
+# New RBAC scopes for enhanced security
+def require_runs_write_scope(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
+) -> str:
+    """Require runs.write scope for modifying run data."""
+    return require_scope_hs256("runs.write")(credentials)
+
+
+def require_admin_scope(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
+) -> str:
+    """Require admin.* scope for administrative operations."""
+    return require_scope_hs256("admin.*")(credentials)
+
+
+def require_departments_read_scope(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
+) -> str:
+    """Require departments.read scope for viewing department information."""
+    return require_scope_hs256("departments.read")(credentials)
+
+
+def require_artifacts_read_scope(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
+) -> str:
+    """Require artifacts.read scope for viewing automation artifacts."""
+    return require_scope_hs256("artifacts.read")(credentials)
+
+
+def require_artifacts_write_scope(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
+) -> str:
+    """Require artifacts.write scope for creating/modifying artifacts."""
+    return require_scope_hs256("artifacts.write")(credentials)
+
+
+# Convenience functions for common scope combinations
+def require_life_full_access(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
+) -> str:
+    """Require full life automation access (life.read + life.write)."""
+    subject = require_scope_hs256("life.read")(credentials)
+    # Also verify write access
+    require_scope_hs256("life.write")(credentials)
+    return subject
+
+
+def require_runs_full_access(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
+) -> str:
+    """Require full runs access (runs.read + runs.write)."""
+    subject = require_scope_hs256("runs.read")(credentials)
+    # Also verify write access
+    require_scope_hs256("runs.write")(credentials)
+    return subject
