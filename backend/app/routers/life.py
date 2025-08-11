@@ -1,16 +1,14 @@
 from __future__ import annotations
 
 import uuid
-from typing import Any
+from typing import Annotated, Any
 
 from app.automation.idempotency import claim_or_get, store_result
 from app.automation.orchestrator import run_dag
 from app.automation.state import set_status
+from app.dependencies.auth import require_subject_hs256
 from fastapi import APIRouter, Body, Depends
 from pydantic import BaseModel
-
-from app.dependencies.auth import get_current_subject, require_subject_hs256
-
 
 router = APIRouter(
     prefix="/life",
@@ -24,9 +22,7 @@ class SimpleReq(BaseModel):
 
     model_config = {
         "json_schema_extra": {
-            "examples": [
-                {"payload": {"example": True}, "idempotency_key": "idem-abc"}
-            ]
+            "examples": [{"payload": {"example": True}, "idempotency_key": "idem-abc"}]
         }
     }
 
@@ -79,9 +75,7 @@ _auth_responses = {
         "description": "Forbidden",
         "content": {
             "application/json": {
-                "examples": {
-                    "invalid_token_no_subject": {"value": {"detail": "invalid_token"}}
-                }
+                "examples": {"invalid_token_no_subject": {"value": {"detail": "invalid_token"}}}
             }
         },
     },
@@ -94,7 +88,9 @@ async def wellness(_: SimpleReq, subject: str = Depends(require_subject_hs256)) 
 
 
 @router.post("/nutrition/plan", response_model=EnqueuedResponse, responses=_auth_responses)
-async def nutrition(_: SimpleReq, subject: str = Depends(require_subject_hs256)) -> EnqueuedResponse:
+async def nutrition(
+    _: SimpleReq, subject: str = Depends(require_subject_hs256)
+) -> EnqueuedResponse:
     return await _inline("nutrition.plan", {}, None)
 
 
@@ -104,7 +100,9 @@ async def home(_: SimpleReq, subject: str = Depends(require_subject_hs256)) -> E
 
 
 @router.post("/transport/commute", response_model=EnqueuedResponse, responses=_auth_responses)
-async def transport(_: SimpleReq, subject: str = Depends(require_subject_hs256)) -> EnqueuedResponse:
+async def transport(
+    _: SimpleReq, subject: str = Depends(require_subject_hs256)
+) -> EnqueuedResponse:
     return await _inline("transport.commute", {}, None)
 
 
@@ -114,85 +112,7 @@ async def learning(_: SimpleReq, subject: str = Depends(require_subject_hs256)) 
 
 
 @router.post(
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-"/finance/investments",
+    "/finance/investments",
     response_model=EnqueuedResponse,
     openapi_extra={
         "requestBody": {
@@ -214,19 +134,21 @@ async def learning(_: SimpleReq, subject: str = Depends(require_subject_hs256)) 
     },
 )
 async def finance_investments(
-    _: SimpleReq = Body(
-        default={},
-        examples={
-            "happy_path": {
-                "summary": "Trigger investments analysis",
-                "value": {"payload": {"accounts": ["broker:abc"], "rebalance": True}},
-            },
-            "validation_error": {
-                "summary": "Missing payload shape",
-                "value": {"payload": {}},
-            },
-        },
-    ),
+    _: Annotated[
+        SimpleReq,
+        Body(
+            examples={
+                "happy_path": {
+                    "summary": "Trigger investments analysis",
+                    "value": {"payload": {"accounts": ["broker:abc"], "rebalance": True}},
+                },
+                "validation_error": {
+                    "summary": "Missing payload shape",
+                    "value": {"payload": {}},
+                },
+            }
+        ),
+    ],
     subject: str = Depends(require_subject_hs256),
 ) -> EnqueuedResponse:
     _ = subject  # subject is currently unused; provided for future auditing/attribution
@@ -234,20 +156,7 @@ async def finance_investments(
 
 
 @router.post(
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-"/finance/bills",
+    "/finance/bills",
     response_model=EnqueuedResponse,
     openapi_extra={
         "requestBody": {
@@ -269,19 +178,21 @@ async def finance_investments(
     },
 )
 async def finance_bills(
-    _: SimpleReq = Body(
-        default={},
-        examples={
-            "happy_path": {
-                "summary": "Trigger bills detection/scheduling",
-                "value": {"payload": {"accounts": ["chk:123"]}},
-            },
-            "validation_error": {
-                "summary": "Empty accounts",
-                "value": {"payload": {"accounts": []}},
-            },
-        },
-    ),
+    _: Annotated[
+        SimpleReq,
+        Body(
+            examples={
+                "happy_path": {
+                    "summary": "Trigger bills detection/scheduling",
+                    "value": {"payload": {"accounts": ["chk:123"]}},
+                },
+                "validation_error": {
+                    "summary": "Empty accounts",
+                    "value": {"payload": {"accounts": []}},
+                },
+            }
+        ),
+    ],
     subject: str = Depends(require_subject_hs256),
 ) -> EnqueuedResponse:
     _ = subject
@@ -289,8 +200,7 @@ async def finance_bills(
 
 
 @router.post(
-    
-"/security/sweep",
+    "/security/sweep",
     response_model=EnqueuedResponse,
     openapi_extra={
         "requestBody": {
@@ -312,19 +222,21 @@ async def finance_bills(
     },
 )
 async def security_sweep(
-    _: SimpleReq = Body(
-        default={},
-        examples={
-            "happy_path": {
-                "summary": "Run weekly security sweep",
-                "value": {"payload": {"scope": "device"}},
-            },
-            "bad_scope": {
-                "summary": "Unsupported scope",
-                "value": {"payload": {"scope": "unknown"}},
-            },
-        },
-    ),
+    _: Annotated[
+        SimpleReq,
+        Body(
+            examples={
+                "happy_path": {
+                    "summary": "Run weekly security sweep",
+                    "value": {"payload": {"scope": "device"}},
+                },
+                "bad_scope": {
+                    "summary": "Unsupported scope",
+                    "value": {"payload": {"scope": "unknown"}},
+                },
+            }
+        ),
+    ],
     subject: str = Depends(require_subject_hs256),
 ) -> EnqueuedResponse:
     _ = subject
@@ -332,8 +244,7 @@ async def security_sweep(
 
 
 @router.post(
-    
-"/travel/plan",
+    "/travel/plan",
     response_model=EnqueuedResponse,
     openapi_extra={
         "requestBody": {
@@ -342,7 +253,9 @@ async def security_sweep(
                     "examples": {
                         "happy_path": {
                             "summary": "Plan travel",
-                            "value": {"payload": {"from": "SFO", "to": "JFK", "date": "2025-09-01"}},
+                            "value": {
+                                "payload": {"from": "SFO", "to": "JFK", "date": "2025-09-01"}
+                            },
                         },
                         "validation_error": {
                             "summary": "Missing 'to'",
@@ -355,19 +268,21 @@ async def security_sweep(
     },
 )
 async def travel_plan(
-    _: SimpleReq = Body(
-        default={},
-        examples={
-            "happy_path": {
-                "summary": "Plan travel",
-                "value": {"payload": {"from": "SFO", "to": "JFK", "date": "2025-09-01"}},
-            },
-            "validation_error": {
-                "summary": "Missing 'to'",
-                "value": {"payload": {"from": "SFO"}},
-            },
-        },
-    ),
+    _: Annotated[
+        SimpleReq,
+        Body(
+            examples={
+                "happy_path": {
+                    "summary": "Plan travel",
+                    "value": {"payload": {"from": "SFO", "to": "JFK", "date": "2025-09-01"}},
+                },
+                "validation_error": {
+                    "summary": "Missing 'to'",
+                    "value": {"payload": {"from": "SFO"}},
+                },
+            }
+        ),
+    ],
     subject: str = Depends(require_subject_hs256),
 ) -> EnqueuedResponse:
     _ = subject
@@ -375,8 +290,7 @@ async def travel_plan(
 
 
 @router.post(
-    
-"/calendar/organize",
+    "/calendar/organize",
     response_model=EnqueuedResponse,
     openapi_extra={
         "requestBody": {
@@ -394,15 +308,17 @@ async def travel_plan(
     },
 )
 async def calendar_organize(
-    _: SimpleReq = Body(
-        default={},
-        examples={
-            "happy_path": {
-                "summary": "Organize day",
-                "value": {"payload": {"window_days": 3}},
+    _: Annotated[
+        SimpleReq,
+        Body(
+            examples={
+                "happy_path": {
+                    "summary": "Organize day",
+                    "value": {"payload": {"window_days": 3}},
+                }
             }
-        },
-    ),
+        ),
+    ],
     subject: str = Depends(require_subject_hs256),
 ) -> EnqueuedResponse:
     _ = subject
@@ -410,8 +326,7 @@ async def calendar_organize(
 
 
 @router.post(
-    
-"/shopping/optimize",
+    "/shopping/optimize",
     response_model=EnqueuedResponse,
     openapi_extra={
         "requestBody": {
@@ -429,15 +344,17 @@ async def calendar_organize(
     },
 )
 async def shopping_optimize(
-    _: SimpleReq = Body(
-        default={},
-        examples={
-            "happy_path": {
-                "summary": "Optimize shopping",
-                "value": {"payload": {"list": ["milk", "eggs"]}},
+    _: Annotated[
+        SimpleReq,
+        Body(
+            examples={
+                "happy_path": {
+                    "summary": "Optimize shopping",
+                    "value": {"payload": {"list": ["milk", "eggs"]}},
+                }
             }
-        },
-    ),
+        ),
+    ],
     subject: str = Depends(require_subject_hs256),
 ) -> EnqueuedResponse:
     _ = subject

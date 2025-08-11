@@ -18,7 +18,7 @@ from app.ops.cursor_bridge import router as cursor_bridge
 from app.ops.metrics import setup_metrics
 from app.ops.internal_guard import InternalTokenGuard
 from app.middleware.correlation import CorrelationMiddleware
-from app.obs.metrics import MetricsMiddleware, metrics_endpoint
+from app.obs.metrics import MetricsMiddleware
 from contextlib import suppress
 from app.routers.admin import router as admin_router
 from app.routers.agent import router as agent_router

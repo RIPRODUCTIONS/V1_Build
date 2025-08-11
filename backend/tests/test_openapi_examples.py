@@ -29,5 +29,3 @@ def test_openapi_examples_present_for_life_routes():
         responses = post.get("responses", {})
         ok = responses.get("200") or responses.get("202")
         assert ok is not None
-
-

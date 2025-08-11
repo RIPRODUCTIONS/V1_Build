@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
+
 from prefect import flow, task
 
 
 @task
 def beat() -> str:
-    msg = f"heartbeat @ {datetime.utcnow().isoformat()}Z"
+    msg = f"heartbeat @ {datetime.now(UTC).isoformat()}"
     print(msg)
     return msg
 
@@ -18,5 +19,3 @@ def heartbeat_flow() -> str:
 
 if __name__ == "__main__":
     heartbeat_flow()
-
-

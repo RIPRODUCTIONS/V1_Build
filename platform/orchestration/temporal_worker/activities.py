@@ -7,6 +7,3 @@ from temporalio import activity
 async def heartbeat_activity(name: str) -> str:
     activity.heartbeat({"seen": name})
     return name
-
-
-

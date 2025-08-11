@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from temporalio import workflow
+
 from .activities import heartbeat_activity
 
 
@@ -14,6 +15,3 @@ class HelloWorkflow:
             start_to_close_timeout=workflow.timedelta(seconds=10),
         )
         return f"hello,{result}"
-
-
-

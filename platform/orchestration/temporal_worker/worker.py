@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import asyncio
 import os
+
 from temporalio.client import Client
 from temporalio.worker import Worker
-from .workflows import HelloWorkflow
+
 from .activities import heartbeat_activity
+from .workflows import HelloWorkflow
 
 
 async def main() -> None:
@@ -24,6 +26,3 @@ async def main() -> None:
 
 if __name__ == "__main__":
     asyncio.run(main())
-
-
-

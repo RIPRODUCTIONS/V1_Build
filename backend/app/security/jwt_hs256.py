@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Optional, Sequence
+from collections.abc import Sequence
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import jwt
 
@@ -16,8 +17,8 @@ class HS256JWT:
     def __init__(
         self,
         secret: str,
-        issuer: Optional[str] = None,
-        audience: Optional[str] = None,
+        issuer: str | None = None,
+        audience: str | None = None,
         ttl_seconds: int = 3600,
         leeway_seconds: int = 0,
     ) -> None:
@@ -30,14 +31,14 @@ class HS256JWT:
     def mint(
         self,
         subject: str,
-        scopes: Optional[Sequence[str]] = None,
-        ttl_override_seconds: Optional[int] = None,
+        scopes: Sequence[str] | None = None,
+        ttl_override_seconds: int | None = None,
         not_before_offset_seconds: int = 0,
-        extra_claims: Optional[Dict[str, Any]] = None,
+        extra_claims: dict[str, Any] | None = None,
     ) -> str:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         ttl = self.ttl_seconds if ttl_override_seconds is None else ttl_override_seconds
-        payload: Dict[str, Any] = {
+        payload: dict[str, Any] = {
             "sub": subject,
             "iat": int(now.timestamp()),
             "nbf": int((now + timedelta(seconds=not_before_offset_seconds)).timestamp()),
@@ -53,13 +54,13 @@ class HS256JWT:
             payload.update(extra_claims)
         return jwt.encode(payload, self.secret, algorithm="HS256")
 
-    def verify(self, token: str) -> Dict[str, Any]:
+    def verify(self, token: str) -> dict[str, Any]:
         """Verify token and return claims.
 
         Raises PyJWT exceptions (ExpiredSignatureError, ImmatureSignatureError, InvalidTokenError, etc.)
         to allow callers to map them to HTTP errors as desired.
         """
-        kwargs: Dict[str, Any] = {
+        kwargs: dict[str, Any] = {
             "key": self.secret,
             "algorithms": ["HS256"],
             "leeway": self.leeway_seconds,
@@ -69,6 +70,3 @@ class HS256JWT:
         if self.audience:
             kwargs["audience"] = self.audience
         return jwt.decode(token, **kwargs)
-
-
-

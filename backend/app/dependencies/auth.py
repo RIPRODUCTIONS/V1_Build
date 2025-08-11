@@ -1,14 +1,14 @@
 from typing import Annotated
 
+import jwt
+from app.core.config import get_settings
 from app.core.security import decode_access_token
 from app.db import get_db
 from app.models import User
+from app.security.jwt_hs256 import HS256JWT
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
-from app.core.config import get_settings
-from app.security.jwt_hs256 import HS256JWT
-import jwt
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -85,12 +85,12 @@ def require_subject_hs256(
     token = credentials.credentials
     try:
         claims = verifier.verify(token)
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="token_expired")
-    except jwt.ImmatureSignatureError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="token_not_active")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_token")
+    except jwt.ExpiredSignatureError as err:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="token_expired") from err
+    except jwt.ImmatureSignatureError as err:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="token_not_active") from err
+    except jwt.InvalidTokenError as err:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_token") from err
 
     subject = claims.get("sub")
     if not isinstance(subject, str) or not subject.strip():

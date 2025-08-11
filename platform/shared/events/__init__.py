@@ -19,6 +19,3 @@ __all__ = [
     "DomainEvent",
     "AutomationRunRequested",
 ]
-
-
-
