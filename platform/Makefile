@@ -12,6 +12,8 @@ up:
 	docker compose -f platform/infra/docker-compose.yml up -d
 	@echo "Grafana: http://localhost:3001 (admin/admin)"
 	@echo "Prometheus: http://localhost:9090"
+    @echo "Manager Health: http://localhost:8011/health"
+    @echo "Manager Metrics: http://localhost:9109/metrics"
 
 down:
 	@echo "Stopping local infra and removing volumes..."
@@ -38,3 +40,15 @@ manager:
 manager-image:
     @echo "Build manager consumer image"
     docker build -f platform/orchestration/manager/Dockerfile -t manager-consumer:dev .
+
+manager-up:
+    @echo "Starting manager in compose"
+    docker compose -f platform/infra/docker-compose.yml up -d manager
+
+manager-down:
+    @echo "Stopping manager in compose"
+    docker compose -f platform/infra/docker-compose.yml rm -sf manager
+
+manager-logs:
+    @echo "Tailing manager logs"
+    docker compose -f platform/infra/docker-compose.yml logs -f manager

@@ -6,18 +6,17 @@ from fastapi import APIRouter, Depends
 from fastapi import HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app.core.config import get_settings
 from app.db import get_db
-from app.dependencies.auth import require_scope_hs256
+from app.dependencies.auth import optional_require_life_read
 from app.models import AgentRun, Artifact
 
 
-router = APIRouter(prefix="/runs", tags=["runs"])
+router = APIRouter(prefix="/runs", tags=["runs"], dependencies=[Depends(optional_require_life_read)])
 get_db_dep = Depends(get_db)
 
 
 @router.get("")
-def list_runs(
+def list_runs(  # noqa: PLR0913
     db: Session = get_db_dep,
     page_limit: int = Query(default=50, ge=1, le=1000),
     page_offset: int = Query(default=0, ge=0),
@@ -25,9 +24,6 @@ def list_runs(
     status: str | None = Query(default=None),
     intent: str | None = Query(default=None),
 ) -> dict[str, Any]:
-    # Optional read RBAC when SECURE_MODE is enabled
-    if get_settings().SECURE_MODE:
-        require_scope_hs256("life.read")(None)  # dependency-style call; header enforced by FastAPI normally
     q = db.query(AgentRun)
     if status:
         q = q.filter(AgentRun.status == status)
@@ -41,6 +37,8 @@ def list_runs(
         {
             "id": r.id,
             "status": r.status,
+            "intent": r.intent,
+            "department": r.department,
             "created_at": r.created_at.isoformat() + "Z",
         }
         for r in rows
@@ -50,8 +48,6 @@ def list_runs(
 
 @router.get("/{run_id}")
 def get_run(run_id: int, db: Session = get_db_dep) -> dict[str, Any]:
-    if get_settings().SECURE_MODE:
-        require_scope_hs256("life.read")(None)
     r = db.get(AgentRun, run_id)
     if not r:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="not_found")
@@ -66,8 +62,6 @@ def get_run(run_id: int, db: Session = get_db_dep) -> dict[str, Any]:
 
 @router.get("/{run_id}/artifacts")
 def run_artifacts(run_id: int, db: Session = get_db_dep) -> dict[str, Any]:
-    if get_settings().SECURE_MODE:
-        require_scope_hs256("life.read")(None)
     arts = db.query(Artifact).filter(Artifact.run_id == run_id).order_by(Artifact.id).all()
     items = [
         {
