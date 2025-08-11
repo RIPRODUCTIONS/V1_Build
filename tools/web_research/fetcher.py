@@ -42,7 +42,10 @@ def fetch_many(urls: list[str]) -> list[Page]:
     Note: In CI without browsers, call sites should provide offline mirrors, or you can
     pre-populate the cache in tests.
     """
-    from playwright.sync_api import sync_playwright
+    try:
+        from playwright.sync_api import sync_playwright
+    except Exception as _err:  # pragma: no cover - optional in CI
+        raise RuntimeError("playwright not available; install for offline scrape") from _err
 
     results: list[Page] = []
     with sync_playwright() as pw:

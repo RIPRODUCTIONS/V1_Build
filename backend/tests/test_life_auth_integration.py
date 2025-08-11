@@ -36,6 +36,7 @@ def test_protected_with_valid_token():
             "sub": "user-42",
             "iat": int(now.timestamp()),
             "exp": int((now + timedelta(minutes=5)).timestamp()),
+            "scopes": ["life.finance"],
         }
     )
     r = client.post("/life/finance/bills", headers=_auth(tok), json={})

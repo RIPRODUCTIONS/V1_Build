@@ -25,10 +25,14 @@ def load_env(env_path: str) -> bool:
     if not os.path.exists(env_path):
         return False
     try:
-        from dotenv import load_dotenv
+        # Lazy import to avoid hard dependency when not installed
+        import importlib
 
-        load_dotenv(env_path)
-        return True
+        dotenv = importlib.import_module("dotenv")
+        load_dotenv = getattr(dotenv, "load_dotenv", None)
+        if callable(load_dotenv):
+            load_dotenv(env_path)
+            return True
     except Exception:
         try:
             with open(env_path) as f:

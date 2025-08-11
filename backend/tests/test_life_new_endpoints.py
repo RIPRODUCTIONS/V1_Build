@@ -1,4 +1,6 @@
+from app.core.config import get_settings
 from app.main import app
+from app.security.jwt_hs256 import HS256JWT
 from starlette.testclient import TestClient
 
 client = TestClient(app)
@@ -8,12 +10,18 @@ def _token() -> str:
     email = "life_tests@example.com"
     password = "secret123"
     client.post("/users/register", json={"email": email, "password": password})
-    r = client.post("/users/login", json={"email": email, "password": password})
-    return r.json()["access_token"]
+    client.post("/users/login", json={"email": email, "password": password})
+    # The default login token lacks scopes; produce a scoped token using HS256 helper.
+    settings = get_settings()
+    scoped = HS256JWT(secret=settings.jwt_secret).mint(
+        subject=email, scopes=["life.finance"], ttl_override_seconds=300
+    )
+    return scoped
 
 
 def _post(path: str):
-    headers = {"Authorization": f"Bearer {_token()}"}
+    token = _token()
+    headers = {"Authorization": f"Bearer {token}"}
     r = client.post(path, json={}, headers=headers)
     assert r.status_code in (200, 202)
     data = r.json()

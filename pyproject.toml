@@ -36,6 +36,8 @@ ignore = ["E501"]
 "backend/tests/test_tools_web_research.py" = ["PLC0415"]
 "backend/tests/**/*.py" = ["PLR2004"]
 "backend/app/main.py" = ["PLR0915"]
+"health_check.py" = ["PLC0415"]
+"tools/web_research/fetcher.py" = ["PLC0415"]
 
 [tool.mypy]
 python_version = "3.11"
