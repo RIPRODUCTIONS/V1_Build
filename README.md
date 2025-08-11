@@ -66,6 +66,25 @@ The teardown calls `DELETE /admin/cleanup/all` with `X-CI-Token` to clear test d
   - Web: `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000`
 
 
+## API Overview
+
+### Skills → DAG → Endpoint Map
+
+| Endpoint | Method | Purpose | Auth | Status Codes | Request Example | Response Example |
+|---|---|---|---|---|---|---|
+| /life/finance/investments | POST | Investment analysis / rebalance | none | 200/202, 400/422 | See OpenAPI examples (happy_path, validation_error) | EnqueuedResponse |
+| /life/finance/bills | POST | Detect and schedule bills | none | 200/202, 400/422 | OpenAPI | EnqueuedResponse |
+| /life/security/sweep | POST | Weekly security sweep | none | 200/202, 400/422 | OpenAPI | EnqueuedResponse |
+| /life/travel/plan | POST | Build travel plan | none | 200/202, 400/422 | OpenAPI | EnqueuedResponse |
+| /life/calendar/organize | POST | Organize daily schedule | none | 200/202 | OpenAPI | EnqueuedResponse |
+| /life/shopping/optimize | POST | Optimize shopping | none | 200/202 | OpenAPI | EnqueuedResponse |
+
+Notes:
+- Correlation: header `X-Correlation-Id` is accepted and echoed on responses.
+- Metrics: Prometheus counters/histograms at `/metrics` with labels `{route, dag_id, skill, status}`.
+- Auth is currently none for these routes (will change in a follow-up PR).
+
+
 ## Coding standards
 
 - Black, Ruff, Mypy configured via `pyproject.toml`

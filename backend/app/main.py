@@ -3,6 +3,7 @@ from urllib.parse import urlparse
 
 import sentry_sdk
 from fastapi import FastAPI
+from fastapi.openapi.utils import get_openapi
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.db import Base, engine
@@ -16,6 +17,8 @@ from app.automation.router import router as automation_router
 from app.ops.cursor_bridge import router as cursor_bridge
 from app.ops.metrics import setup_metrics
 from app.ops.internal_guard import InternalTokenGuard
+from app.middleware.correlation import CorrelationMiddleware
+from app.obs.metrics import MetricsMiddleware, metrics_endpoint
 from contextlib import suppress
 from app.routers.admin import router as admin_router
 from app.routers.agent import router as agent_router
@@ -110,6 +113,9 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    # Correlation and labeled metrics
+    app.add_middleware(CorrelationMiddleware)
+    app.add_middleware(MetricsMiddleware)
     # Security toggle: protect /cursor and /ops routes when SECURE_MODE is set
     app.add_middleware(InternalTokenGuard)
     _wire_instrumentation(app)
@@ -142,3 +148,27 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
+
+
+def _custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    schema = get_openapi(
+        title=app.title,
+        version="0.1.0",
+        routes=app.routes,
+    )
+    components = schema.setdefault("components", {}).setdefault("securitySchemes", {})
+    components.setdefault(
+        "bearerAuth",
+        {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT",
+        },
+    )
+    app.openapi_schema = schema
+    return app.openapi_schema
+
+
+app.openapi = _custom_openapi

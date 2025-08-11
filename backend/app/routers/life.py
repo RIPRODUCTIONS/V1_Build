@@ -6,20 +6,43 @@ from typing import Any
 from app.automation.idempotency import claim_or_get, store_result
 from app.automation.orchestrator import run_dag
 from app.automation.state import set_status
-from fastapi import APIRouter
+from fastapi import APIRouter, Body, Depends
 from pydantic import BaseModel
 
-router = APIRouter(prefix="/life", tags=["life-automation"])
+from app.dependencies.auth import get_current_subject, require_subject_hs256
+
+
+router = APIRouter(
+    prefix="/life",
+    tags=["life-automation"],
+)
 
 
 class SimpleReq(BaseModel):
     payload: dict[str, Any] | None = None
     idempotency_key: str | None = None
 
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {"payload": {"example": True}, "idempotency_key": "idem-abc"}
+            ]
+        }
+    }
+
 
 class EnqueuedResponse(BaseModel):
     run_id: str
     status: str
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {"run_id": "run_01HXYZ", "status": "queued"},
+                {"run_id": "run_01HABC", "status": "succeeded"},
+            ]
+        }
+    }
 
 
 async def _inline(
@@ -38,56 +61,384 @@ async def _inline(
     return EnqueuedResponse(**resp)
 
 
-@router.post("/health/wellness", response_model=EnqueuedResponse)
-async def wellness(_: SimpleReq) -> EnqueuedResponse:
+_auth_responses = {
+    401: {
+        "description": "Unauthorized",
+        "content": {
+            "application/json": {
+                "examples": {
+                    "not_authenticated": {"value": {"detail": "not_authenticated"}},
+                    "invalid_token": {"value": {"detail": "invalid_token"}},
+                    "token_expired": {"value": {"detail": "token_expired"}},
+                    "token_not_active": {"value": {"detail": "token_not_active"}},
+                }
+            }
+        },
+    },
+    403: {
+        "description": "Forbidden",
+        "content": {
+            "application/json": {
+                "examples": {
+                    "invalid_token_no_subject": {"value": {"detail": "invalid_token"}}
+                }
+            }
+        },
+    },
+}
+
+
+@router.post("/health/wellness", response_model=EnqueuedResponse, responses=_auth_responses)
+async def wellness(_: SimpleReq, subject: str = Depends(require_subject_hs256)) -> EnqueuedResponse:
     return await _inline("health.wellness_daily", {}, None)
 
 
-@router.post("/nutrition/plan", response_model=EnqueuedResponse)
-async def nutrition(_: SimpleReq) -> EnqueuedResponse:
+@router.post("/nutrition/plan", response_model=EnqueuedResponse, responses=_auth_responses)
+async def nutrition(_: SimpleReq, subject: str = Depends(require_subject_hs256)) -> EnqueuedResponse:
     return await _inline("nutrition.plan", {}, None)
 
 
-@router.post("/home/evening", response_model=EnqueuedResponse)
-async def home(_: SimpleReq) -> EnqueuedResponse:
+@router.post("/home/evening", response_model=EnqueuedResponse, responses=_auth_responses)
+async def home(_: SimpleReq, subject: str = Depends(require_subject_hs256)) -> EnqueuedResponse:
     return await _inline("home.evening_scene", {}, None)
 
 
-@router.post("/transport/commute", response_model=EnqueuedResponse)
-async def transport(_: SimpleReq) -> EnqueuedResponse:
+@router.post("/transport/commute", response_model=EnqueuedResponse, responses=_auth_responses)
+async def transport(_: SimpleReq, subject: str = Depends(require_subject_hs256)) -> EnqueuedResponse:
     return await _inline("transport.commute", {}, None)
 
 
-@router.post("/learning/upskill", response_model=EnqueuedResponse)
-async def learning(_: SimpleReq) -> EnqueuedResponse:
+@router.post("/learning/upskill", response_model=EnqueuedResponse, responses=_auth_responses)
+async def learning(_: SimpleReq, subject: str = Depends(require_subject_hs256)) -> EnqueuedResponse:
     return await _inline("learning.upskill", {}, None)
 
 
-@router.post("/finance/investments", response_model=EnqueuedResponse)
-async def finance_investments(_: SimpleReq) -> EnqueuedResponse:
+@router.post(
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+"/finance/investments",
+    response_model=EnqueuedResponse,
+    openapi_extra={
+        "requestBody": {
+            "content": {
+                "application/json": {
+                    "examples": {
+                        "happy_path": {
+                            "summary": "Trigger investments analysis",
+                            "value": {"payload": {"accounts": ["broker:abc"], "rebalance": True}},
+                        },
+                        "validation_error": {
+                            "summary": "Missing required fields",
+                            "value": {"payload": {}},
+                        },
+                    }
+                }
+            }
+        }
+    },
+)
+async def finance_investments(
+    _: SimpleReq = Body(
+        default={},
+        examples={
+            "happy_path": {
+                "summary": "Trigger investments analysis",
+                "value": {"payload": {"accounts": ["broker:abc"], "rebalance": True}},
+            },
+            "validation_error": {
+                "summary": "Missing payload shape",
+                "value": {"payload": {}},
+            },
+        },
+    ),
+    subject: str = Depends(require_subject_hs256),
+) -> EnqueuedResponse:
+    _ = subject  # subject is currently unused; provided for future auditing/attribution
     return await _inline("finance.investments_daily", {}, None)
 
 
-@router.post("/finance/bills", response_model=EnqueuedResponse)
-async def finance_bills(_: SimpleReq) -> EnqueuedResponse:
+@router.post(
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+"/finance/bills",
+    response_model=EnqueuedResponse,
+    openapi_extra={
+        "requestBody": {
+            "content": {
+                "application/json": {
+                    "examples": {
+                        "happy_path": {
+                            "summary": "Detect and schedule bills",
+                            "value": {"payload": {"accounts": ["chk:123"]}},
+                        },
+                        "validation_error": {
+                            "summary": "Empty accounts",
+                            "value": {"payload": {"accounts": []}},
+                        },
+                    }
+                }
+            }
+        }
+    },
+)
+async def finance_bills(
+    _: SimpleReq = Body(
+        default={},
+        examples={
+            "happy_path": {
+                "summary": "Trigger bills detection/scheduling",
+                "value": {"payload": {"accounts": ["chk:123"]}},
+            },
+            "validation_error": {
+                "summary": "Empty accounts",
+                "value": {"payload": {"accounts": []}},
+            },
+        },
+    ),
+    subject: str = Depends(require_subject_hs256),
+) -> EnqueuedResponse:
+    _ = subject
     return await _inline("finance.bills_monthly", {}, None)
 
 
-@router.post("/security/sweep", response_model=EnqueuedResponse)
-async def security_sweep(_: SimpleReq) -> EnqueuedResponse:
+@router.post(
+    
+"/security/sweep",
+    response_model=EnqueuedResponse,
+    openapi_extra={
+        "requestBody": {
+            "content": {
+                "application/json": {
+                    "examples": {
+                        "happy_path": {
+                            "summary": "Run weekly security sweep",
+                            "value": {"payload": {"scope": "device"}},
+                        },
+                        "bad_scope": {
+                            "summary": "Unsupported scope",
+                            "value": {"payload": {"scope": "unknown"}},
+                        },
+                    }
+                }
+            }
+        }
+    },
+)
+async def security_sweep(
+    _: SimpleReq = Body(
+        default={},
+        examples={
+            "happy_path": {
+                "summary": "Run weekly security sweep",
+                "value": {"payload": {"scope": "device"}},
+            },
+            "bad_scope": {
+                "summary": "Unsupported scope",
+                "value": {"payload": {"scope": "unknown"}},
+            },
+        },
+    ),
+    subject: str = Depends(require_subject_hs256),
+) -> EnqueuedResponse:
+    _ = subject
     return await _inline("security.weekly_sweep", {}, None)
 
 
-@router.post("/travel/plan", response_model=EnqueuedResponse)
-async def travel_plan(_: SimpleReq) -> EnqueuedResponse:
+@router.post(
+    
+"/travel/plan",
+    response_model=EnqueuedResponse,
+    openapi_extra={
+        "requestBody": {
+            "content": {
+                "application/json": {
+                    "examples": {
+                        "happy_path": {
+                            "summary": "Plan travel",
+                            "value": {"payload": {"from": "SFO", "to": "JFK", "date": "2025-09-01"}},
+                        },
+                        "validation_error": {
+                            "summary": "Missing 'to'",
+                            "value": {"payload": {"from": "SFO"}},
+                        },
+                    }
+                }
+            }
+        }
+    },
+)
+async def travel_plan(
+    _: SimpleReq = Body(
+        default={},
+        examples={
+            "happy_path": {
+                "summary": "Plan travel",
+                "value": {"payload": {"from": "SFO", "to": "JFK", "date": "2025-09-01"}},
+            },
+            "validation_error": {
+                "summary": "Missing 'to'",
+                "value": {"payload": {"from": "SFO"}},
+            },
+        },
+    ),
+    subject: str = Depends(require_subject_hs256),
+) -> EnqueuedResponse:
+    _ = subject
     return await _inline("travel.plan", {}, None)
 
 
-@router.post("/calendar/organize", response_model=EnqueuedResponse)
-async def calendar_organize(_: SimpleReq) -> EnqueuedResponse:
+@router.post(
+    
+"/calendar/organize",
+    response_model=EnqueuedResponse,
+    openapi_extra={
+        "requestBody": {
+            "content": {
+                "application/json": {
+                    "examples": {
+                        "happy_path": {
+                            "summary": "Organize day",
+                            "value": {"payload": {"window_days": 3}},
+                        }
+                    }
+                }
+            }
+        }
+    },
+)
+async def calendar_organize(
+    _: SimpleReq = Body(
+        default={},
+        examples={
+            "happy_path": {
+                "summary": "Organize day",
+                "value": {"payload": {"window_days": 3}},
+            }
+        },
+    ),
+    subject: str = Depends(require_subject_hs256),
+) -> EnqueuedResponse:
+    _ = subject
     return await _inline("calendar.organize_day", {}, None)
 
 
-@router.post("/shopping/optimize", response_model=EnqueuedResponse)
-async def shopping_optimize(_: SimpleReq) -> EnqueuedResponse:
+@router.post(
+    
+"/shopping/optimize",
+    response_model=EnqueuedResponse,
+    openapi_extra={
+        "requestBody": {
+            "content": {
+                "application/json": {
+                    "examples": {
+                        "happy_path": {
+                            "summary": "Optimize shopping",
+                            "value": {"payload": {"list": ["milk", "eggs"]}},
+                        }
+                    }
+                }
+            }
+        }
+    },
+)
+async def shopping_optimize(
+    _: SimpleReq = Body(
+        default={},
+        examples={
+            "happy_path": {
+                "summary": "Optimize shopping",
+                "value": {"payload": {"list": ["milk", "eggs"]}},
+            }
+        },
+    ),
+    subject: str = Depends(require_subject_hs256),
+) -> EnqueuedResponse:
+    _ = subject
     return await _inline("shopping.optimize", {}, None)
