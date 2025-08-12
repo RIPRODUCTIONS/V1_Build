@@ -10,3 +10,5 @@ Pre-release checklist:
 After merge to master:
 - Semantic-release publishes GitHub Release and updates CHANGELOG.md
 - For hotfix: branch fix/*, conventional commit title, merge after checks
+
+- semrel smoke at 2025-08-12T14:03:43-05:00
