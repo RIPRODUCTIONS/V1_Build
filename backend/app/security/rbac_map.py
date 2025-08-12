@@ -28,13 +28,13 @@ RBAC_ROUTE_SCOPE_MAP: list[tuple[re.Pattern[str], dict[str, set[str]]]] = [
         "DELETE": {WRITE_RUNS},
     }),
 
-    # Tasks/agent admin (example)
-    (re.compile(r"^/admin/cleanup/.*$"), {
-        "DELETE": {ADMIN_TASKS},
-    }),
+    # Admin cleanup endpoints
+    (re.compile(r"^/admin/cleanup/leads$"), {"DELETE": {ADMIN_TASKS}}),
+    (re.compile(r"^/admin/cleanup/tasks$"), {"DELETE": {ADMIN_TASKS}}),
+    (re.compile(r"^/admin/cleanup/all$"), {"DELETE": {ADMIN_TASKS}}),
 
     # Tasks (CRUD)
-    (re.compile(r"^/tasks/?$"), {
+    (re.compile(r"^/tasks$"), {
         "GET": {READ_TASKS},
         "POST": {WRITE_TASKS},
     }),
