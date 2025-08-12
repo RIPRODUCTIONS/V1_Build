@@ -94,6 +94,13 @@ def _fail_fast_if_missing_secrets() -> None:
 
 
 def create_app() -> FastAPI:
+    # Best-effort: load secrets from AWS if configured (prod only)
+    try:
+        from app.core.secrets_aws import maybe_load_from_aws  # type: ignore
+
+        maybe_load_from_aws()
+    except Exception:
+        pass
     _fail_fast_if_missing_secrets()
     # Sentry (optional)
     dsn = os.getenv("SENTRY_DSN")

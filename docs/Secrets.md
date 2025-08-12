@@ -10,6 +10,7 @@ This project treats secrets as runtime configuration provided via environment va
 ### How services fetch secrets
 
 - The API process reads required settings from its environment. In development, a `.env` file may be pre-loaded (if present). In production, the app refuses to boot when required secrets are missing.
+- Optional: if `ENV=production` and `AWS_SECRETS_NAME` is set, the API will attempt to fetch a JSON secret from AWS Secrets Manager and merge keys into the environment (existing env vars win). This is a convenience for platform setups using AWS.
 
 ### Required secrets
 
@@ -20,6 +21,12 @@ Extend this list as more components are put behind secret gates (DB creds, S3 ke
 ### Fail-fast behavior
 
 - On startup, when `ENV=production`, the API validates that all required secrets are present and raises a clear error if any are missing. This is also validated in CI.
+
+### AWS Secrets Manager (optional)
+
+- Set `AWS_SECRETS_NAME` to the name/ARN of a secret containing a JSON object, e.g.: `{ "JWT_SECRET": "..." }`.
+- Ensure the runtime has IAM permissions for `secretsmanager:GetSecretValue` on this secret.
+- Existing environment variables take precedence over fetched keys.
 
 ### Rotation procedure (example)
 
