@@ -59,3 +59,30 @@ except Exception as e:
     sys.exit(0)
 PY
 
+  dast-tight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start API for ZAP baseline
+        run: |
+          python -m pip install -U pip
+          pip install -r backend/requirements.txt || true
+          export PYTHONPATH=backend
+          nohup uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 >/tmp/api.log 2>&1 &
+          sleep 3
+      - name: ZAP baseline (block unallowlisted High)
+        run: bash scripts/ci/run_zap_blocking.sh http://127.0.0.1:8000 scripts/ci/zap-allowlist.txt
+
+  npm-audit-high:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Audit frontend dependencies (block on high)
+        working-directory: apps/web
+        run: |
+          npm ci
+          npm audit --audit-level=high
+
