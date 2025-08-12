@@ -1,21 +1,22 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { apiFetch, TaskOut } from "@/lib/api";
+import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+
+import { apiFetch, TaskOut } from '@/lib/api';
 
 export default function TasksQueuePage() {
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState('');
   const [status, setStatus] = useState<string | undefined>(undefined);
-  const [sort, setSort] = useState("created_desc");
+  const [sort, setSort] = useState('created_desc');
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["tasks", { q, status, sort }],
+    queryKey: ['tasks', { q, status, sort }],
     queryFn: async (): Promise<TaskOut[]> => {
       const params = new URLSearchParams();
-      if (q) params.set("q", q);
-      if (status) params.set("status_filter", status);
-      if (sort) params.set("sort", sort);
+      if (q) params.set('q', q);
+      if (status) params.set('status_filter', status);
+      if (sort) params.set('sort', sort);
       return apiFetch<TaskOut[]>(`/tasks?${params.toString()}`);
     },
   });
@@ -28,12 +29,12 @@ export default function TasksQueuePage() {
           className="border rounded px-3 py-2"
           placeholder="Search tasks"
           value={q}
-          onChange={(e) => setQ(e.target.value)}
+          onChange={e => setQ(e.target.value)}
         />
         <select
           className="border rounded px-3 py-2"
-          value={status ?? ""}
-          onChange={(e) => setStatus(e.target.value || undefined)}
+          value={status ?? ''}
+          onChange={e => setStatus(e.target.value || undefined)}
         >
           <option value="">All</option>
           <option value="todo">Todo</option>
@@ -43,7 +44,7 @@ export default function TasksQueuePage() {
         <select
           className="border rounded px-3 py-2"
           value={sort}
-          onChange={(e) => setSort(e.target.value)}
+          onChange={e => setSort(e.target.value)}
         >
           <option value="created_desc">Newest</option>
           <option value="title_asc">Title A→Z</option>
@@ -55,7 +56,7 @@ export default function TasksQueuePage() {
       {isError && <p className="text-red-600">Failed to load tasks</p>}
       {data && (
         <ul className="space-y-2">
-          {data.map((t) => (
+          {data.map(t => (
             <li key={t.id} className="p-3 rounded border bg-white">
               <div className="font-medium">{t.title}</div>
               <div className="text-sm text-gray-500">{t.status}</div>

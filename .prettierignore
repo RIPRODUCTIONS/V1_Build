@@ -1,0 +1,29 @@
+# build artifacts
+.next
+dist
+build
+coverage
+public/**/*.min.*
+**/*.map
+node_modules
+# locks, caches
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+.eslintcache
+# backend venvs / compiled
+venv
+__pycache__
+*.pyc
+node_modules
+dist
+build
+.next
+coverage
+.turbo
+.vercel
+*.min.js
+*.min.css
+*.yml
+*.yaml
+.github/

@@ -1,11 +1,11 @@
 name: build-and-push
 on:
   push:
-    branches: [ master ]
+    branches: [master]
     paths:
-      - 'backend/**'
-      - 'apps/web/**'
-      - '.github/workflows/build_and_push.yml'
+      - "backend/**"
+      - "apps/web/**"
+      - ".github/workflows/build_and_push.yml"
   workflow_dispatch:
 jobs:
   build:

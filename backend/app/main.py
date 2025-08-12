@@ -42,8 +42,11 @@ from app.routers.tasks import router as tasks_router
 from app.routers.users import router as users_router
 from app.routers.comm import router as comm_router
 from app.routers.departments import router as departments_router
-from app.routers.runs import router as runs_router
 from app.routers.research import router as research_router
+from app.routers.debug import router as debug_router
+from app.observability import setup_observability
+from app.middleware.security_headers import SecurityHeadersMiddleware
+from app.middleware.body_limit import BodyLimitMiddleware
 
 # Optional OpenTelemetry imports
 try:  # pragma: no cover - optional dependency
@@ -80,46 +83,65 @@ def _wire_instrumentation(app: FastAPI) -> None:
 
 def create_app() -> FastAPI:
     # Sentry (optional)
-    dsn = os.getenv("SENTRY_DSN")
+    dsn = os.getenv('SENTRY_DSN')
     if dsn:
         sentry_sdk.init(dsn=dsn, traces_sample_rate=0.05)
     # OpenTelemetry (optional)
-    otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+    otlp_endpoint = os.getenv('OTEL_EXPORTER_OTLP_ENDPOINT')
     if HAS_OTEL and otlp_endpoint:
-        resource = Resource.create({"service.name": "builder-api"})
+        resource = Resource.create({'service.name': 'builder-api'})
         provider = TracerProvider(resource=resource)
         provider.add_span_processor(
-            BatchSpanProcessor(OTLPSpanExporter(endpoint=f"{otlp_endpoint}/v1/traces"))
+            BatchSpanProcessor(OTLPSpanExporter(endpoint=f'{otlp_endpoint}/v1/traces'))
         )
         trace.set_tracer_provider(provider)
 
-    app = FastAPI(title="Builder API", version="0.1.0", redirect_slashes=False)
-    allowed_origins_env = os.getenv("ALLOWED_ORIGINS") or os.getenv("NEXT_PUBLIC_WEB_ORIGIN")
+    app = FastAPI(title='Builder API', version='0.1.0', redirect_slashes=False)
+
+    # Setup observability (Layer 10)
+    setup_observability(app, service_name='ai-business-engine-backend')
+
+    allowed_origins_env = os.getenv('ALLOWED_ORIGINS') or os.getenv('NEXT_PUBLIC_WEB_ORIGIN')
     if allowed_origins_env:
-        candidates = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
+        candidates = [o.strip() for o in allowed_origins_env.split(',') if o.strip()]
     else:
-        candidates = ["http://localhost:3000"]
+        candidates = ['http://localhost:3000']
 
     def _valid_origin(o: str) -> bool:
         try:
             p = urlparse(o)
-            return p.scheme in ("http", "https") and bool(p.netloc)
+            return p.scheme in ('http', 'https') and bool(p.netloc)
         except Exception:
             return False
 
     allowed_origins = [o for o in candidates if _valid_origin(o)]
     if not allowed_origins:
-        allowed_origins = ["http://localhost:3000"]
+        allowed_origins = ['http://localhost:3000']
     app.add_middleware(
         CORSMiddleware,
         allow_origins=allowed_origins,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+        allow_headers=['Authorization', 'Content-Type', 'X-Request-ID'],
+        expose_headers=['X-Request-ID'],
     )
+    # Boot logging middleware (catches startup errors)
+    from app.middleware.bootlog import BootLogMiddleware
+
+    app.add_middleware(BootLogMiddleware)
+    app.add_middleware(BodyLimitMiddleware, max_bytes=2_000_000)
+
     # Correlation and labeled metrics
     app.add_middleware(CorrelationMiddleware)
     app.add_middleware(MetricsMiddleware)
+    from app.core.config import get_settings as _gs
+    _st = _gs()
+    app.add_middleware(SecurityHeadersMiddleware, csp_report_only=not _st.FEATURE_STRICT_CSP)
+
+    # Error envelope middleware (prevents crashes)
+    from app.middleware.error_envelope import ErrorEnvelopeMiddleware
+
+    app.add_middleware(ErrorEnvelopeMiddleware)
     # Security toggle: protect /cursor and /ops routes when SECURE_MODE is set
     app.add_middleware(InternalTokenGuard)
     _wire_instrumentation(app)
@@ -148,12 +170,52 @@ def create_app() -> FastAPI:
     app.include_router(prototype_router)
     app.include_router(automation_router)
     app.include_router(cursor_bridge)
-    app.include_router(runs_router)
+    # Back-compat: include legacy /runs router if available for tests
+    try:
+        from app.routers import runs as runs_router  # type: ignore
+
+        app.include_router(runs_router.router)
+    except Exception:
+        pass
     app.include_router(research_router)
-    Base.metadata.create_all(bind=engine)
-    # Dev/CI sqlite additive migrations (ignore errors on non-sqlite)
-    with suppress(Exception):  # pragma: no cover
-        migrate_dev_sqlite()
+    app.include_router(debug_router)
+
+    # Log registered skills and DAGs on startup
+    try:
+        from app.automation.registry import _SKILLS, _DAGS
+
+        print(f'🚀 Registered skills: {list(_SKILLS.keys())}')
+        print(f'🚀 Registered DAGs: {list(_DAGS.keys())}')
+
+        # Check for specific intents we need
+        required_intents = ['ideation.generate', 'research.validate_idea']
+        for intent in required_intents:
+            if intent in _DAGS:
+                print(f"✅ DAG '{intent}' registered")
+            elif intent in _SKILLS:
+                print(f"✅ Skill '{intent}' registered")
+            else:
+                print(f"❌ Intent '{intent}' NOT found in registry")
+
+    except Exception as e:
+        print(f'⚠️ Could not log registry: {e}')
+        import traceback
+
+        traceback.print_exc()
+
+    # Database initialization (optional for dev)
+    from app.core.config import get_settings
+
+    settings = get_settings()
+    if not getattr(settings, 'SKIP_DB_INIT', False):
+        try:
+            Base.metadata.create_all(bind=engine)
+            # Dev/CI sqlite additive migrations (ignore errors on non-sqlite)
+            with suppress(Exception):  # pragma: no cover
+                migrate_dev_sqlite()
+        except Exception as e:
+            print(f'⚠️ Database initialization failed (continuing): {e}')
+
     return app
 
 
@@ -165,16 +227,16 @@ def _custom_openapi():
         return app.openapi_schema
     schema = get_openapi(
         title=app.title,
-        version="0.1.0",
+        version='0.1.0',
         routes=app.routes,
     )
-    components = schema.setdefault("components", {}).setdefault("securitySchemes", {})
+    components = schema.setdefault('components', {}).setdefault('securitySchemes', {})
     components.setdefault(
-        "bearerAuth",
+        'bearerAuth',
         {
-            "type": "http",
-            "scheme": "bearer",
-            "bearerFormat": "JWT",
+            'type': 'http',
+            'scheme': 'bearer',
+            'bearerFormat': 'JWT',
         },
     )
     app.openapi_schema = schema

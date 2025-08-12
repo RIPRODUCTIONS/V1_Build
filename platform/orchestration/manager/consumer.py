@@ -25,6 +25,23 @@ class ConsumerConfig:
 class GracefulExit(Exception):
     pass
 
+def extract_correlation_id(evt: dict | None) -> str | None:
+    """Extract correlation_id from event dict with fallbacks.
+
+    Order of preference: top-level -> headers.correlation_id -> meta.correlation_id.
+    """
+    if not isinstance(evt, dict):
+        return None
+    if isinstance(evt.get("correlation_id"), str) and evt.get("correlation_id"):
+        return evt["correlation_id"]
+    headers = evt.get("headers") or {}
+    if isinstance(headers, dict) and isinstance(headers.get("correlation_id"), str):
+        return headers.get("correlation_id")
+    meta = evt.get("meta") or {}
+    if isinstance(meta, dict) and isinstance(meta.get("correlation_id"), str):
+        return meta.get("correlation_id")
+    return None
+
 
 def _install_signal_handlers():
     def _raise(sig, frame):

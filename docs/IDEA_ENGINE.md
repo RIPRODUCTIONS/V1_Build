@@ -2,25 +2,32 @@
 
 ## Overview
 
-The **Idea Engine** is your first fully functional AI "employee" in the AI Business Engine. It autonomously generates, validates, and analyzes business opportunities using AI-powered market research and trend analysis.
+The **Idea Engine** is your first fully functional AI "employee" in the AI Business Engine. It
+autonomously generates, validates, and analyzes business opportunities using AI-powered market
+research and trend analysis.
 
 ## What It Does
 
 The Idea Engine operates as a complete pipeline that:
 
-1. **Generates Business Ideas** - Creates market-validated business concepts based on your specified topic
-2. **Researches & Validates** - Enhances ideas with market sentiment, trend data, and competitive analysis
-3. **Performs Market Analysis** - Provides comprehensive business intelligence including TAM/SAM estimates, pricing strategies, and development roadmaps
+1. **Generates Business Ideas** - Creates market-validated business concepts based on your specified
+   topic
+2. **Researches & Validates** - Enhances ideas with market sentiment, trend data, and competitive
+   analysis
+3. **Performs Market Analysis** - Provides comprehensive business intelligence including TAM/SAM
+   estimates, pricing strategies, and development roadmaps
 
 ## How to Use
 
 ### 1. Access the Idea Engine
 
-Navigate to `/business` in your web interface, or click "Launch Idea Engine" from the Business Department section on the dashboard.
+Navigate to `/business` in your web interface, or click "Launch Idea Engine" from the Business
+Department section on the dashboard.
 
 ### 2. Configure Your Search
 
-- **Business Topic**: Enter the domain you want to explore (e.g., "business automation", "healthcare tech", "sustainable energy")
+- **Business Topic**: Enter the domain you want to explore (e.g., "business automation", "healthcare
+  tech", "sustainable energy")
 - **Number of Ideas**: Choose between 3, 5, or 10 ideas to generate
 - **Include Market Research**: Toggle to enable/disable enhanced research features
 
@@ -61,6 +68,7 @@ User Input → Idea Generation → Market Research → Validation → Market Ana
 ## Example Output
 
 ### Generated Idea
+
 ```json
 {
   "title": "AI-Powered Business Automation Platform",
@@ -79,6 +87,7 @@ User Input → Idea Generation → Market Research → Validation → Market Ana
 ```
 
 ### Market Analysis
+
 ```json
 {
   "market_analysis": {
@@ -106,16 +115,19 @@ User Input → Idea Generation → Market Research → Validation → Market Ana
 ## Integration Points
 
 ### Frontend
+
 - **Business Department Page** (`/business`) - Main interface
 - **Dashboard Integration** - Quick access from main dashboard
 - **Real-time Updates** - Live status monitoring of idea generation runs
 
 ### Backend
+
 - **Celery Tasks** - Asynchronous execution of research and analysis
 - **Redis Events** - Real-time status updates and coordination
 - **Database Storage** - Persistent storage of generated ideas and analysis
 
 ### Orchestrator
+
 - **DAG Management** - Coordinates multi-stage pipeline execution
 - **Event Routing** - Handles communication between pipeline stages
 - **Status Tracking** - Monitors progress and handles failures
@@ -124,11 +136,14 @@ User Input → Idea Generation → Market Research → Validation → Market Ana
 
 ### Adding New Idea Patterns
 
-Modify the `_generate_base_ideas()` function in `backend/app/automation/skills/ideation.py` to add new business idea templates.
+Modify the `_generate_base_ideas()` function in `backend/app/automation/skills/ideation.py` to add
+new business idea templates.
 
 ### Enhancing Market Research
 
-Extend the research functions (`_get_market_sentiment`, `_get_trend_data`, etc.) to integrate with real APIs:
+Extend the research functions (`_get_market_sentiment`, `_get_trend_data`, etc.) to integrate with
+real APIs:
+
 - Google Trends API for trend data
 - Reddit API for sentiment analysis
 - Crunchbase API for competitive intelligence
@@ -136,6 +151,7 @@ Extend the research functions (`_get_market_sentiment`, `_get_trend_data`, etc.)
 ### Custom Scoring Algorithms
 
 Modify `_calculate_opportunity_score()` to implement your own scoring logic based on:
+
 - Market size preferences
 - Technical complexity tolerance
 - Time-to-market requirements
@@ -187,4 +203,5 @@ The Idea Engine follows the same patterns as other automation skills:
 
 ---
 
-**Status**: ✅ **Production Ready** - The Idea Engine is fully functional and ready for autonomous business idea generation.
+**Status**: ✅ **Production Ready** - The Idea Engine is fully functional and ready for autonomous
+business idea generation.

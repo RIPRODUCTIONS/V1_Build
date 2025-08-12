@@ -3,7 +3,7 @@ from typing import Any
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-router = APIRouter(prefix="/physical", tags=["physical"])
+router = APIRouter(prefix='/physical', tags=['physical'])
 
 
 class TriggerRequest(BaseModel):
@@ -16,6 +16,6 @@ class TriggerResponse(BaseModel):
     accepted: bool
 
 
-@router.post("/trigger", response_model=TriggerResponse)
+@router.post('/trigger', response_model=TriggerResponse)
 async def trigger(req: TriggerRequest) -> TriggerResponse:
-    return TriggerResponse(status="ok", accepted=True)
+    return TriggerResponse(status='ok', accepted=True)

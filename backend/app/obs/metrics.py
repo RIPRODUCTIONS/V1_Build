@@ -28,161 +28,207 @@ class AgentExecutionMetrics:
 
 # API SLO Metrics
 REQUESTS = Counter(
-    "api_requests_total",
-    "Total API requests",
-    ["route", "method", "status_class"],
+    'api_requests_total',
+    'Total API requests',
+    ['route', 'method', 'status_class'],
 )
 
 LATENCY = Histogram(
-    "api_request_latency_seconds",
-    "API request latency in seconds",
-    ["route", "method", "status_class"],
+    'api_request_latency_seconds',
+    'API request latency in seconds',
+    ['route', 'method', 'status_class'],
     buckets=[0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10],
 )
 
 ERROR_RATE = Counter(
-    "api_errors_total",
-    "Total API errors (4xx, 5xx)",
-    ["route", "method", "status_code", "error_type"],
+    'api_errors_total',
+    'Total API errors (4xx, 5xx)',
+    ['route', 'method', 'status_code', 'error_type'],
+)
+
+# Back-compat metrics expected by legacy tests for /life/* endpoints
+LIFE_REQUESTS = Counter(
+    'life_requests_total',
+    'Total Life endpoints requests',
+    ['route', 'method', 'status'],
+)
+
+LIFE_LATENCY = Histogram(
+    'life_request_latency_seconds',
+    'Life endpoints request latency in seconds',
+    ['route', 'method', 'status'],
+    buckets=[0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10],
 )
 
 # Orchestrator Metrics
 REDIS_STREAM_LAG = Gauge(
-    "redis_stream_lag_seconds",
-    "Redis Stream lag in seconds per consumer group",
-    ["stream", "consumer_group", "consumer"],
+    'redis_stream_lag_seconds',
+    'Redis Stream lag in seconds per consumer group',
+    ['stream', 'consumer_group', 'consumer'],
 )
 
 REDIS_REPROCESSING_COUNT = Counter(
-    "redis_reprocessing_total",
-    "Total events reprocessed due to failures",
-    ["stream", "consumer_group", "event_type"],
+    'redis_reprocessing_total',
+    'Total events reprocessed due to failures',
+    ['stream', 'consumer_group', 'event_type'],
 )
 
 # Manager Health Metrics
 MANAGER_PLANNING_DURATION = Histogram(
-    "manager_planning_duration_seconds",
-    "Manager planning duration in seconds",
-    ["intent", "department"],
+    'manager_planning_duration_seconds',
+    'Manager planning duration in seconds',
+    ['intent', 'department'],
     buckets=[0.01, 0.05, 0.1, 0.25, 0.5, 1, 2, 5],
 )
 
 MANAGER_STEP_COUNT = Histogram(
-    "manager_step_count",
-    "Number of steps generated per plan",
-    ["intent", "department"],
+    'manager_step_count',
+    'Number of steps generated per plan',
+    ['intent', 'department'],
     buckets=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
 )
 
 MANAGER_FAILURE_REASONS = Counter(
-    "manager_failures_total",
-    "Manager failures by reason",
-    ["reason", "intent", "department"],
+    'manager_failures_total',
+    'Manager failures by reason',
+    ['reason', 'intent', 'department'],
 )
 
 # Runs & Status Metrics
 RUNS_BY_STATUS = Gauge(
-    "runs_by_status",
-    "Current count of runs by status",
-    ["status", "department"],
+    'runs_by_status',
+    'Current count of runs by status',
+    ['status', 'department'],
 )
 
 RUNS_BY_DEPARTMENT = Gauge(
-    "runs_by_department",
-    "Current count of runs by department",
-    ["department"],
+    'runs_by_department',
+    'Current count of runs by department',
+    ['department'],
 )
 
 # Queue Depth Metrics
 QUEUE_DEPTH = Gauge(
-    "queue_depth",
-    "Current queue depth by stream",
-    ["stream", "consumer_group"],
+    'queue_depth',
+    'Current queue depth by stream',
+    ['stream', 'consumer_group'],
 )
 
 # Idea Engine & Automation Metrics
 IDEA_ENGINE_RUNS = Counter(
-    "idea_engine_runs_total",
-    "Total Idea Engine runs by pipeline type",
-    ["pipeline_type", "status", "department"],
+    'idea_engine_runs_total',
+    'Total Idea Engine runs by pipeline type',
+    ['pipeline_type', 'status', 'department'],
 )
 
 IDEA_ENGINE_LATENCY = Histogram(
-    "idea_engine_latency_seconds",
-    "Idea Engine execution latency in seconds",
-    ["pipeline_type", "department"],
+    'idea_engine_latency_seconds',
+    'Idea Engine execution latency in seconds',
+    ['pipeline_type', 'department'],
     buckets=[0.1, 0.25, 0.5, 1, 2, 5, 10, 30, 60],
 )
 
 IDEA_ENGINE_IDEAS_GENERATED = Counter(
-    "idea_engine_ideas_total",
-    "Total business ideas generated",
-    ["department", "complexity", "market_size"],
+    'idea_engine_ideas_total',
+    'Total business ideas generated',
+    ['department', 'complexity', 'market_size'],
 )
 
 AUTOMATION_RUNS_BY_INTENT = Counter(
-    "automation_runs_total",
-    "Total automation runs by intent",
-    ["intent", "department", "status"],
+    'automation_runs_total',
+    'Total automation runs by intent',
+    ['intent', 'department', 'status'],
 )
 
 AUTOMATION_ARTIFACTS_CREATED = Counter(
-    "automation_artifacts_total",
-    "Total artifacts created by automation runs",
-    ["kind", "department", "status"],
+    'automation_artifacts_total',
+    'Total artifacts created by automation runs',
+    ['kind', 'department', 'status'],
 )
 
 # Agent Metrics (for Batch E)
 AGENT_TOKENS_TOTAL = Counter(
-    "agent_tokens_total",
-    "Total tokens consumed by agents",
-    ["department", "intent", "provider"],
+    'agent_tokens_total',
+    'Total tokens consumed by agents',
+    ['department', 'intent', 'provider'],
 )
 
 AGENT_COST_USD_TOTAL = Counter(
-    "agent_cost_usd_total",
-    "Total cost in USD by agents",
-    ["department", "intent", "provider"],
+    'agent_cost_usd_total',
+    'Total cost in USD by agents',
+    ['department', 'intent', 'provider'],
 )
 
 AGENT_LATENCY_MS = Histogram(
-    "agent_latency_ms",
-    "Agent execution latency in milliseconds",
-    ["department", "intent", "provider"],
+    'agent_latency_ms',
+    'Agent execution latency in milliseconds',
+    ['department', 'intent', 'provider'],
     buckets=[10, 25, 50, 100, 250, 500, 1000, 2500, 5000],
 )
 
 # AI Department Metrics (for Batch E)
 AI_DEPARTMENT_RUNS = Counter(
-    "ai_department_runs_total",
-    "Total AI department runs by department and status",
-    ["department", "status"],
+    'ai_department_runs_total',
+    'Total AI department runs by department and status',
+    ['department', 'status'],
 )
 
 AI_DEPARTMENT_LATENCY = Histogram(
-    "ai_department_latency_seconds",
-    "AI department execution latency in seconds",
-    ["department"],
+    'ai_department_latency_seconds',
+    'AI department execution latency in seconds',
+    ['department'],
     buckets=[0.1, 0.25, 0.5, 1, 2, 5, 10, 30, 60],
 )
 
 AI_DEPARTMENT_TOKEN_USAGE = Counter(
-    "ai_department_token_usage_total",
-    "Total token usage by AI departments",
-    ["department", "model"],
+    'ai_department_token_usage_total',
+    'Total token usage by AI departments',
+    ['department', 'model'],
+)
+
+# Self-Healing Metrics (for Batch F)
+AI_SELF_HEAL_ATTEMPTS_TOTAL = Counter(
+    'ai_self_heal_attempts_total',
+    'Total self-healing attempts by task and failure class',
+    ['task', 'failure_class'],
+)
+
+AI_SELF_HEAL_SUCCESS_TOTAL = Counter(
+    'ai_self_heal_success_total',
+    'Total successful self-healing recoveries by task',
+    ['task'],
+)
+
+AI_FAILURES_TOTAL = Counter(
+    'ai_failures_total',
+    'Total task failures by task and failure class',
+    ['task', 'failure_class'],
+)
+
+AI_FAILURE_CLASS_TOTAL = Counter(
+    'ai_failure_class_total',
+    'Total failures by failure class',
+    ['failure_class'],
+)
+
+AI_RETRY_LATENCY_SECONDS = Histogram(
+    'ai_retry_latency_seconds',
+    'Self-healing retry latency in seconds',
+    ['task', 'failure_class'],
+    buckets=[0.1, 0.25, 0.5, 1, 2, 5, 10, 30, 60],
 )
 
 # Autonomous Mode Metrics
 AUTONOMOUS_RUNS_TOTAL = Gauge(
-    "autonomous_runs_total",
-    "Total autonomous runs executed",
-    ["status"],
+    'autonomous_runs_total',
+    'Total autonomous runs executed',
+    ['status'],
 )
 
 AUTONOMOUS_LAST_RUN_TIMESTAMP = Gauge(
-    "autonomous_last_run_timestamp",
-    "Timestamp of last autonomous run",
-    ["department"],
+    'autonomous_last_run_timestamp',
+    'Timestamp of last autonomous run',
+    ['department'],
 )
 
 
@@ -197,18 +243,18 @@ class MetricsMiddleware(BaseHTTPMiddleware):
         finally:
             if response:
                 raw_status = int(response.status_code)
-                status_class = f"{raw_status // 100}xx"
+                status_class = f'{raw_status // 100}xx'
                 method = request.method
 
                 # Get route path
                 try:
-                    route_obj = request.scope.get("route")
-                    route = getattr(route_obj, "path", request.url.path)
+                    route_obj = request.scope.get('route')
+                    route = getattr(route_obj, 'path', request.url.path)
                 except Exception:
                     route = request.url.path
 
                 # Skip metrics and health endpoints
-                if route not in ("/metrics", "/health", "/healthz", "/readyz"):
+                if route not in ('/metrics', '/health', '/healthz', '/readyz'):
                     # Record request metrics
                     REQUESTS.labels(route=route, method=method, status_class=status_class).inc()
 
@@ -218,10 +264,19 @@ class MetricsMiddleware(BaseHTTPMiddleware):
                         duration
                     )
 
+                    # Legacy life/* metrics for test compatibility
+                    if route.startswith('/life'):
+                        LIFE_REQUESTS.labels(
+                            route=route, method=method, status=str(raw_status)
+                        ).inc()
+                        LIFE_LATENCY.labels(
+                            route=route, method=method, status=str(raw_status)
+                        ).observe(duration)
+
                     # Record errors
                     if raw_status >= HTTP_CLIENT_ERROR:
                         error_type = (
-                            "client_error" if raw_status < HTTP_SERVER_ERROR else "server_error"
+                            'client_error' if raw_status < HTTP_SERVER_ERROR else 'server_error'
                         )
                         ERROR_RATE.labels(
                             route=route,

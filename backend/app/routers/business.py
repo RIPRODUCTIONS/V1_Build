@@ -3,13 +3,14 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-from app.automation.idempotency import claim_or_get, store_result
-from app.automation.orchestrator import run_dag_task
-from app.automation.state import set_status
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-router = APIRouter(prefix="/business", tags=["business"])
+from app.automation.idempotency import claim_or_get, store_result
+from app.automation.orchestrator import run_dag_task
+from app.automation.state import set_status
+
+router = APIRouter(prefix='/business', tags=['business'])
 
 
 class MarketingLaunchRequest(BaseModel):
@@ -34,43 +35,43 @@ async def _enqueue(intent: str, payload: dict[str, Any], idem: str | None) -> En
     if cached:
         return EnqueuedResponse(**cached)
     run_id = str(uuid.uuid4())
-    await set_status(run_id, "queued", {"intent": intent, "payload": payload})
+    await set_status(run_id, 'queued', {'intent': intent, 'payload': payload})
     try:
         run_dag_task.delay(run_id, intent, payload)
     except Exception as exc:  # pragma: no cover
-        raise HTTPException(status_code=503, detail=f"Queue unavailable: {exc}") from None
-    resp = {"run_id": run_id, "status": "queued"}
+        raise HTTPException(status_code=503, detail=f'Queue unavailable: {exc}') from None
+    resp = {'run_id': run_id, 'status': 'queued'}
     await store_result(key, resp)
     return EnqueuedResponse(**resp)
 
 
-@router.post("/marketing/launch", response_model=EnqueuedResponse)
+@router.post('/marketing/launch', response_model=EnqueuedResponse)
 async def marketing_launch(req: MarketingLaunchRequest) -> EnqueuedResponse:
     payload: dict[str, Any] = {
-        "campaign_name": req.campaign_name,
-        "channels": req.channels or ["email"],
+        'campaign_name': req.campaign_name,
+        'channels': req.channels or ['email'],
     }
-    return await _enqueue("business.marketing_launch", payload, req.idempotency_key)
+    return await _enqueue('business.marketing_launch', payload, req.idempotency_key)
 
 
-@router.post("/sales/outreach", response_model=EnqueuedResponse)
+@router.post('/sales/outreach', response_model=EnqueuedResponse)
 async def sales_outreach(req: SalesOutreachRequest) -> EnqueuedResponse:
-    payload: dict[str, Any] = {"leads": req.leads, "template": req.template or "hi {{name}}"}
-    return await _enqueue("business.sales_outreach", payload, req.idempotency_key)
+    payload: dict[str, Any] = {'leads': req.leads, 'template': req.template or 'hi {{name}}'}
+    return await _enqueue('business.sales_outreach', payload, req.idempotency_key)
 
 
-@router.post("/ops/brief", response_model=EnqueuedResponse)
+@router.post('/ops/brief', response_model=EnqueuedResponse)
 async def ops_brief() -> EnqueuedResponse:
-    return await _enqueue("business.ops_brief", {}, None)
+    return await _enqueue('business.ops_brief', {}, None)
 
 
 class SimulateCycleRequest(BaseModel):
-    topic: str = Field(default="new venture")
+    topic: str = Field(default='new venture')
     count: int | None = 5
     idempotency_key: str | None = None
 
 
-@router.post("/simulate_cycle", response_model=EnqueuedResponse)
+@router.post('/simulate_cycle', response_model=EnqueuedResponse)
 async def simulate_cycle(req: SimulateCycleRequest) -> EnqueuedResponse:
-    payload: dict[str, Any] = {"topic": req.topic, "count": req.count or 5}
-    return await _enqueue("business.simulate_cycle", payload, req.idempotency_key)
+    payload: dict[str, Any] = {'topic': req.topic, 'count': req.count or 5}
+    return await _enqueue('business.simulate_cycle', payload, req.idempotency_key)

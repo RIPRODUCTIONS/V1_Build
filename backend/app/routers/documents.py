@@ -3,13 +3,14 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-from app.automation.idempotency import claim_or_get, store_result
-from app.automation.orchestrator import run_dag
-from app.automation.state import set_status
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-router = APIRouter(prefix="/documents", tags=["documents"])
+from app.automation.idempotency import claim_or_get, store_result
+from app.automation.orchestrator import run_dag
+from app.automation.state import set_status
+
+router = APIRouter(prefix='/documents', tags=['documents'])
 
 
 class IngestRequest(BaseModel):
@@ -22,23 +23,23 @@ class EnqueuedResponse(BaseModel):
     status: str
 
 
-@router.post("/ingest_scan", response_model=EnqueuedResponse)
+@router.post('/ingest_scan', response_model=EnqueuedResponse)
 async def ingest_scan(req: IngestRequest) -> EnqueuedResponse:
-    intent = "documents.ingest_scan"
-    payload: dict[str, Any] = {"files": req.files}
+    intent = 'documents.ingest_scan'
+    payload: dict[str, Any] = {'files': req.files}
     key, cached = await claim_or_get(intent, payload, req.idempotency_key)
     if cached:
         return EnqueuedResponse(**cached)
     run_id = str(uuid.uuid4())
-    await set_status(run_id, "queued", {"intent": intent})
+    await set_status(run_id, 'queued', {'intent': intent})
     # Inline execution to ensure completion without external broker
     steps = [
-        "documents.ocr_scan",
-        "documents.classify",
-        "documents.layout_analyze",
-        "documents.extract_text",
+        'documents.ocr_scan',
+        'documents.classify',
+        'documents.layout_analyze',
+        'documents.extract_text',
     ]
     await run_dag(run_id, steps, dict(payload))
-    resp = {"run_id": run_id, "status": "queued"}
+    resp = {'run_id': run_id, 'status': 'queued'}
     await store_result(key, resp)
     return EnqueuedResponse(**resp)

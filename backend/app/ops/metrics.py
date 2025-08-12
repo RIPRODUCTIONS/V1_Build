@@ -5,4 +5,4 @@ router = APIRouter()
 
 
 def setup_metrics(app):  # noqa: ANN001 - FastAPI app
-    Instrumentator().instrument(app).expose(app, endpoint="/metrics")
+    Instrumentator().instrument(app).expose(app, endpoint='/metrics')

@@ -51,9 +51,9 @@
             },
             "thresholds": {
               "steps": [
-                {"color": "green", "value": null},
-                {"color": "yellow", "value": 0.1},
-                {"color": "red", "value": 0.5}
+                { "color": "green", "value": null },
+                { "color": "yellow", "value": 0.1 },
+                { "color": "red", "value": 0.5 }
               ]
             }
           }
@@ -83,9 +83,9 @@
             },
             "thresholds": {
               "steps": [
-                {"color": "green", "value": null},
-                {"color": "yellow", "value": 0.5},
-                {"color": "red", "value": 1.0}
+                { "color": "green", "value": null },
+                { "color": "yellow", "value": 0.5 },
+                { "color": "red", "value": 1.0 }
               ]
             }
           }
@@ -114,9 +114,9 @@
             },
             "thresholds": {
               "steps": [
-                {"color": "green", "value": null},
-                {"color": "yellow", "value": 0.01},
-                {"color": "red", "value": 0.05}
+                { "color": "green", "value": null },
+                { "color": "yellow", "value": 0.01 },
+                { "color": "red", "value": 0.05 }
               ]
             }
           }

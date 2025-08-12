@@ -6,8 +6,8 @@ from app.main import app
 client = TestClient(app)
 
 
-@pytest.mark.skip(reason="Run manually when local LLM is running")
+@pytest.mark.skip(reason='Run manually when local LLM is running')
 def test_llm_ping_manual():
-    r = client.get("/llm/ping")
+    r = client.get('/llm/ping')
     assert r.status_code == 200
-    assert "reply" in r.json()
+    assert 'reply' in r.json()

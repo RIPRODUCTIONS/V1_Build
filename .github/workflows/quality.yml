@@ -1,0 +1,64 @@
+name: Quality
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  lint-typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node (from .nvmrc)
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+      - run: npm ci
+      - name: Generate Prisma client
+        run: npm run db:generate
+        env:
+          DATABASE_URL: file:./local.sqlite
+      - name: Migrate DB
+        run: npm run db:migrate
+        env:
+          DATABASE_URL: file:./local.sqlite
+      - name: Seed DB
+        run: npm run db:seed
+        env:
+          DATABASE_URL: file:./local.sqlite
+      - run: npm run lint
+      - run: npm run typecheck
+      - name: Unit tests (apps/web)
+        run: npm run test:unit
+      - name: Reset & Seed test DB (integration)
+        run: npm run test:int:db:reset
+      - name: Integration tests (apps/web)
+        run: npm run test:integration
+      - name: SBOM (Syft)
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin v1.17.0
+          syft dir:. -o spdx-json=sbom.spdx.json
+        continue-on-error: true
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.spdx.json
+        continue-on-error: true
+      - name: Python SAST (bandit)
+        run: |
+          python -m pip install -q bandit
+          bandit -q -r backend -x backend/tests || true
+      - name: Python deps (pip-audit)
+        run: |
+          python -m pip install -q pip-audit
+          if [ -f backend/requirements.txt ]; then pip-audit -r backend/requirements.txt || true; else pip-audit || true; fi
+      - name: Frontend deps (npm audit)
+        working-directory: apps/web
+        run: |
+          npm ci
+          npm audit --audit-level=high || true
+

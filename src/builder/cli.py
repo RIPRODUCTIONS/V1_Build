@@ -15,7 +15,7 @@ def _try_import(module_name: str) -> dict[str, Any]:
     try:
         importlib.import_module(module_name)
         return {"module": module_name, "ok": True}
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         return {"module": module_name, "ok": False, "error": str(exc)}
 
 

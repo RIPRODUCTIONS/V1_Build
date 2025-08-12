@@ -1,6 +1,8 @@
-"use client";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+'use client';
+import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
+
+import CreateRunClientForm from './CreateRunClientForm';
 
 type Run = {
   run_id: string;
@@ -11,27 +13,27 @@ type Run = {
   created_at: string;
 };
 
-type ManagerHealth = "healthy" | "degraded" | "down";
+type ManagerHealth = 'healthy' | 'degraded' | 'down';
 
 export default function RunsConsole() {
   const router = useRouter();
   const [runs, setRuns] = useState<Run[]>([]);
   const [loading, setLoading] = useState(true);
-  const [managerHealth, setManagerHealth] = useState<ManagerHealth>("down");
+  const [managerHealth, setManagerHealth] = useState<ManagerHealth>('down');
   const [filters, setFilters] = useState({
-    status: "",
-    department: "",
-    intent: "",
-    correlation_id: "",
+    status: '',
+    department: '',
+    intent: '',
+    correlation_id: '',
   });
   const [pagination, setPagination] = useState({
     limit: 50,
     offset: 0,
-    sort: "created_desc" as "created_desc" | "created_asc" | "status" | "intent",
+    sort: 'created_desc' as 'created_desc' | 'created_asc' | 'status' | 'intent',
   });
 
   // Fetch runs with current filters and pagination
-  const fetchRuns = async () => {
+  const fetchRuns = useCallback(async () => {
     try {
       const params = new URLSearchParams({
         limit: pagination.limit.toString(),
@@ -48,33 +50,41 @@ export default function RunsConsole() {
         const data = await response.json();
         setRuns(data.items || []);
       }
-    } catch (error) {
-      console.error("Failed to fetch runs:", error);
+    } catch {
+      console.error('Failed to fetch runs');
     } finally {
       setLoading(false);
     }
-  };
+  }, [
+    filters.correlation_id,
+    filters.department,
+    filters.intent,
+    filters.status,
+    pagination.limit,
+    pagination.offset,
+    pagination.sort,
+  ]);
 
   // Fetch manager health
-  const fetchManagerHealth = async () => {
+  const fetchManagerHealth = useCallback(async () => {
     try {
-      const response = await fetch("/api/health/manager");
+      const response = await fetch('/api/health/manager');
       if (response.ok) {
         const data = await response.json();
-        setManagerHealth(data.status === "healthy" ? "healthy" : "degraded");
+        setManagerHealth(data.status === 'healthy' ? 'healthy' : 'degraded');
       } else {
-        setManagerHealth("down");
+        setManagerHealth('down');
       }
-    } catch (error) {
-      setManagerHealth("down");
+    } catch {
+      setManagerHealth('down');
     }
-  };
+  }, []);
 
   // Initial load
   useEffect(() => {
     fetchRuns();
     fetchManagerHealth();
-  }, [filters, pagination]);
+  }, [fetchRuns, fetchManagerHealth]);
 
   // Poll for updates every 10 seconds
   useEffect(() => {
@@ -84,7 +94,7 @@ export default function RunsConsole() {
     }, 10000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchRuns, fetchManagerHealth]);
 
   // Handle filter changes
   const handleFilterChange = (key: keyof typeof filters, value: string) => {
@@ -112,17 +122,17 @@ export default function RunsConsole() {
   const cancelRun = async (runId: string) => {
     try {
       const response = await fetch(`/api/runs/${runId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "cancelled" }),
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'cancelled' }),
       });
 
       if (response.ok) {
         // Refresh the runs list
         fetchRuns();
       }
-    } catch (error) {
-      console.error("Failed to cancel run:", error);
+    } catch {
+      console.error('Failed to cancel run');
     }
   };
 
@@ -133,35 +143,35 @@ export default function RunsConsole() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "completed":
-      case "succeeded":
-        return "bg-green-100 text-green-800";
-      case "failed":
-      case "error":
-        return "bg-red-100 text-red-800";
-      case "started":
-      case "running":
-        return "bg-blue-100 text-blue-800";
-      case "pending":
-      case "queued":
-        return "bg-yellow-100 text-yellow-800";
-      case "cancelled":
-        return "bg-gray-100 text-gray-800";
+      case 'completed':
+      case 'succeeded':
+        return 'bg-green-100 text-green-800';
+      case 'failed':
+      case 'error':
+        return 'bg-red-100 text-red-800';
+      case 'started':
+      case 'running':
+        return 'bg-blue-100 text-blue-800';
+      case 'pending':
+      case 'queued':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'cancelled':
+        return 'bg-gray-100 text-gray-800';
       default:
-        return "bg-gray-100 text-gray-800";
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
   const getManagerHealthColor = (health: ManagerHealth) => {
     switch (health) {
-      case "healthy":
-        return "bg-green-100 text-green-800";
-      case "degraded":
-        return "bg-yellow-100 text-yellow-800";
-      case "down":
-        return "bg-red-100 text-red-800";
+      case 'healthy':
+        return 'bg-green-100 text-green-800';
+      case 'degraded':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'down':
+        return 'bg-red-100 text-red-800';
       default:
-        return "bg-gray-100 text-gray-800";
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -184,7 +194,9 @@ export default function RunsConsole() {
 
             {/* Manager Health Chip */}
             <div className="flex items-center space-x-4">
-              <div className={`px-3 py-1 rounded-full text-sm font-medium ${getManagerHealthColor(managerHealth)}`}>
+              <div
+                className={`px-3 py-1 rounded-full text-sm font-medium ${getManagerHealthColor(managerHealth)}`}
+              >
                 Manager: {managerHealth}
               </div>
               <button
@@ -203,12 +215,10 @@ export default function RunsConsole() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Status
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
               <select
                 value={filters.status}
-                onChange={(e) => handleFilterChange("status", e.target.value)}
+                onChange={e => handleFilterChange('status', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 aria-label="Filter by status"
                 title="Filter by status"
@@ -226,12 +236,10 @@ export default function RunsConsole() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Department
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Department</label>
               <select
                 value={filters.department}
-                onChange={(e) => handleFilterChange("department", e.target.value)}
+                onChange={e => handleFilterChange('department', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 aria-label="Filter by department"
                 title="Filter by department"
@@ -246,26 +254,22 @@ export default function RunsConsole() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Intent
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Intent</label>
               <input
                 type="text"
                 value={filters.intent}
-                onChange={(e) => handleFilterChange("intent", e.target.value)}
+                onChange={e => handleFilterChange('intent', e.target.value)}
                 placeholder="e.g., ideation.generate"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Correlation ID
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Correlation ID</label>
               <input
                 type="text"
                 value={filters.correlation_id}
-                onChange={(e) => handleFilterChange("correlation_id", e.target.value)}
+                onChange={e => handleFilterChange('correlation_id', e.target.value)}
                 placeholder="Search by correlation ID"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
@@ -277,7 +281,7 @@ export default function RunsConsole() {
             <span className="text-sm font-medium text-gray-700">Sort by:</span>
             <select
               value={pagination.sort}
-              onChange={(e) => handleSortChange(e.target.value as typeof pagination.sort)}
+              onChange={e => handleSortChange(e.target.value as typeof pagination.sort)}
               className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               aria-label="Sort results by"
               title="Sort results by"
@@ -290,12 +294,12 @@ export default function RunsConsole() {
           </div>
         </div>
 
+        <CreateRunClientForm />
+
         {/* Runs Table */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">
-              Automation Runs ({runs.length})
-            </h3>
+            <h3 className="text-lg font-semibold text-gray-900">Automation Runs ({runs.length})</h3>
           </div>
 
           {loading ? (
@@ -335,13 +339,15 @@ export default function RunsConsole() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {runs.map((run) => (
+                  {runs.map(run => (
                     <tr key={run.run_id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">
                         {run.run_id.slice(0, 8)}...
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 text-xs rounded-full font-medium ${getStatusColor(run.status)}`}>
+                        <span
+                          className={`px-2 py-1 text-xs rounded-full font-medium ${getStatusColor(run.status)}`}
+                        >
                           {run.status}
                         </span>
                       </td>
@@ -375,7 +381,7 @@ export default function RunsConsole() {
                             📁
                           </button>
 
-                          {(run.status === "pending" || run.status === "started") && (
+                          {(run.status === 'pending' || run.status === 'started') && (
                             <button
                               onClick={() => cancelRun(run.run_id)}
                               className="text-red-600 hover:text-red-800"
@@ -402,7 +408,9 @@ export default function RunsConsole() {
                 </div>
                 <div className="flex items-center space-x-2">
                   <button
-                    onClick={() => handlePageChange(Math.max(0, pagination.offset - pagination.limit))}
+                    onClick={() =>
+                      handlePageChange(Math.max(0, pagination.offset - pagination.limit))
+                    }
                     disabled={pagination.offset === 0}
                     className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
@@ -426,13 +434,13 @@ export default function RunsConsole() {
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
           <div className="flex space-x-4">
             <button
-              onClick={() => router.push("/business")}
+              onClick={() => router.push('/business')}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             >
               Launch Idea Engine
             </button>
             <button
-              onClick={() => router.push("/research/market-gaps")}
+              onClick={() => router.push('/research/market-gaps')}
               className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
             >
               Run Market Gap Scanner

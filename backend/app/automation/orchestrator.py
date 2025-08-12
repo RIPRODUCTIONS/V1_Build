@@ -9,174 +9,176 @@ from app.automation.state import set_status
 from app.core.config import get_settings
 
 
-async def run_dag(run_id: str, steps: list[str], context: dict[str, Any]) -> None:
-    await set_status(run_id, "running", {"steps": steps})
+async def run_dag(run_id: str, steps: list[str], context: dict[str, Any]) -> dict[str, Any]:
+    await set_status(run_id, 'running', {'steps': steps})
     executed: list[str] = []
     try:
         # Optional research hook (no-op unless enabled)
         with suppress(Exception):
             s = get_settings()
-            if getattr(s, "RESEARCH_ENABLED", False) and context.get("_blocker"):
+            if getattr(s, 'RESEARCH_ENABLED', False) and context.get('_blocker'):
                 # import locally to avoid hard dep at import-time
                 from tools.web_research import plan_queries
 
-                _ = plan_queries(str(context["_blocker"]))
+                _ = plan_queries(str(context['_blocker']))
         for step in steps:
             fn = get_skill(step)
             context = await fn(context)
             executed.append(step)
-            await set_status(run_id, "running", {"executed": executed})
-        await set_status(run_id, "succeeded", {"executed": executed, "result": context})
+            await set_status(run_id, 'running', {'executed': executed})
+        await set_status(run_id, 'succeeded', {'executed': executed, 'result': context})
+        return context  # Return the final context with results
     except Exception as e:  # pragma: no cover - simplest failure path
-        await set_status(run_id, "failed", {"executed": executed, "error": str(e)})
+        await set_status(run_id, 'failed', {'executed': executed, 'error': str(e)})
+        raise  # Re-raise the exception so the API can handle it
 
 
 # Register default DAGs at import so both API and worker see them
-register_dag("lead.intake", ["lead.create_record", "lead.schedule_followup"])
-register_dag("finance.pay_bill", ["finance.ocr_and_categorize", "finance.schedule_payment"])
-register_dag("agent.prototype", ["prototype.enqueue_build"])
-register_dag("ideation.generate", ["ideation.generate"])
+register_dag('lead.intake', ['lead.create_record', 'lead.schedule_followup'])
+register_dag('finance.pay_bill', ['finance.ocr_and_categorize', 'finance.schedule_payment'])
+register_dag('agent.prototype', ['prototype.enqueue_build'])
+register_dag('ideation.generate', ['ideation.generate'])
 register_dag(
-    "ideation.full_pipeline",
-    ["ideation.generate", "ideation.research_validate", "ideation.market_analysis"],
+    'ideation.full_pipeline',
+    ['ideation.generate', 'ideation.research_validate', 'ideation.market_analysis'],
 )
-register_dag("research.market_gap_scanner", ["research.market_gap_scanner"])
-register_dag("research.validate_idea", ["research.validate_idea"])
-register_dag("ideation.research_pipeline", ["ideation.generate", "research.validate_idea"])
-register_dag("relationship.openers", ["relationship.generate_openers"])
+register_dag('research.market_gap_scanner', ['research.market_gap_scanner'])
+register_dag('research.validate_idea', ['research.validate_idea'])
+register_dag('ideation.research_pipeline', ['ideation.generate', 'research.validate_idea'])
+register_dag('relationship.openers', ['relationship.generate_openers'])
 register_dag(
-    "business.marketing_launch",
-    ["business.prepare_campaign", "business.launch_campaign", "business.collect_metrics"],
+    'business.marketing_launch',
+    ['business.prepare_campaign', 'business.launch_campaign', 'business.collect_metrics'],
 )
 register_dag(
-    "business.sales_outreach",
-    ["business.prepare_outreach", "business.send_outreach"],
+    'business.sales_outreach',
+    ['business.prepare_outreach', 'business.send_outreach'],
 )
-register_dag("business.ops_brief", ["business.ops_daily_briefing"])
+register_dag('business.ops_brief', ['business.ops_daily_briefing'])
 register_dag(
-    "business.simulate_cycle",
+    'business.simulate_cycle',
     [
-        "ideation.generate",
-        "business.prepare_campaign",
-        "business.launch_campaign",
-        "business.collect_metrics",
-        "business.prepare_outreach",
-        "business.send_outreach",
-        "business.ops_daily_briefing",
+        'ideation.generate',
+        'business.prepare_campaign',
+        'business.launch_campaign',
+        'business.collect_metrics',
+        'business.prepare_outreach',
+        'business.send_outreach',
+        'business.ops_daily_briefing',
     ],
 )
 register_dag(
-    "documents.ingest_scan",
+    'documents.ingest_scan',
     [
-        "documents.ocr_scan",
-        "documents.classify",
-        "documents.layout_analyze",
-        "documents.extract_text",
+        'documents.ocr_scan',
+        'documents.classify',
+        'documents.layout_analyze',
+        'documents.extract_text',
     ],
 )
 register_dag(
-    "finance.receipt_pipeline",
+    'finance.receipt_pipeline',
     [
-        "finance.receipt_ocr",
-        "finance.parse_amount",
-        "finance.categorize",
-        "finance.sync_accounting",
+        'finance.receipt_ocr',
+        'finance.parse_amount',
+        'finance.categorize',
+        'finance.sync_accounting',
     ],
 )
 register_dag(
-    "health.wellness_daily",
+    'health.wellness_daily',
     [
-        "health.collect_biometrics",
-        "health.detect_anomaly",
-        "health.trend_analyze",
+        'health.collect_biometrics',
+        'health.detect_anomaly',
+        'health.trend_analyze',
     ],
 )
 register_dag(
-    "nutrition.plan",
+    'nutrition.plan',
     [
-        "nutrition.analyze",
-        "nutrition.plan_meals",
+        'nutrition.analyze',
+        'nutrition.plan_meals',
     ],
 )
 register_dag(
-    "home.evening_scene",
+    'home.evening_scene',
     [
-        "home.presence_detect",
-        "home.scene_evening",
-        "home.energy_optimize",
+        'home.presence_detect',
+        'home.scene_evening',
+        'home.energy_optimize',
     ],
 )
 register_dag(
-    "transport.commute",
+    'transport.commute',
     [
-        "transport.plan_route",
-        "transport.optimize_cost",
+        'transport.plan_route',
+        'transport.optimize_cost',
     ],
 )
 register_dag(
-    "learning.upskill",
+    'learning.upskill',
     [
-        "learning.assess_skills",
-        "learning.plan_path",
-        "learning.schedule",
+        'learning.assess_skills',
+        'learning.plan_path',
+        'learning.schedule',
     ],
 )
 register_dag(
-    "finance.investments_daily",
+    'finance.investments_daily',
     [
-        "finance.portfolio_snapshot",
-        "finance.rebalance_suggest",
+        'finance.portfolio_snapshot',
+        'finance.rebalance_suggest',
     ],
 )
 register_dag(
-    "finance.bills_monthly",
+    'finance.bills_monthly',
     [
-        "finance.bill_detect",
-        "finance.bill_schedule",
+        'finance.bill_detect',
+        'finance.bill_schedule',
     ],
 )
 register_dag(
-    "security.weekly_sweep",
+    'security.weekly_sweep',
     [
-        "security.password_audit",
-        "security.breach_scan",
-        "security.device_posture_check",
+        'security.password_audit',
+        'security.breach_scan',
+        'security.device_posture_check',
     ],
 )
 register_dag(
-    "travel.plan",
+    'travel.plan',
     [
-        "travel.find_deals",
-        "travel.build_itinerary",
-        "travel.check_in_reminders",
+        'travel.find_deals',
+        'travel.build_itinerary',
+        'travel.check_in_reminders',
     ],
 )
 register_dag(
-    "calendar.organize_day",
+    'calendar.organize_day',
     [
-        "calendar.find_slots",
-        "calendar.schedule_tasks",
-        "calendar.auto_followups",
+        'calendar.find_slots',
+        'calendar.schedule_tasks',
+        'calendar.auto_followups',
     ],
 )
 register_dag(
-    "shopping.optimize",
+    'shopping.optimize',
     [
-        "shopping.price_track",
-        "shopping.cart_optimize",
-        "shopping.receipt_categorize",
+        'shopping.price_track',
+        'shopping.cart_optimize',
+        'shopping.receipt_categorize',
     ],
 )
 
 
-@celery.task(name="automation.run_dag", bind=True, acks_late=True, max_retries=2)
+@celery.task(name='automation.run_dag', bind=True, acks_late=True, max_retries=2)
 def run_dag_task(self, run_id: str, intent: str, context: dict[str, Any]):
     import asyncio
 
     async def _run():
         runs_started.labels(intent).inc()
         steps: list[str] = get_dag(intent)
-        await set_status(run_id, "running", {"steps": steps})
+        await set_status(run_id, 'running', {'steps': steps})
         executed: list[str] = []
         try:
             for step in steps:
@@ -184,15 +186,15 @@ def run_dag_task(self, run_id: str, intent: str, context: dict[str, Any]):
                 context_out = await fn(context)
                 context.update(context_out)
                 executed.append(step)
-                await set_status(run_id, "running", {"executed": executed})
-            await set_status(run_id, "succeeded", {"executed": executed, "result": context})
+                await set_status(run_id, 'running', {'executed': executed})
+            await set_status(run_id, 'succeeded', {'executed': executed, 'result': context})
             runs_success.labels(intent).inc()
         except Exception as e:  # pragma: no cover - retry path
             if self.request.retries < self.max_retries:
                 runs_retried.labels(intent).inc()
-                await set_status(run_id, "retrying", {"error": str(e), "executed": executed})
+                await set_status(run_id, 'retrying', {'error': str(e), 'executed': executed})
                 raise self.retry(exc=e, countdown=2 * (self.request.retries + 1)) from None
-            await set_status(run_id, "failed", {"error": str(e), "executed": executed})
+            await set_status(run_id, 'failed', {'error': str(e), 'executed': executed})
             runs_failed.labels(intent).inc()
         # Compensation pass (best-effort)
         for step in reversed(executed):

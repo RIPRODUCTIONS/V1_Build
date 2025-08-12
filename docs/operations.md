@@ -1,6 +1,7 @@
 # 🚀 AI Business Engine Operations Guide
 
-**Your complete guide to running, monitoring, and maintaining the AI Business Engine in production.**
+**Your complete guide to running, monitoring, and maintaining the AI Business Engine in
+production.**
 
 ## 📋 Table of Contents
 
@@ -15,6 +16,7 @@
 ## 🏃‍♂️ Daily Operations
 
 ### Health Check Routine
+
 ```bash
 # 1. Check system health
 curl http://localhost:8000/health
@@ -31,6 +33,7 @@ curl http://localhost:8000/metrics | grep queue_depth
 ```
 
 ### Key Metrics to Monitor
+
 - **API Latency**: p95 < 300ms
 - **Error Rate**: < 1% (4xx/5xx responses)
 - **Redis Stream Lag**: < 60 seconds
@@ -40,6 +43,7 @@ curl http://localhost:8000/metrics | grep queue_depth
 ## 🔐 Security & Key Management
 
 ### JWT Secret Rotation
+
 ```bash
 # 1. Generate new secret
 openssl rand -hex 32
@@ -58,6 +62,7 @@ python scripts/mint_jwt.py --scopes "runs.read"
 ```
 
 ### API Key Rotation
+
 ```bash
 # 1. Check current keys in use
 grep -r "API_KEY" backend/app/
@@ -74,6 +79,7 @@ docker-compose restart backend
 ```
 
 ### Scope Management
+
 ```bash
 # View current user scopes
 curl -H "Authorization: Bearer $TOKEN" http://localhost:8000/auth/me
@@ -88,6 +94,7 @@ redis-cli DEL "token:$TOKEN_HASH"
 ## 📊 Monitoring & Alerting
 
 ### Grafana Dashboard Setup
+
 ```bash
 # 1. Access Grafana
 open http://localhost:3001
@@ -104,6 +111,7 @@ open http://localhost:3001
 ```
 
 ### Prometheus Alerts
+
 ```yaml
 # Example alert rules
 groups:
@@ -115,8 +123,8 @@ groups:
         labels:
           severity: warning
         annotations:
-          summary: "API latency is high"
-          description: "P95 latency is {{ $value }}s"
+          summary: 'API latency is high'
+          description: 'P95 latency is {{ $value }}s'
 
       - alert: ManagerDown
         expr: up{job="manager"} == 0
@@ -124,10 +132,11 @@ groups:
         labels:
           severity: critical
         annotations:
-          summary: "Manager orchestrator is down"
+          summary: 'Manager orchestrator is down'
 ```
 
 ### Log Monitoring
+
 ```bash
 # Check application logs
 tail -f backend/logs/app.log | grep -E "(ERROR|WARN|CRITICAL)"
@@ -144,6 +153,7 @@ tail -f /var/log/redis/redis-server.log
 ### Common Issues & Solutions
 
 #### 1. High API Latency
+
 ```bash
 # Check current latency
 curl http://localhost:8000/metrics | grep "api_request_latency_seconds"
@@ -157,12 +167,14 @@ redis-cli --latency-history
 ```
 
 **Solutions:**
+
 - Increase database connection pool size
 - Add Redis connection pooling
 - Enable query result caching
 - Check for N+1 queries
 
 #### 2. Redis Stream Lag
+
 ```bash
 # Check stream lag
 curl http://localhost:8000/metrics | grep "redis_stream_lag_seconds"
@@ -173,12 +185,14 @@ redis-cli XINFO CONSUMERS automation.events manager
 ```
 
 **Solutions:**
+
 - Increase consumer concurrency
 - Check consumer health
 - Restart stuck consumers
 - Scale consumer instances
 
 #### 3. Manager Orchestrator Issues
+
 ```bash
 # Check manager health
 curl http://localhost:8000/health/manager
@@ -191,6 +205,7 @@ redis-cli PING
 ```
 
 **Solutions:**
+
 - Restart manager service
 - Check Redis connectivity
 - Verify event stream health
@@ -199,6 +214,7 @@ redis-cli PING
 ## 🔄 Recovery Procedures
 
 ### Stuck Stream Recovery
+
 ```bash
 # 1. Identify stuck streams
 redis-cli XINFO STREAM automation.events
@@ -216,6 +232,7 @@ redis-cli XGROUP SETID automation.events manager 0
 ```
 
 ### Dead Letter Queue (DLQ) Recovery
+
 ```bash
 # 1. Check DLQ contents
 redis-cli XRANGE automation.dlq - + COUNT 10
@@ -231,6 +248,7 @@ redis-cli XADD automation.events * event_type "automation.run.requested" ...
 ```
 
 ### Database Recovery
+
 ```bash
 # 1. Check database health
 curl http://localhost:8000/readyz
@@ -247,6 +265,7 @@ alembic upgrade head
 ```
 
 ### Service Recovery
+
 ```bash
 # 1. Restart backend
 cd backend
@@ -268,6 +287,7 @@ python consumer.py
 ## ⚡ Performance Tuning
 
 ### Backend Optimization
+
 ```python
 # 1. Increase worker processes
 uvicorn app.main:app --workers 4 --port 8000
@@ -280,6 +300,7 @@ REDIS_URL="redis://localhost:6379?max_connections=50"
 ```
 
 ### Frontend Optimization
+
 ```bash
 # 1. Enable production build
 npm run build
@@ -294,6 +315,7 @@ const nextConfig = {
 ```
 
 ### Redis Optimization
+
 ```bash
 # 1. Check Redis memory usage
 redis-cli INFO memory
@@ -309,6 +331,7 @@ redis-cli CONFIG SET maxmemory-policy "allkeys-lru"
 ## 💾 Backup & Disaster Recovery
 
 ### Database Backup
+
 ```bash
 # SQLite backup
 cp backend/dev.db backend/dev.db.backup.$(date +%Y%m%d_%H%M%S)
@@ -326,6 +349,7 @@ tar -czf $BACKUP_DIR/backup.tar.gz $BACKUP_DIR/
 ```
 
 ### Configuration Backup
+
 ```bash
 # Backup environment files
 cp .env .env.backup.$(date +%Y%m%d)
@@ -338,6 +362,7 @@ tar -czf config_backup_$(date +%Y%m%d).tar.gz \
 ```
 
 ### Recovery Procedures
+
 ```bash
 # 1. Restore database
 psql -h localhost -U username -d ai_business_engine < backup_20241201.sql
@@ -357,6 +382,7 @@ curl http://localhost:8000/metrics
 ## 🧪 Testing & Validation
 
 ### Load Testing
+
 ```bash
 # Using k6
 k6 run tools/k6/life_smoke.js
@@ -369,6 +395,7 @@ wrk -t12 -c400 -d30s http://localhost:8000/health
 ```
 
 ### Chaos Testing
+
 ```bash
 # Kill Redis
 docker-compose stop redis
@@ -389,11 +416,13 @@ python consumer.py
 ## 📞 Emergency Contacts
 
 ### Escalation Path
+
 1. **Level 1**: Automated monitoring and self-healing
 2. **Level 2**: Manual intervention and recovery procedures
 3. **Level 3**: System administrator (you)
 
 ### Emergency Procedures
+
 ```bash
 # 1. Stop all services
 docker-compose down
@@ -415,4 +444,5 @@ curl http://localhost:8000/health
 
 ---
 
-**Remember**: This is your personal AI business engine. Keep it running smoothly, and it will keep your business running autonomously! 🚀
+**Remember**: This is your personal AI business engine. Keep it running smoothly, and it will keep
+your business running autonomously! 🚀

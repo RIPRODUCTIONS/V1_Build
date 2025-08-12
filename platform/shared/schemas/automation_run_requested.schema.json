@@ -60,9 +60,7 @@
       "title": "Correlation Id"
     }
   },
-  "required": [
-    "intent"
-  ],
+  "required": ["intent"],
   "title": "AutomationRunRequested",
   "type": "object"
 }

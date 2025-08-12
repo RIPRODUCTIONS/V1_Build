@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { expect, test } from '@playwright/test';
 
 test('dashboard has no critical/serious a11y issues', async ({ page, request }) => {
   // seed user and set token to avoid redirect
@@ -13,7 +13,9 @@ test('dashboard has no critical/serious a11y issues', async ({ page, request }) 
   await page.addInitScript(([t]) => localStorage.setItem('token', t), [token]);
   await page.goto('/dashboard');
   const results = await new AxeBuilder({ page }).analyze();
-  const violations = results.violations.filter(v => ['critical', 'serious'].includes(v.impact || ''));
+  const violations = results.violations.filter(v =>
+    ['critical', 'serious'].includes(v.impact || ''),
+  );
   if (violations.length) {
     console.error(JSON.stringify(violations, null, 2));
   }

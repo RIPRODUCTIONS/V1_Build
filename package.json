@@ -1,0 +1,70 @@
+{
+  "name": "ai-business-engine",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "eslint \"apps/**/src/**/*.{ts,tsx,js,jsx}\" --max-warnings 0",
+    "lint:fix": "eslint \"apps/**/src/**/*.{ts,tsx,js,jsx}\" --fix --max-warnings 0",
+    "typecheck": "npm --prefix apps/web ci && tsc -p apps/web/tsconfig.json --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "fmt": "npm run fmt:prettier && make fmt || true",
+    "fmt:prettier": "prettier --write .",
+    "fmt:check": "prettier --check .",
+    "lint:py": "cd backend && source .venv/bin/activate && ruff check .",
+    "fmt:py": "cd backend && source .venv/bin/activate && ruff check --fix . && ruff format .",
+    "prepare": "husky",
+    "test:unit": "npm --prefix apps/web ci && npm --prefix apps/web run test",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
+    "db:dev": "prisma migrate dev --name init",
+    "db:seed": "tsx prisma/seed.ts",
+    "test:int:db:reset": "cross-env DATABASE_URL=file:./test.sqlite prisma migrate reset --force --skip-generate --skip-seed && cross-env DATABASE_URL=file:./test.sqlite prisma migrate deploy && cross-env DATABASE_URL=file:./test.sqlite tsx prisma/seed.ts",
+    "test:integration": "cross-env NODE_ENV=test DATABASE_URL=file:./test.sqlite npm --prefix apps/web run test",
+    "dev:web": "cd apps/web && next dev",
+    "test:e2e": "concurrently -k -s first \"npm:dev:web\" \"wait-on http://localhost:3000 && playwright test apps/web/e2e\""
+  },
+  "engines": {
+    "node": ">=20 <21"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.7.0",
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
+    "@typescript-eslint/eslint-plugin": "8.1.0",
+    "@typescript-eslint/parser": "8.1.0",
+    "eslint": "9.7.0",
+    "eslint-config-prettier": "9.1.0",
+    "eslint-import-resolver-typescript": "^4.4.4",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-simple-import-sort": "^12.1.1",
+    "eslint-plugin-unused-imports": "4.0.0",
+    "globals": "15.8.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.5",
+    "prettier": "3.3.3",
+    "prisma": "^5.19.1",
+    "tsx": "^4.19.2",
+    "cross-env": "^7.0.3",
+    "dotenv": "^16.4.5",
+    "superjson": "^2.2.2",
+    "@playwright/test": "^1.47.2",
+    "concurrently": "^9.1.0",
+    "wait-on": "^8.0.1",
+    "pino": "^9.5.0"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.19.1"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "eslint --fix"
+    ],
+    "*.{md,mdx,json,yml,yaml,css,scss,html}": [
+      "prettier --write"
+    ]
+  }
+}

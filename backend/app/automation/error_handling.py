@@ -12,16 +12,16 @@ from app.obs.metrics import record_manager_failure
 class FailureReason(enum.Enum):
     """Standardized failure reasons for automation runs."""
 
-    VALIDATION = "VALIDATION"  # Input validation failed
-    DEPENDENCY = "DEPENDENCY"  # Required dependency unavailable
-    RUNTIME = "RUNTIME"  # Runtime execution error
-    INTEGRATION = "INTEGRATION"  # External service integration failed
-    TIMEOUT = "TIMEOUT"  # Operation timed out
-    RESOURCE = "RESOURCE"  # Resource exhaustion (CPU, memory, etc.)
-    NETWORK = "NETWORK"  # Network connectivity issues
-    AUTHENTICATION = "AUTHENTICATION"  # Authentication/authorization failed
-    RATE_LIMIT = "RATE_LIMIT"  # Rate limit exceeded
-    UNKNOWN = "UNKNOWN"  # Unknown/unclassified error
+    VALIDATION = 'VALIDATION'  # Input validation failed
+    DEPENDENCY = 'DEPENDENCY'  # Required dependency unavailable
+    RUNTIME = 'RUNTIME'  # Runtime execution error
+    INTEGRATION = 'INTEGRATION'  # External service integration failed
+    TIMEOUT = 'TIMEOUT'  # Operation timed out
+    RESOURCE = 'RESOURCE'  # Resource exhaustion (CPU, memory, etc.)
+    NETWORK = 'NETWORK'  # Network connectivity issues
+    AUTHENTICATION = 'AUTHENTICATION'  # Authentication/authorization failed
+    RATE_LIMIT = 'RATE_LIMIT'  # Rate limit exceeded
+    UNKNOWN = 'UNKNOWN'  # Unknown/unclassified error
 
 
 @dataclass
@@ -105,13 +105,13 @@ class AutomationError:
     def to_dict(self) -> dict[str, Any]:
         """Convert error to dictionary for API responses."""
         return {
-            "reason": self.reason.value,
-            "message": self.message,
-            "details": self.details or {},
-            "attempt": self.attempt,
-            "max_attempts": self.max_attempts,
-            "retryable": self.retryable,
-            "timestamp": time.time(),
+            'reason': self.reason.value,
+            'message': self.message,
+            'details': self.details or {},
+            'attempt': self.attempt,
+            'max_attempts': self.max_attempts,
+            'retryable': self.retryable,
+            'timestamp': time.time(),
         }
 
 
@@ -127,14 +127,14 @@ class ErrorHandler:
 
         # Check for specific error patterns
         error_patterns = [
-            (["connection", "timeout", "network", "unreachable"], FailureReason.NETWORK),
-            (["auth", "unauthorized", "forbidden", "token"], FailureReason.AUTHENTICATION),
-            (["rate limit", "throttle", "quota", "429"], FailureReason.RATE_LIMIT),
-            (["memory", "cpu", "disk", "resource"], FailureReason.RESOURCE),
-            (["timeout", "timed out", "deadline"], FailureReason.TIMEOUT),
-            (["validation", "invalid", "malformed", "schema"], FailureReason.VALIDATION),
-            (["dependency", "service unavailable", "503"], FailureReason.DEPENDENCY),
-            (["api", "external", "integration", "service"], FailureReason.INTEGRATION),
+            (['connection', 'timeout', 'network', 'unreachable'], FailureReason.NETWORK),
+            (['auth', 'unauthorized', 'forbidden', 'token'], FailureReason.AUTHENTICATION),
+            (['rate limit', 'throttle', 'quota', '429'], FailureReason.RATE_LIMIT),
+            (['memory', 'cpu', 'disk', 'resource'], FailureReason.RESOURCE),
+            (['timeout', 'timed out', 'deadline'], FailureReason.TIMEOUT),
+            (['validation', 'invalid', 'malformed', 'schema'], FailureReason.VALIDATION),
+            (['dependency', 'service unavailable', '503'], FailureReason.DEPENDENCY),
+            (['api', 'external', 'integration', 'service'], FailureReason.INTEGRATION),
         ]
 
         for patterns, reason in error_patterns:
@@ -179,21 +179,21 @@ class ErrorHandler:
         self.error_counts[error.reason] += 1
 
         # Record in metrics
-        intent = context.get("intent", "unknown")
-        department = context.get("department", "unknown")
+        intent = context.get('intent', 'unknown')
+        department = context.get('department', 'unknown')
         record_manager_failure(error.reason.value, intent, department)
 
         # Log error details
-        print(f"Automation error recorded: {error.reason.value} - {error.message}")
-        print(f"Context: {context}")
-        print(f"Attempt {error.attempt}/{error.max_attempts}")
+        print(f'Automation error recorded: {error.reason.value} - {error.message}')
+        print(f'Context: {context}')
+        print(f'Attempt {error.attempt}/{error.max_attempts}')
 
     def get_error_summary(self) -> dict[str, Any]:
         """Get summary of all errors recorded."""
         return {
-            "total_errors": sum(self.error_counts.values()),
-            "errors_by_reason": self.error_counts,
-            "most_common": max(self.error_counts.items(), key=lambda x: x[1])[0].value,
+            'total_errors': sum(self.error_counts.values()),
+            'errors_by_reason': self.error_counts,
+            'most_common': max(self.error_counts.items(), key=lambda x: x[1])[0].value,
         }
 
 
@@ -228,15 +228,15 @@ def with_retry(
                 # Get delay before retry
                 delay = error_handler.get_retry_delay(error)
                 if delay > 0:
-                    print(f"Retrying in {delay:.2f} seconds (attempt {attempt}/{max_attempts})")
+                    print(f'Retrying in {delay:.2f} seconds (attempt {attempt}/{max_attempts})')
                     time.sleep(delay)
 
                 # Update context for next attempt
-                context_data["attempt"] = attempt
-                context_data["last_error"] = error.to_dict()
+                context_data['attempt'] = attempt
+                context_data['last_error'] = error.to_dict()
 
         # If we get here, all retries failed
-        raise RuntimeError(f"Function {func.__name__} failed after {max_attempts} attempts")
+        raise RuntimeError(f'Function {func.__name__} failed after {max_attempts} attempts')
 
     return wrapper
 

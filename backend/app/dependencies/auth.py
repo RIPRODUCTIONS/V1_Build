@@ -2,14 +2,15 @@ from collections.abc import Callable
 from typing import Annotated
 
 import jwt
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy.orm import Session
+
 from app.core.config import get_settings
 from app.core.security import decode_access_token
 from app.db import get_db
 from app.models import User
 from app.security.jwt_hs256 import HS256JWT
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy.orm import Session
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -18,17 +19,17 @@ def get_current_subject(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
 ) -> str:
     if credentials is None or not credentials.credentials:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Not authenticated')
     token = credentials.credentials
     try:
         payload = decode_access_token(token)
-        subject = payload.get("sub")
+        subject = payload.get('sub')
         if isinstance(subject, str) and subject:
             return subject
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid token')
     except Exception:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid token'
         ) from None
 
 
@@ -36,17 +37,17 @@ def get_current_user_id(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
 ) -> int:
     if credentials is None or not credentials.credentials:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Not authenticated')
     token = credentials.credentials
     try:
         payload = decode_access_token(token)
-        subject = payload.get("sub")
+        subject = payload.get('sub')
         if isinstance(subject, str) and subject.isdigit():
             return int(subject)
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid token')
     except Exception:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid token'
         ) from None
 
 
@@ -56,7 +57,7 @@ def get_current_user(
 ) -> User:
     user = db.get(User, user_id)
     if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Not authenticated')
     return user
 
 
@@ -73,7 +74,7 @@ def require_subject_hs256(
       - 403 invalid_token: decoded but no subject
     """
     if credentials is None or not credentials.credentials:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="not_authenticated")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='not_authenticated')
 
     settings = get_settings()
     verifier = HS256JWT(
@@ -88,20 +89,20 @@ def require_subject_hs256(
         claims = verifier.verify(token)
     except jwt.ExpiredSignatureError as err:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="token_expired"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail='token_expired'
         ) from err
     except jwt.ImmatureSignatureError as err:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="token_not_active"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail='token_not_active'
         ) from err
     except jwt.InvalidTokenError as err:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_token"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail='invalid_token'
         ) from err
 
-    subject = claims.get("sub")
+    subject = claims.get('sub')
     if not isinstance(subject, str) or not subject.strip():
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="invalid_token")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='invalid_token')
     return subject
 
 
@@ -121,7 +122,7 @@ def require_scope_hs256(
     ) -> str:
         if credentials is None or not credentials.credentials:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="not_authenticated"
+                status_code=status.HTTP_401_UNAUTHORIZED, detail='not_authenticated'
             )
         settings = get_settings()
         verifier = HS256JWT(
@@ -136,24 +137,24 @@ def require_scope_hs256(
             claims = verifier.verify(token)
         except jwt.ExpiredSignatureError as err:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="token_expired"
+                status_code=status.HTTP_401_UNAUTHORIZED, detail='token_expired'
             ) from err
         except jwt.ImmatureSignatureError as err:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="token_not_active"
+                status_code=status.HTTP_401_UNAUTHORIZED, detail='token_not_active'
             ) from err
         except jwt.InvalidTokenError as err:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_token"
+                status_code=status.HTTP_401_UNAUTHORIZED, detail='invalid_token'
             ) from err
 
-        subject = claims.get("sub")
+        subject = claims.get('sub')
         if not isinstance(subject, str) or not subject.strip():
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="invalid_token")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='invalid_token')
 
-        scopes = claims.get("scopes")
+        scopes = claims.get('scopes')
         if not (isinstance(scopes, (list | tuple)) and any(s == required_scope for s in scopes)):
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="forbidden_scope")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='forbidden_scope')
         return subject
 
     return _dep
@@ -170,7 +171,7 @@ def optional_require_life_read(
 
     if get_settings().SECURE_MODE:
         # Delegate to scope-enforcing dependency using the provided credentials
-        return require_scope_hs256("life.read")(credentials)  # type: ignore[arg-type]
+        return require_scope_hs256('life.read')(credentials)  # type: ignore[arg-type]
     return None
 
 
@@ -179,42 +180,42 @@ def require_runs_read_scope(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
 ) -> str:
     """Require runs.read scope for viewing run data."""
-    return require_scope_hs256("runs.read")(credentials)
+    return require_scope_hs256('runs.read')(credentials)
 
 
 def require_runs_write_scope(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
 ) -> str:
     """Require runs.write scope for modifying run data."""
-    return require_scope_hs256("runs.write")(credentials)
+    return require_scope_hs256('runs.write')(credentials)
 
 
 def require_admin_scope(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
 ) -> str:
     """Require admin.* scope for administrative operations."""
-    return require_scope_hs256("admin.*")(credentials)
+    return require_scope_hs256('admin.*')(credentials)
 
 
 def require_departments_read_scope(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
 ) -> str:
     """Require departments.read scope for viewing department information."""
-    return require_scope_hs256("departments.read")(credentials)
+    return require_scope_hs256('departments.read')(credentials)
 
 
 def require_artifacts_read_scope(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
 ) -> str:
     """Require artifacts.read scope for viewing automation artifacts."""
-    return require_scope_hs256("artifacts.read")(credentials)
+    return require_scope_hs256('artifacts.read')(credentials)
 
 
 def require_artifacts_write_scope(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
 ) -> str:
     """Require artifacts.write scope for creating/modifying artifacts."""
-    return require_scope_hs256("artifacts.write")(credentials)
+    return require_scope_hs256('artifacts.write')(credentials)
 
 
 # Convenience functions for common scope combinations
@@ -222,9 +223,9 @@ def require_life_full_access(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
 ) -> str:
     """Require full life automation access (life.read + life.write)."""
-    subject = require_scope_hs256("life.read")(credentials)
+    subject = require_scope_hs256('life.read')(credentials)
     # Also verify write access
-    require_scope_hs256("life.write")(credentials)
+    require_scope_hs256('life.write')(credentials)
     return subject
 
 
@@ -232,7 +233,7 @@ def require_runs_full_access(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
 ) -> str:
     """Require full runs access (runs.read + runs.write)."""
-    subject = require_scope_hs256("runs.read")(credentials)
+    subject = require_scope_hs256('runs.read')(credentials)
     # Also verify write access
-    require_scope_hs256("runs.write")(credentials)
+    require_scope_hs256('runs.write')(credentials)
     return subject

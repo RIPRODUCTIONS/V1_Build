@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 type Props = {
   open: boolean;
@@ -14,8 +14,8 @@ export default function ConfirmDialog({
   open,
   title,
   message,
-  confirmText = "Confirm",
-  cancelText = "Cancel",
+  confirmText = 'Confirm',
+  cancelText = 'Cancel',
   onConfirm,
   onCancel,
 }: Props) {

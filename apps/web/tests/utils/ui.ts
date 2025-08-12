@@ -1,4 +1,4 @@
-import { Page, expect } from "@playwright/test";
+import { expect, Page } from '@playwright/test';
 
 export async function waitForListCount(page: Page, selector: string, minimum = 1) {
   await expect(async () => {

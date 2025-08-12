@@ -1,10 +1,11 @@
 // Deterministic seeding via public API
-const API = process.env.API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
+const API =
+  process.env.API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000';
 
 async function register(email: string, password: string) {
   const res = await fetch(`${API}/users/register`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ email, password }),
   });
   if (!res.ok && res.status !== 400) {
@@ -14,8 +15,8 @@ async function register(email: string, password: string) {
 
 async function login(email: string, password: string) {
   const res = await fetch(`${API}/users/login`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ email, password }),
   });
   if (!res.ok) throw new Error(`login failed: ${res.status} ${await res.text()}`);
@@ -25,9 +26,9 @@ async function login(email: string, password: string) {
 
 async function authedPost(path: string, token: string, body: unknown) {
   const res = await fetch(`${API}${path}`, {
-    method: "POST",
+    method: 'POST',
     headers: {
-      "content-type": "application/json",
+      'content-type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(body),
@@ -39,7 +40,7 @@ async function authedPost(path: string, token: string, body: unknown) {
 export async function seedDashboardData() {
   const ts = Date.now();
   const email = `seed+${ts}@test.dev`;
-  const password = "secret123";
+  const password = 'secret123';
   await register(email, password);
   const token = await login(email, password);
 

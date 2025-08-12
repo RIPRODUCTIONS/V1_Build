@@ -1,10 +1,13 @@
 # Orchestration Spine (Temporal + LangGraph + Dagster/Prefect) — Bootstrap
 
-This document captures the durable orchestration plan to scale hundreds of automations safely. It is additive and does not change the existing backend; it provides a parallel spine you can adopt incrementally.
+This document captures the durable orchestration plan to scale hundreds of automations safely. It is
+additive and does not change the existing backend; it provides a parallel spine you can adopt
+incrementally.
 
 ## Architecture
 
-- Business workflows: Temporal for long-running, retryable, idempotent workflows (supports human-in-the-loop)
+- Business workflows: Temporal for long-running, retryable, idempotent workflows (supports
+  human-in-the-loop)
 - Agent runtime: LangGraph to compose/route multi-agent flows with state, retries, cost controls
 - Data/ops pipelines: Dagster or Prefect for ETL, feature builds, eval jobs, and batch automations
 - Event bus: Kafka/Redpanda (or Redis Streams for small installs)
@@ -13,7 +16,8 @@ This document captures the durable orchestration plan to scale hundreds of autom
 
 ## What this gives you
 
-- A safe place to plug each automation: as Temporal activities, LangGraph agents, or Dagster/Prefect jobs
+- A safe place to plug each automation: as Temporal activities, LangGraph agents, or Dagster/Prefect
+  jobs
 - Global observability, retries, timeouts, and versioned rollouts
 - Separation of concerns: workflows vs. agent reasoning vs. data jobs
 
@@ -83,7 +87,8 @@ Formatting
 ## 7‑day bootstrap plan
 
 - Day 1: Set up directories, optional dev services via Docker; CI placeholders
-- Day 2: Hello-world Temporal workflow + LangGraph echo agent + Dagster/Prefect heartbeat job (traces on)
+- Day 2: Hello-world Temporal workflow + LangGraph echo agent + Dagster/Prefect heartbeat job
+  (traces on)
 - Day 3: Define 10–20 domain events (JSON Schema export) and shared SDK stubs
 - Day 4: Wrap 5 high-value automations as Temporal activities + one multi-agent flow
 - Day 5: Add policy guardrails (budgets, PII), audit logs, human-review gates

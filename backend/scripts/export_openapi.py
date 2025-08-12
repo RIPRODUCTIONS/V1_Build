@@ -14,10 +14,10 @@ from app.main import app  # noqa: E402 - path manipulation above is required for
 
 def main() -> None:
     spec = app.openapi()
-    out_path = Path(__file__).resolve().parent.parent / "openapi.json"
+    out_path = Path(__file__).resolve().parent.parent / 'openapi.json'
     out_path.write_text(json.dumps(spec, indent=2))
-    print(f"Wrote OpenAPI spec to {out_path}")
+    print(f'Wrote OpenAPI spec to {out_path}')
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

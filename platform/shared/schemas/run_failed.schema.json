@@ -61,11 +61,7 @@
       "type": "object"
     }
   },
-  "required": [
-    "run_id",
-    "intent",
-    "error"
-  ],
+  "required": ["run_id", "intent", "error"],
   "title": "RunFailed",
   "type": "object"
 }

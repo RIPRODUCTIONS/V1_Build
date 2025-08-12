@@ -1,5 +1,5 @@
 route:
-  receiver: 'null'
+  receiver: "null"
 receivers:
-  - name: 'null'
+  - name: "null"
 # To integrate Slack later, add a new receiver with slack_configs and set the route accordingly.

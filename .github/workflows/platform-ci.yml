@@ -3,10 +3,10 @@ name: Platform CI
 on:
   push:
     paths:
-      - 'platform/**'
+      - "platform/**"
   pull_request:
     paths:
-      - 'platform/**'
+      - "platform/**"
 
 concurrency:
   group: platform-ci-${{ github.ref }}
@@ -23,7 +23,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install tooling
         run: |

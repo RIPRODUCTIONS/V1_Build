@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 type Options<T> = {
   key: unknown[];
@@ -20,10 +20,11 @@ export function usePagedList<T>({ key, fetchPage, pageSize = 20 }: Options<T>) {
     try {
       setError(null);
       const data = await fetchPage({ offset: reset ? 0 : offset, limit: pageSize });
-      setItems((prev) => (reset ? data : [...prev, ...data]));
-      if (!reset && data.length > 0) setOffset((v) => v + pageSize);
-    } catch (e: any) {
-      setError(e?.message || "Failed to load data");
+      setItems(prev => (reset ? data : [...prev, ...data]));
+      if (!reset && data.length > 0) setOffset(v => v + pageSize);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Failed to load data';
+      setError(message);
     }
   }
 
@@ -34,7 +35,7 @@ export function usePagedList<T>({ key, fetchPage, pageSize = 20 }: Options<T>) {
   }, [depsKey]);
 
   useEffect(() => {
-    const ob = new IntersectionObserver(async (entries) => {
+    const ob = new IntersectionObserver(async entries => {
       if (entries[0]?.isIntersecting && !loadingMore) {
         setLoadingMore(true);
         try {

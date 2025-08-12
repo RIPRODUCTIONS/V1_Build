@@ -1,0 +1,83 @@
+name: Backend Doctor & Smoke
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  doctor_and_smoke:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    env:
+      # Use your script defaults, but you can tweak here
+      HOST: 127.0.0.1
+      BACKEND_PORT: 8000
+      STARTUP_TIMEOUT: 20
+      PYTHON_VERSION: "3.11"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Ensure script perms (idempotent)
+        run: |
+          chmod +x scripts/dev_up.sh || true
+          chmod +x scripts/dev_down.sh || true
+          chmod +x scripts/doctor.sh || true
+
+      - name: Install system deps (lsof, curl)
+        run: sudo apt-get update && sudo apt-get install -y lsof curl
+
+      - name: Create backend venv & install deps
+        working-directory: backend
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install -U pip
+          pip install -r requirements.txt
+          # Optional: speed up TestClient boot by pre-importing
+          python - <<'PY'
+          import importlib; importlib.import_module("app.main")
+          PY
+
+      # ---- Doctor (pre-flight) ----
+      - name: Run doctor (backend-only)
+        env:
+          CHECK_FRONTEND: "0" # don't fail if port 3000 is busy in shared runners
+        run: scripts/doctor.sh
+
+      # ---- Smoke test ----
+      - name: Smoke test (FastAPI TestClient)
+        working-directory: backend
+        run: |
+          source .venv/bin/activate
+          python scripts/smoke_check.py
+
+      # ---- Optional: start/health check in CI (detached) ----
+      # Uncomment if you also want to verify the app actually boots.
+      # - name: Boot (detach) + quick health
+      #   env:
+      #     DETACH: "1"
+      #     DEBUG_STARTUP: "1"
+      #     AUTO_KILL: "1"
+      #   run: |
+      #     scripts/dev_up.sh
+      #     # give it a moment then stop
+      #     sleep 2
+      #     scripts/dev_down.sh

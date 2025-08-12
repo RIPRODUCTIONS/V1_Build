@@ -39,20 +39,20 @@ class HS256JWT:
         now = datetime.now(UTC)
         ttl = self.ttl_seconds if ttl_override_seconds is None else ttl_override_seconds
         payload: dict[str, Any] = {
-            "sub": subject,
-            "iat": int(now.timestamp()),
-            "nbf": int((now + timedelta(seconds=not_before_offset_seconds)).timestamp()),
-            "exp": int((now + timedelta(seconds=ttl)).timestamp()),
+            'sub': subject,
+            'iat': int(now.timestamp()),
+            'nbf': int((now + timedelta(seconds=not_before_offset_seconds)).timestamp()),
+            'exp': int((now + timedelta(seconds=ttl)).timestamp()),
         }
         if self.issuer:
-            payload["iss"] = self.issuer
+            payload['iss'] = self.issuer
         if self.audience:
-            payload["aud"] = self.audience
+            payload['aud'] = self.audience
         if scopes:
-            payload["scopes"] = list(scopes)
+            payload['scopes'] = list(scopes)
         if extra_claims:
             payload.update(extra_claims)
-        return jwt.encode(payload, self.secret, algorithm="HS256")
+        return jwt.encode(payload, self.secret, algorithm='HS256')
 
     def verify(self, token: str) -> dict[str, Any]:
         """Verify token and return claims.
@@ -61,12 +61,12 @@ class HS256JWT:
         to allow callers to map them to HTTP errors as desired.
         """
         kwargs: dict[str, Any] = {
-            "key": self.secret,
-            "algorithms": ["HS256"],
-            "leeway": self.leeway_seconds,
+            'key': self.secret,
+            'algorithms': ['HS256'],
+            'leeway': self.leeway_seconds,
         }
         if self.issuer:
-            kwargs["issuer"] = self.issuer
+            kwargs['issuer'] = self.issuer
         if self.audience:
-            kwargs["audience"] = self.audience
+            kwargs['audience'] = self.audience
         return jwt.decode(token, **kwargs)

@@ -5,13 +5,13 @@ from typing import Any
 from app.automation.registry import skill
 
 
-@skill("transport.plan_route")
+@skill('transport.plan_route')
 async def plan_route(context: dict[str, Any]) -> dict[str, Any]:
-    src = context.get("src", "home")
-    dst = context.get("dst", "work")
-    return {**context, "route": [src, "highway", dst]}
+    src = context.get('src', 'home')
+    dst = context.get('dst', 'work')
+    return {**context, 'route': [src, 'highway', dst]}
 
 
-@skill("transport.optimize_cost")
+@skill('transport.optimize_cost')
 async def optimize_cost(context: dict[str, Any]) -> dict[str, Any]:
-    return {**context, "cost_estimate": 8.75}
+    return {**context, 'cost_estimate': 8.75}

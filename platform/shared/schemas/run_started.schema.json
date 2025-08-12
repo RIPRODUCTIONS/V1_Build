@@ -53,10 +53,7 @@
       "type": "string"
     }
   },
-  "required": [
-    "run_id",
-    "intent"
-  ],
+  "required": ["run_id", "intent"],
   "title": "RunStarted",
   "type": "object"
 }

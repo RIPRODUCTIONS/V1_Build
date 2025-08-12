@@ -1,7 +1,8 @@
-import { test, expect } from '@playwright/test';
-import { awaitNextRequest, awaitNextResponse } from './utils/net';
+import { type APIRequestContext, expect, test } from '@playwright/test';
 
-async function seed(request: any, counts: { leads?: number; tasks?: number } = {}) {
+import { awaitNextRequest } from './utils/net';
+
+async function seed(request: APIRequestContext, counts: { leads?: number; tasks?: number } = {}) {
   const uniq = Date.now().toString();
   const email = `user+${uniq}@example.com`;
   const password = 'secret123';
@@ -91,7 +92,7 @@ test.describe('Dashboard filters, sorting, infinite scroll, and toasts', () => {
     await expect(search).toBeVisible();
     await search.fill(uniq);
     // Network-level assertion: capture the next request(s) and assert final state
-    let nextReq = awaitNextRequest(page, '/leads?');
+    const nextReq = awaitNextRequest(page, '/leads?');
     await page.locator('#lead-sort').selectOption('name_asc');
     let req = await nextReq;
     let url = new URL(req.url());

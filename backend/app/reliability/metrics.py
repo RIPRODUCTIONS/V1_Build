@@ -12,7 +12,7 @@ from app.services.llm.router import _reset_router, get_llm_router
 class SimpleTimingMetrics(BaseHTTPMiddleware):
     def __init__(self, app) -> None:
         super().__init__(app)
-        self._enabled = bool(os.getenv("METRICS_ENABLED"))
+        self._enabled = bool(os.getenv('METRICS_ENABLED'))
 
     async def dispatch(self, request: Request, call_next: Callable[..., Awaitable]):
         if not self._enabled:
@@ -23,53 +23,53 @@ class SimpleTimingMetrics(BaseHTTPMiddleware):
         return response
 
 
-router = APIRouter(tags=["ops"])
+router = APIRouter(tags=['ops'])
 
 
-@router.get("/healthz")
+@router.get('/healthz')
 def healthz():
-    return {"status": "ok", "ts": time.time()}
+    return {'status': 'ok', 'ts': time.time()}
 
 
-@router.get("/readyz")
+@router.get('/readyz')
 def readyz():
-    return {"status": "ready"}
+    return {'status': 'ready'}
 
 
-@router.get("/llm/ready")
+@router.get('/llm/ready')
 async def llm_ready():
     _ = get_llm_router()
-    return {"status": "ready"}
+    return {'status': 'ready'}
 
 
-@router.get("/llm/ping")
+@router.get('/llm/ping')
 async def llm_ping():
     s = Settings()
-    msg = await get_llm_router().chat("Respond with: PONG")
-    model = getattr(s, f"{s.LLM_PRIMARY.upper()}_MODEL", "local")
-    return {"provider": s.LLM_PRIMARY, "model": model, "reply": msg[:200]}
+    msg = await get_llm_router().chat('Respond with: PONG')
+    model = getattr(s, f'{s.LLM_PRIMARY.upper()}_MODEL', 'local')
+    return {'provider': s.LLM_PRIMARY, 'model': model, 'reply': msg[:200]}
 
 
-@router.post("/llm/mode")
+@router.post('/llm/mode')
 def set_llm_mode(mode: str, model: str | None = None):
     s = Settings(LLM_PRIMARY=mode)
     if model:
-        key = f"{mode.upper()}_MODEL"
+        key = f'{mode.upper()}_MODEL'
         if hasattr(s, key):
             setattr(s, key, model)
     _reset_router(s)
     return {
-        "status": "ok",
-        "primary": s.LLM_PRIMARY,
-        "model": model or getattr(s, f"{mode.upper()}_MODEL", "unchanged"),
+        'status': 'ok',
+        'primary': s.LLM_PRIMARY,
+        'model': model or getattr(s, f'{mode.upper()}_MODEL', 'unchanged'),
     }
 
 
-@router.post("/llm/select_best")
+@router.post('/llm/select_best')
 async def llm_select_best():
     s = Settings()
     rt = get_llm_router()
     chosen = await rt.select_best_local()
     s.LMSTUDIO_MODEL = chosen
     _reset_router(s)
-    return {"status": "ok", "chosen": chosen}
+    return {'status': 'ok', 'chosen': chosen}

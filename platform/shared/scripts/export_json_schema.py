@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+
 from shared.events import (
     AutomationRunRequested,
-    RunStatusUpdated,
-    RunStarted,
     RunCompleted,
     RunFailed,
     RunLogEntry,
+    RunStarted,
+    RunStatusUpdated,
 )
 
 try:

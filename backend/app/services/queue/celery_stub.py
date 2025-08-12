@@ -8,7 +8,7 @@ class EventBus:
     """
 
     def publish(self, topic: str, event: dict[str, object]) -> None:  # pragma: no cover
-        print(f"[EVENT] topic={topic} event={event}")
+        print(f'[EVENT] topic={topic} event={event}')
 
 
 """Compatibility wrapper for Celery usage in new modules without touching existing wiring."""

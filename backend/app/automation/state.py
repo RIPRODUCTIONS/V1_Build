@@ -10,15 +10,15 @@ from app.core.config import Settings
 
 
 def _key(run_id: str) -> str:
-    return f"auto:run:{run_id}"
+    return f'auto:run:{run_id}'
 
 
 def _recent_key() -> str:
-    return "auto:runs"
+    return 'auto:runs'
 
 
 def _meta_key(run_id: str) -> str:
-    return f"auto:runmeta:{run_id}"
+    return f'auto:runmeta:{run_id}'
 
 
 # In-memory fallbacks for tests/CI when Redis is unavailable
@@ -28,14 +28,14 @@ _MEM_RECENT: list[str] = []
 
 
 async def set_status(run_id: str, status: str, detail: dict[str, Any] | None = None) -> None:
-    payload = {"status": status, "detail": detail or {}, "ts": time.time()}
+    payload = {'status': status, 'detail': detail or {}, 'ts': time.time()}
     with suppress(Exception):
         s = Settings()
         r = aioredis.from_url(s.REDIS_URL, decode_responses=True)
         await r.set(_key(run_id), json.dumps(payload), ex=86400)
     # Maintain recent index (sorted by last update timestamp)
     with suppress(Exception):
-        await r.zadd(_recent_key(), {run_id: payload["ts"]})
+        await r.zadd(_recent_key(), {run_id: payload['ts']})
     # In-memory fallback
     _MEM_STATE[run_id] = payload
     if run_id in _MEM_RECENT:
@@ -53,16 +53,16 @@ async def get_status(run_id: str) -> dict[str, Any]:
     # Fallback
     if run_id in _MEM_STATE:
         return _MEM_STATE[run_id]
-    return {"status": "queued", "detail": {}}
+    return {'status': 'queued', 'detail': {}}
 
 
 async def record_run_meta(run_id: str, intent: str, payload: dict[str, Any] | None = None) -> None:
     s = Settings()
     r = aioredis.from_url(s.REDIS_URL, decode_responses=True)
-    data = {"intent": intent, "payload": payload or {}, "ts": time.time()}
+    data = {'intent': intent, 'payload': payload or {}, 'ts': time.time()}
     with suppress(Exception):
         await r.set(_meta_key(run_id), json.dumps(data), ex=86400)
-        await r.zadd(_recent_key(), {run_id: data["ts"]})
+        await r.zadd(_recent_key(), {run_id: data['ts']})
     # In-memory fallback
     _MEM_META[run_id] = data
     if run_id in _MEM_RECENT:
@@ -79,15 +79,15 @@ async def list_recent(limit: int = 20) -> list[dict[str, Any]]:
         for rid in run_ids:
             st_raw = await r.get(_key(rid))
             meta_raw = await r.get(_meta_key(rid))
-            status_obj = json.loads(st_raw) if st_raw else {"status": "queued", "detail": {}}
+            status_obj = json.loads(st_raw) if st_raw else {'status': 'queued', 'detail': {}}
             meta_obj = json.loads(meta_raw) if meta_raw else {}
-            results.append({"run_id": rid, **status_obj, "meta": meta_obj})
+            results.append({'run_id': rid, **status_obj, 'meta': meta_obj})
         return results
     except Exception:
         # Build from in-memory fallback
         results: list[dict[str, Any]] = []
         for rid in reversed(_MEM_RECENT[-limit:]):
-            status_obj = _MEM_STATE.get(rid, {"status": "queued", "detail": {}})
+            status_obj = _MEM_STATE.get(rid, {'status': 'queued', 'detail': {}})
             meta_obj = _MEM_META.get(rid, {})
-            results.append({"run_id": rid, **status_obj, "meta": meta_obj})
+            results.append({'run_id': rid, **status_obj, 'meta': meta_obj})
         return results

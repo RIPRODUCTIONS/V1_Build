@@ -16,6 +16,11 @@ backend/dev.db
 backend/dev-e2e*.db
 backend/celerybeat-schedule
 
+# Development
+.dev/
+logs/
+*.pid
+
 # Node/Next.js
 apps/web/node_modules/
 apps/web/.next/
@@ -31,3 +36,4 @@ backups/
 
 # Local DB
 /dev.db
+node_modules

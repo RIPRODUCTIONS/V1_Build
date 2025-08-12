@@ -7,9 +7,7 @@
   "paths": {
     "/health": {
       "get": {
-        "tags": [
-          "health"
-        ],
+        "tags": ["health"],
         "summary": "Health",
         "operationId": "health_health_get",
         "responses": {
@@ -26,9 +24,7 @@
     },
     "/auto-reply/suggest": {
       "post": {
-        "tags": [
-          "communication"
-        ],
+        "tags": ["communication"],
         "summary": "Suggest",
         "operationId": "suggest_auto_reply_suggest_post",
         "requestBody": {
@@ -67,9 +63,7 @@
     },
     "/auth/token": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "summary": "Login",
         "operationId": "login_auth_token_post",
         "requestBody": {
@@ -108,9 +102,7 @@
     },
     "/auth/me": {
       "get": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "summary": "Me",
         "operationId": "me_auth_me_get",
         "responses": {
@@ -132,9 +124,7 @@
     },
     "/users/register": {
       "post": {
-        "tags": [
-          "users"
-        ],
+        "tags": ["users"],
         "summary": "Register",
         "operationId": "register_users_register_post",
         "requestBody": {
@@ -173,9 +163,7 @@
     },
     "/users/login": {
       "post": {
-        "tags": [
-          "users"
-        ],
+        "tags": ["users"],
         "summary": "Login",
         "operationId": "login_users_login_post",
         "requestBody": {
@@ -212,9 +200,7 @@
     },
     "/users/me": {
       "get": {
-        "tags": [
-          "users"
-        ],
+        "tags": ["users"],
         "summary": "Me",
         "operationId": "me_users_me_get",
         "responses": {
@@ -238,9 +224,7 @@
     },
     "/leads/": {
       "post": {
-        "tags": [
-          "leads"
-        ],
+        "tags": ["leads"],
         "summary": "Create Lead",
         "operationId": "create_lead_leads__post",
         "security": [
@@ -282,9 +266,7 @@
         }
       },
       "get": {
-        "tags": [
-          "leads"
-        ],
+        "tags": ["leads"],
         "summary": "List Leads",
         "operationId": "list_leads_leads__get",
         "security": [
@@ -383,9 +365,7 @@
     },
     "/leads/{lead_id}": {
       "put": {
-        "tags": [
-          "leads"
-        ],
+        "tags": ["leads"],
         "summary": "Update Lead",
         "operationId": "update_lead_leads__lead_id__put",
         "security": [
@@ -438,9 +418,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "leads"
-        ],
+        "tags": ["leads"],
         "summary": "Delete Lead",
         "operationId": "delete_lead_leads__lead_id__delete",
         "security": [
@@ -478,9 +456,7 @@
     },
     "/tasks/": {
       "post": {
-        "tags": [
-          "tasks"
-        ],
+        "tags": ["tasks"],
         "summary": "Create Task",
         "operationId": "create_task_tasks__post",
         "security": [
@@ -522,9 +498,7 @@
         }
       },
       "get": {
-        "tags": [
-          "tasks"
-        ],
+        "tags": ["tasks"],
         "summary": "List Tasks",
         "operationId": "list_tasks_tasks__get",
         "security": [
@@ -641,9 +615,7 @@
     },
     "/tasks/{task_id}": {
       "put": {
-        "tags": [
-          "tasks"
-        ],
+        "tags": ["tasks"],
         "summary": "Update Task",
         "operationId": "update_task_tasks__task_id__put",
         "security": [
@@ -696,9 +668,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "tasks"
-        ],
+        "tags": ["tasks"],
         "summary": "Delete Task",
         "operationId": "delete_task_tasks__task_id__delete",
         "security": [
@@ -736,9 +706,7 @@
     },
     "/agent/run": {
       "post": {
-        "tags": [
-          "agent"
-        ],
+        "tags": ["agent"],
         "summary": "Run Agent",
         "operationId": "run_agent_agent_run_post",
         "requestBody": {
@@ -782,9 +750,7 @@
     },
     "/agent/artifacts/{run_id}": {
       "get": {
-        "tags": [
-          "agent"
-        ],
+        "tags": ["agent"],
         "summary": "Get Artifacts",
         "operationId": "get_artifacts_agent_artifacts__run_id__get",
         "security": [
@@ -868,10 +834,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "run_id",
-          "status"
-        ],
+        "required": ["run_id", "status"],
         "title": "AgentRunResponse"
       },
       "ArtifactOut": {
@@ -890,11 +853,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "id",
-          "kind",
-          "content"
-        ],
+        "required": ["id", "kind", "content"],
         "title": "ArtifactOut"
       },
       "Body_login_auth_token_post": {
@@ -948,10 +907,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "username",
-          "password"
-        ],
+        "required": ["username", "password"],
         "title": "Body_login_auth_token_post"
       },
       "HTTPValidationError": {
@@ -975,9 +931,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "id"
-        ],
+        "required": ["id"],
         "title": "IdResponse"
       },
       "LeadCreate": {
@@ -1010,9 +964,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "name"
-        ],
+        "required": ["name"],
         "title": "LeadCreate"
       },
       "LeadOut": {
@@ -1058,12 +1010,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "id",
-          "owner_id",
-          "name",
-          "created_at"
-        ],
+        "required": ["id", "owner_id", "name", "created_at"],
         "title": "LeadOut"
       },
       "LeadUpdate": {
@@ -1118,10 +1065,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "email",
-          "password"
-        ],
+        "required": ["email", "password"],
         "title": "LoginRequest"
       },
       "Message": {
@@ -1143,9 +1087,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "body"
-        ],
+        "required": ["body"],
         "title": "Message"
       },
       "RegisterRequest": {
@@ -1161,10 +1103,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "email",
-          "password"
-        ],
+        "required": ["email", "password"],
         "title": "RegisterRequest"
       },
       "ReplyResponse": {
@@ -1175,9 +1114,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "reply"
-        ],
+        "required": ["reply"],
         "title": "ReplyResponse"
       },
       "TaskCreate": {
@@ -1199,9 +1136,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "title"
-        ],
+        "required": ["title"],
         "title": "TaskCreate"
       },
       "TaskOut": {
@@ -1240,13 +1175,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "id",
-          "owner_id",
-          "title",
-          "status",
-          "created_at"
-        ],
+        "required": ["id", "owner_id", "title", "status", "created_at"],
         "title": "TaskOut"
       },
       "TaskUpdate": {
@@ -1301,9 +1230,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "access_token"
-        ],
+        "required": ["access_token"],
         "title": "TokenResponse"
       },
       "UserOut": {
@@ -1319,10 +1246,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "id",
-          "email"
-        ],
+        "required": ["id", "email"],
         "title": "UserOut"
       },
       "ValidationError": {
@@ -1351,11 +1275,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "loc",
-          "msg",
-          "type"
-        ],
+        "required": ["loc", "msg", "type"],
         "title": "ValidationError"
       }
     },

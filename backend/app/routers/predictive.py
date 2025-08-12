@@ -3,11 +3,11 @@ from typing import Any, Literal
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-router = APIRouter(prefix="/predictive", tags=["predictive"])
+router = APIRouter(prefix='/predictive', tags=['predictive'])
 
 
 class ForecastRequest(BaseModel):
-    domain: Literal["career", "finance", "relationship", "health"]
+    domain: Literal['career', 'finance', 'relationship', 'health']
     input: dict[str, Any] = {}
 
 
@@ -16,6 +16,6 @@ class ForecastResponse(BaseModel):
     forecast: dict[str, Any]
 
 
-@router.post("/forecast", response_model=ForecastResponse)
+@router.post('/forecast', response_model=ForecastResponse)
 async def forecast(req: ForecastRequest) -> ForecastResponse:
-    return ForecastResponse(status="ok", forecast={"domain": req.domain, "confidence": 0.0})
+    return ForecastResponse(status='ok', forecast={'domain': req.domain, 'confidence': 0.0})

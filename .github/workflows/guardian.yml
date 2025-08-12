@@ -1,0 +1,21 @@
+name: Dependency Guardian
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "17 3 * * *" # nightly
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11", cache: "pip" }
+      - name: Backend audit
+        run: |
+          make deps
+          make audit-py
+      - name: Frontend audit
+        if: ${{ hashFiles('frontend/package-lock.json','frontend/pnpm-lock.yaml','frontend/yarn.lock') != '' }}
+        run: |
+          make audit-js

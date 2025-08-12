@@ -1,5 +1,9 @@
-"use client";
-import { useEffect, useState } from "react";
+'use client';
+import { useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
+
+import RecentRunsPanel from '@/components/RecentRunsPanel';
+import { copyToClipboard, generateCurl, getRun, submit } from '@/lib/automation';
 
 type Idea = {
   title: string;
@@ -67,7 +71,7 @@ type MarketAnalysis = {
 type Run = {
   run_id: string;
   status: string;
-  detail?: any;
+  detail?: { executed?: string[]; result?: unknown };
   result?: {
     ideas?: Idea[];
     validated_ideas?: Idea[];
@@ -79,131 +83,151 @@ type Run = {
 export default function BusinessDepartment() {
   const [runs, setRuns] = useState<Record<string, Run>>({});
   const [currentRun, setCurrentRun] = useState<string | null>(null);
-  const [ideaTopic, setIdeaTopic] = useState("business automation");
+  const [_result, setResult] = useState<unknown>(null);
+  const [ideaTopic, setIdeaTopic] = useState('business automation');
   const [ideaCount, setIdeaCount] = useState(5);
   const [includeResearch, setIncludeResearch] = useState(true);
+  const searchParams = useSearchParams();
 
-  async function poll(id: string) {
-    try {
-      const r = await fetch(`/api/automation/runs/${id}`).then((x) => x.json());
-      setRuns((prev) => ({ ...prev, [id]: r }));
+  const poll = useCallback(
+    async (id: string) => {
+      try {
+        const r = await fetch(`/automation/runs/${id}`).then(x => x.json());
+        setRuns(prev => ({ ...prev, [id]: r }));
 
-      // If run completed, set as current
-      if (r.status === "succeeded" && !currentRun) {
-        setCurrentRun(id);
+        // If run completed, set as current
+        if (r.status === 'succeeded' && !currentRun) {
+          setCurrentRun(id);
+        }
+      } catch (error) {
+        console.error('Failed to poll run:', error);
       }
-    } catch (error) {
-      console.error("Failed to poll run:", error);
-    }
-  }
+    },
+    [currentRun],
+  );
 
   useEffect(() => {
     const t = setInterval(() => {
-      Object.keys(runs).forEach((id) => poll(id));
+      Object.keys(runs).forEach(id => poll(id));
     }, 1000);
     return () => clearInterval(t);
-  }, [runs]);
+  }, [runs, poll]);
 
-  const runIdeaEngine = async (pipeline: "generate" | "full") => {
-    const intent = pipeline === "full" ? "ideation.full_pipeline" : "ideation.generate";
+  // Deep-link consumption: load run from URL if present
+  useEffect(() => {
+    const runId = searchParams.get('runId');
+    if (!runId) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const run = await getRun(runId);
+        if (
+          !cancelled &&
+          run.status === 'succeeded' &&
+          run.detail?.intent === 'ideation.generate'
+        ) {
+          setResult(run.detail.result);
+          setCurrentRun(runId);
+          setRuns(prev => ({ ...prev, [runId]: run }));
+        }
+      } catch (error) {
+        console.error('Failed to load run from deep-link:', error);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams]);
+
+  const runIdeaEngine = async (pipeline: 'generate' | 'full') => {
+    const intent = pipeline === 'full' ? 'ideation.full_pipeline' : 'ideation.generate';
 
     try {
-      const response = await fetch("/api/automation/submit", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          intent,
-          payload: {
-            topic: ideaTopic,
-            count: ideaCount,
-            include_research: includeResearch,
-          },
-          idempotency_key: crypto.randomUUID(),
-        }),
+      const response = await submit(intent, {
+        topic: ideaTopic,
+        count: ideaCount,
+        include_research: includeResearch,
       });
 
-      const result = await response.json();
-      setRuns((prev) => ({ ...prev, [result.run_id]: { run_id: result.run_id, status: "queued" } }));
-      setCurrentRun(result.run_id);
+      setRuns(prev => ({
+        ...prev,
+        [response.run_id]: { run_id: response.run_id, status: 'queued' },
+      }));
+      setCurrentRun(response.run_id);
     } catch (error) {
-      console.error("Failed to run idea engine:", error);
+      console.error('Failed to run idea engine:', error);
     }
   };
 
   const runFullResearchPipeline = async () => {
     try {
       // First, run the idea engine
-      const ideaResponse = await fetch("/api/automation/submit", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          intent: "ideation.generate",
-          payload: {
-            topic: ideaTopic,
-            count: ideaCount,
-            include_research: false, // We'll do research separately
-          },
-          idempotency_key: crypto.randomUUID(),
-        }),
+      const ideaResponse = await submit('ideation.generate', {
+        topic: ideaTopic,
+        count: ideaCount,
+        include_research: false, // We'll do research separately
       });
 
-      const ideaResult = await ideaResponse.json();
-      const ideaRunId = ideaResult.run_id;
+      const ideaRunId = ideaResponse.run_id;
 
       // Add idea run to tracking
-      setRuns((prev) => ({ ...prev, [ideaRunId]: { run_id: ideaRunId, status: "queued" } }));
+      setRuns(prev => ({ ...prev, [ideaRunId]: { run_id: ideaRunId, status: 'queued' } }));
 
       // Wait for idea generation to complete, then trigger research validation
       const pollIdeaCompletion = async () => {
         try {
-          const ideaRun = await fetch(`/api/automation/runs/${ideaRunId}`).then((x) => x.json());
+          const ideaRun = await fetch(`/automation/runs/${ideaRunId}`).then(x => x.json());
 
-          if (ideaRun.status === "succeeded" && ideaRun.result?.ideas) {
+          if (ideaRun.status === 'succeeded' && ideaRun.detail?.result?.ideas) {
             // Idea generation completed, now run research validation
-            const researchResponse = await fetch("/api/research/validate", {
-              method: "POST",
-              headers: { "content-type": "application/json" },
-              body: JSON.stringify({
-                run_id: ideaRunId,
-              }),
+            const researchResponse = await submit('research.validate_idea', {
+              idea: ideaRun.detail.result.ideas[0], // Use first idea
+              run_id: ideaRunId,
             });
 
-            if (researchResponse.ok) {
-              const researchResult = await researchResponse.json();
-              const researchRunId = researchResult.run_id;
+            const researchRunId = researchResponse.run_id;
 
-              // Add research run to tracking
-              setRuns((prev) => ({ ...prev, [researchRunId]: { run_id: researchRunId, status: "queued" } }));
-              setCurrentRun(researchRunId);
+            // Add research run to tracking
+            setRuns(prev => ({
+              ...prev,
+              [researchRunId]: { run_id: researchRunId, status: 'queued' },
+            }));
+            setCurrentRun(researchRunId);
 
-              console.log("Full pipeline started: Idea → Research", {
-                ideaRunId,
-                researchRunId,
-                correlationId: researchResult.correlation_id,
-              });
-            }
-          } else if (ideaRun.status === "failed") {
-            console.error("Idea generation failed:", ideaRun);
+            console.log('Full pipeline started: Idea → Research', {
+              ideaRunId,
+              researchRunId,
+            });
+          } else if (ideaRun.status === 'failed') {
+            console.error('Idea generation failed:', ideaRun);
           } else {
             // Still running, poll again in 2 seconds
             setTimeout(pollIdeaCompletion, 2000);
           }
         } catch (error) {
-          console.error("Failed to poll idea completion:", error);
+          console.error('Failed to poll idea completion:', error);
         }
       };
 
       // Start polling for idea completion
       setTimeout(pollIdeaCompletion, 2000);
-
     } catch (error) {
-      console.error("Failed to start full research pipeline:", error);
+      console.error('Failed to start full research pipeline:', error);
     }
   };
 
   const getCurrentResults = () => {
     if (!currentRun || !runs[currentRun]) return null;
-    return runs[currentRun].result;
+    return runs[currentRun].detail?.result as
+      | {
+          ideas?: Idea[];
+          market_analysis?: MarketAnalysis[];
+          next_steps?: string[];
+        }
+      | null
+      | undefined;
   };
 
   const formatScore = (score: number) => {
@@ -211,9 +235,9 @@ export default function BusinessDepartment() {
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 0.7) return "text-green-600";
-    if (score >= 0.5) return "text-yellow-600";
-    return "text-red-600";
+    if (score >= 0.7) return 'text-green-600';
+    if (score >= 0.5) return 'text-yellow-600';
+    return 'text-red-600';
   };
 
   return (
@@ -233,13 +257,11 @@ export default function BusinessDepartment() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Business Topic
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Business Topic</label>
               <input
                 type="text"
                 value={ideaTopic}
-                onChange={(e) => setIdeaTopic(e.target.value)}
+                onChange={e => setIdeaTopic(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="e.g., business automation"
               />
@@ -252,7 +274,7 @@ export default function BusinessDepartment() {
               <select
                 id="ideaCount"
                 value={ideaCount}
-                onChange={(e) => setIdeaCount(Number(e.target.value))}
+                onChange={e => setIdeaCount(Number(e.target.value))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value={3}>3 ideas</option>
@@ -266,7 +288,7 @@ export default function BusinessDepartment() {
                 type="checkbox"
                 id="includeResearch"
                 checked={includeResearch}
-                onChange={(e) => setIncludeResearch(e.target.checked)}
+                onChange={e => setIncludeResearch(e.target.checked)}
                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
               />
               <label htmlFor="includeResearch" className="ml-2 text-sm text-gray-700">
@@ -275,16 +297,16 @@ export default function BusinessDepartment() {
             </div>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-wrap">
             <button
-              onClick={() => runIdeaEngine("generate")}
+              onClick={() => runIdeaEngine('generate')}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             >
               Generate Ideas
             </button>
 
             <button
-              onClick={() => runIdeaEngine("full")}
+              onClick={() => runIdeaEngine('full')}
               className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
             >
               Full Pipeline (Generate + Research + Analysis)
@@ -296,6 +318,21 @@ export default function BusinessDepartment() {
             >
               Run Full Pipeline (Idea → Research)
             </button>
+
+            <button
+              onClick={async () => {
+                const curl = generateCurl('ideation.generate', {
+                  topic: ideaTopic,
+                  count: ideaCount,
+                  include_research: includeResearch,
+                });
+                await copyToClipboard(curl);
+                alert('cURL command copied to clipboard!');
+              }}
+              className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+            >
+              Copy cURL for Debug
+            </button>
           </div>
         </div>
 
@@ -305,23 +342,29 @@ export default function BusinessDepartment() {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Active Runs</h3>
             <div className="space-y-3">
               {Object.entries(runs).map(([id, run]) => (
-                <div key={id} className="flex items-center justify-between p-3 bg-gray-50 rounded-md">
+                <div
+                  key={id}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-md"
+                >
                   <div className="flex items-center space-x-3">
                     <div className="text-sm font-mono text-gray-600">{id}</div>
-                    <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      run.status === "succeeded" ? "bg-green-100 text-green-800" :
-                      run.status === "failed" ? "bg-red-100 text-red-800" :
-                      run.status === "running" ? "bg-blue-100 text-blue-800" :
-                      "bg-gray-100 text-gray-800"
-                    }`}>
+                    <div
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        run.status === 'succeeded'
+                          ? 'bg-green-100 text-green-800'
+                          : run.status === 'failed'
+                            ? 'bg-red-100 text-red-800'
+                            : run.status === 'running'
+                              ? 'bg-blue-100 text-blue-800'
+                              : 'bg-gray-100 text-gray-800'
+                      }`}
+                    >
                       {run.status}
                     </div>
                   </div>
 
                   {run.detail?.executed && (
-                    <div className="text-sm text-gray-600">
-                      {run.detail.executed.join(" → ")}
-                    </div>
+                    <div className="text-sm text-gray-600">{run.detail.executed.join(' → ')}</div>
                   )}
                 </div>
               ))}
@@ -330,7 +373,7 @@ export default function BusinessDepartment() {
         )}
 
         {/* Results Display */}
-        {currentRun && runs[currentRun]?.status === "succeeded" && (
+        {currentRun && runs[currentRun]?.status === 'succeeded' && (
           <div className="space-y-8">
             {/* Generated Ideas */}
             {getCurrentResults()?.ideas && (
@@ -353,7 +396,9 @@ export default function BusinessDepartment() {
 
                       {idea.opportunity_score && (
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-gray-700">Opportunity Score:</span>
+                          <span className="text-sm font-medium text-gray-700">
+                            Opportunity Score:
+                          </span>
                           <span className={`font-bold ${getScoreColor(idea.opportunity_score)}`}>
                             {formatScore(idea.opportunity_score)}
                           </span>
@@ -379,9 +424,7 @@ export default function BusinessDepartment() {
             {/* Market Analysis */}
             {getCurrentResults()?.market_analysis && (
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                  Market Analysis
-                </h3>
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">Market Analysis</h3>
                 <div className="space-y-6">
                   {getCurrentResults()?.market_analysis?.map((analysis: MarketAnalysis) => (
                     <div key={analysis.idea_id} className="border border-gray-200 rounded-lg p-4">
@@ -392,10 +435,22 @@ export default function BusinessDepartment() {
                         <div>
                           <h5 className="font-medium text-gray-900 mb-2">Market Analysis</h5>
                           <div className="space-y-2 text-sm">
-                            <div><span className="font-medium">TAM:</span> {analysis.market_analysis.total_addressable_market}</div>
-                            <div><span className="font-medium">SAM:</span> {analysis.market_analysis.serviceable_market}</div>
-                            <div><span className="font-medium">Growth:</span> {analysis.market_analysis.market_growth_rate}</div>
-                            <div><span className="font-medium">Pricing:</span> {analysis.market_analysis.pricing_strategy.pricing}</div>
+                            <div>
+                              <span className="font-medium">TAM:</span>{' '}
+                              {analysis.market_analysis.total_addressable_market}
+                            </div>
+                            <div>
+                              <span className="font-medium">SAM:</span>{' '}
+                              {analysis.market_analysis.serviceable_market}
+                            </div>
+                            <div>
+                              <span className="font-medium">Growth:</span>{' '}
+                              {analysis.market_analysis.market_growth_rate}
+                            </div>
+                            <div>
+                              <span className="font-medium">Pricing:</span>{' '}
+                              {analysis.market_analysis.pricing_strategy.pricing}
+                            </div>
                           </div>
                         </div>
 
@@ -403,9 +458,18 @@ export default function BusinessDepartment() {
                         <div>
                           <h5 className="font-medium text-gray-900 mb-2">Technical Analysis</h5>
                           <div className="space-y-2 text-sm">
-                            <div><span className="font-medium">Team:</span> {analysis.technical_analysis.resource_requirements.team_size}</div>
-                            <div><span className="font-medium">Timeline:</span> {analysis.technical_analysis.resource_requirements.timeline}</div>
-                            <div><span className="font-medium">Budget:</span> {analysis.technical_analysis.resource_requirements.budget}</div>
+                            <div>
+                              <span className="font-medium">Team:</span>{' '}
+                              {analysis.technical_analysis.resource_requirements.team_size}
+                            </div>
+                            <div>
+                              <span className="font-medium">Timeline:</span>{' '}
+                              {analysis.technical_analysis.resource_requirements.timeline}
+                            </div>
+                            <div>
+                              <span className="font-medium">Budget:</span>{' '}
+                              {analysis.technical_analysis.resource_requirements.budget}
+                            </div>
                           </div>
                         </div>
 
@@ -413,8 +477,14 @@ export default function BusinessDepartment() {
                         <div>
                           <h5 className="font-medium text-gray-900 mb-2">Business Model</h5>
                           <div className="space-y-2 text-sm">
-                            <div><span className="font-medium">Break-even:</span> {analysis.business_model.break_even_timeline}</div>
-                            <div><span className="font-medium">Revenue Streams:</span> {analysis.business_model.revenue_streams.length}</div>
+                            <div>
+                              <span className="font-medium">Break-even:</span>{' '}
+                              {analysis.business_model.break_even_timeline}
+                            </div>
+                            <div>
+                              <span className="font-medium">Revenue Streams:</span>{' '}
+                              {analysis.business_model.revenue_streams.length}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -444,11 +514,16 @@ export default function BusinessDepartment() {
         )}
 
         {/* No Results State */}
-        {currentRun && runs[currentRun]?.status === "succeeded" && !getCurrentResults() && (
+        {currentRun && runs[currentRun]?.status === 'succeeded' && !getCurrentResults() && (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
             <p className="text-gray-500">No results available for this run.</p>
           </div>
         )}
+      </div>
+
+      {/* Recent Runs Panel */}
+      <div className="mt-8">
+        <RecentRunsPanel defaultIntent="ideation.generate" />
       </div>
     </div>
   );

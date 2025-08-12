@@ -21,9 +21,7 @@
     },
     {
       "name": "safety",
-      "tasks": [
-        { "key": "security.weekly_sweep", "auth": "bearer" }
-      ]
+      "tasks": [{ "key": "security.weekly_sweep", "auth": "bearer" }]
     }
   ]
 }

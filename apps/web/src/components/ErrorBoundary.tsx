@@ -1,12 +1,9 @@
-"use client";
-import React from "react";
+'use client';
+import React from 'react';
 
 type Props = { children: React.ReactNode };
 
-export class ErrorBoundary extends React.Component<
-  Props,
-  { hasError: boolean }
-> {
+export class ErrorBoundary extends React.Component<Props, { hasError: boolean }> {
   constructor(props: Props) {
     super(props);
     this.state = { hasError: false };

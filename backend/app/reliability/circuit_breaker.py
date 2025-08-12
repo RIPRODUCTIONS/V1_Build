@@ -9,7 +9,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 class SimpleCircuitBreaker(BaseHTTPMiddleware):
     def __init__(self, app) -> None:
         super().__init__(app)
-        self._enabled = bool(os.getenv("CIRCUIT_BREAKER_ENABLED"))
+        self._enabled = bool(os.getenv('CIRCUIT_BREAKER_ENABLED'))
 
     async def dispatch(self, request: Request, call_next: Callable[..., Awaitable]):
         if not self._enabled:

@@ -15,26 +15,26 @@ class LLMRouter:
         self.cb_primary = CircuitBreaker(settings.LLM_CB_FAIL_THRESHOLD, settings.LLM_CB_RESET_S)
 
         # Local-first selection
-        if self.s.LLM_PRIMARY == "lmstudio":
+        if self.s.LLM_PRIMARY == 'lmstudio':
             self.primary = LMStudioProvider(self.s)
-        elif self.s.LLM_PRIMARY == "ollama":
+        elif self.s.LLM_PRIMARY == 'ollama':
             self.primary = OllamaProvider(self.s)
-        elif self.s.LLM_PRIMARY == "vllm":
+        elif self.s.LLM_PRIMARY == 'vllm':
             self.primary = VLLMProvider(self.s)
-        elif self.s.LLM_PRIMARY == "openai":
+        elif self.s.LLM_PRIMARY == 'openai':
             self.primary = OpenAIProvider(self.s)
         else:
-            raise ValueError("Unsupported LLM_PRIMARY")
+            raise ValueError('Unsupported LLM_PRIMARY')
 
         # Configure fallback provider
         self.fallback = None
-        if self.s.LLM_FALLBACK == "lmstudio":
+        if self.s.LLM_FALLBACK == 'lmstudio':
             self.fallback = LMStudioProvider(self.s)
-        elif self.s.LLM_FALLBACK == "ollama":
+        elif self.s.LLM_FALLBACK == 'ollama':
             self.fallback = OllamaProvider(self.s)
-        elif self.s.LLM_FALLBACK == "vllm":
+        elif self.s.LLM_FALLBACK == 'vllm':
             self.fallback = VLLMProvider(self.s)
-        elif self.s.LLM_FALLBACK == "openai":
+        elif self.s.LLM_FALLBACK == 'openai':
             self.fallback = OpenAIProvider(self.s)
         # if 'none' or unknown, keep None
 
@@ -53,7 +53,7 @@ class LLMRouter:
         if self.fallback:
             return await self.fallback.chat(prompt, system)
 
-        raise RuntimeError("All LLM providers failed (no fallback or circuit open)")
+        raise RuntimeError('All LLM providers failed (no fallback or circuit open)')
 
 
 _router_singleton: LLMRouter | None = None
@@ -64,18 +64,18 @@ def get_llm_router() -> LLMRouter:
     if _router_singleton is None:
         # Initialize once
         router = LLMRouter(Settings())
-        globals()["_router_singleton"] = router
+        globals()['_router_singleton'] = router
         return router
     return _router_singleton  # type: ignore[return-value]
 
 
 def _reset_router(new_settings: Settings | None = None) -> None:
     router = LLMRouter(new_settings or Settings())
-    globals()["_router_singleton"] = router
+    globals()['_router_singleton'] = router
 
 
 def _rank_model_names(names: list[str], policy: str) -> list[str]:
-    prefs = [p.strip().lower() for p in policy.split(",") if p.strip()]
+    prefs = [p.strip().lower() for p in policy.split(',') if p.strip()]
 
     def score(name: str) -> int:
         n = name.lower()
@@ -83,9 +83,9 @@ def _rank_model_names(names: list[str], policy: str) -> list[str]:
         for i, token in enumerate(prefs):
             if token in n:
                 base += 100 - i
-        if "instruct" in n or "chat" in n:
+        if 'instruct' in n or 'chat' in n:
             base += 5
-        if "q4_" in n or "q5_" in n:
+        if 'q4_' in n or 'q5_' in n:
             base += 1
         return base
 

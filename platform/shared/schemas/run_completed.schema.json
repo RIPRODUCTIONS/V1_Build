@@ -57,10 +57,7 @@
       "type": "object"
     }
   },
-  "required": [
-    "run_id",
-    "intent"
-  ],
+  "required": ["run_id", "intent"],
   "title": "RunCompleted",
   "type": "object"
 }

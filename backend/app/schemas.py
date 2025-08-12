@@ -72,7 +72,7 @@ class TaskOut(BaseModel):
 
 class AgentRunRequest(BaseModel):
     lead_id: int | None = None
-    context: str = ""
+    context: str = ''
 
 
 class AgentRunResponse(BaseModel):

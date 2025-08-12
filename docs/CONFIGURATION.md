@@ -2,7 +2,8 @@
 
 ## Environment Variables
 
-The AI Business Engine can be configured using environment variables. Create a `.env` file in the `backend/` directory with the following settings:
+The AI Business Engine can be configured using environment variables. Create a `.env` file in the
+`backend/` directory with the following settings:
 
 ### Core Configuration
 

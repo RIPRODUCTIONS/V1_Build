@@ -14,22 +14,22 @@ class OpenAIProvider:
 
     async def chat(self, prompt: str, system: str | None = None) -> str:
         if not self.key:
-            raise RuntimeError("OPENAI_API_KEY missing")
+            raise RuntimeError('OPENAI_API_KEY missing')
         payload = {
-            "model": self.model,
-            "messages": ([{"role": "system", "content": system}] if system else [])
-            + [{"role": "user", "content": prompt}],
-            "temperature": 0.2,
+            'model': self.model,
+            'messages': ([{'role': 'system', 'content': system}] if system else [])
+            + [{'role': 'user', 'content': prompt}],
+            'temperature': 0.2,
         }
-        headers = {"Authorization": f"Bearer {self.key}"}
+        headers = {'Authorization': f'Bearer {self.key}'}
         timeout = aiohttp.ClientTimeout(total=self.timeout)
         async with (
             aiohttp.ClientSession(timeout=timeout) as s,
             s.post(
-                "https://api.openai.com/v1/chat/completions", json=payload, headers=headers
+                'https://api.openai.com/v1/chat/completions', json=payload, headers=headers
             ) as r,
         ):
             if r.status >= HTTPStatus.BAD_REQUEST:
-                raise RuntimeError(f"OpenAI error {r.status}: {await r.text()}")
+                raise RuntimeError(f'OpenAI error {r.status}: {await r.text()}')
             data = await r.json()
-            return data["choices"][0]["message"]["content"]
+            return data['choices'][0]['message']['content']

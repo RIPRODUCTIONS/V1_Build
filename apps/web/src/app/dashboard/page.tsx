@@ -1,8 +1,9 @@
-"use client";
-import Link from "next/link";
-import React, { useState, useMemo, useEffect } from "react";
-import { apiFetch } from "@/lib/api";
-import { useToast } from "@/components/ToastProvider";
+'use client';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+
+import { useToast } from '@/components/ToastProvider';
+import { apiFetch } from '@/lib/api';
 
 type Department = {
   id: string;
@@ -17,19 +18,19 @@ type Task = {
   name: string;
   description: string;
   department: string;
-  complexity: "low" | "medium" | "high";
+  complexity: 'low' | 'medium' | 'high';
   estimated_duration: string;
   dependencies: string[];
 };
 
 type AutomationRun = {
   run_id: string;
-  status: "pending" | "started" | "completed" | "failed";
+  status: 'pending' | 'started' | 'completed' | 'failed';
   intent: string;
   department: string;
   correlation_id: string;
   created_at: string;
-  meta?: any;
+  meta?: unknown;
 };
 
 export default function Dashboard() {
@@ -37,7 +38,7 @@ export default function Dashboard() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [taskCatalog, setTaskCatalog] = useState<Task[]>([]);
   const [recentRuns, setRecentRuns] = useState<AutomationRun[]>([]);
-  const [managerStatus, setManagerStatus] = useState<"healthy" | "degraded" | "down">("down");
+  const [managerStatus, setManagerStatus] = useState<'healthy' | 'degraded' | 'down'>('down');
   const [loading, setLoading] = useState(true);
 
   // Load AI departments and task catalog
@@ -45,9 +46,9 @@ export default function Dashboard() {
     async function loadData() {
       try {
         const [deptRes, tasksRes, runsRes] = await Promise.all([
-          apiFetch<Department[]>("/departments"),
-          apiFetch<{ tasks: Task[] }>("/departments/tasks/catalog"),
-          apiFetch<{ items: AutomationRun[] }>("/runs?limit=10")
+          apiFetch<Department[]>('/departments'),
+          apiFetch<{ tasks: Task[] }>('/departments/tasks/catalog'),
+          apiFetch<{ items: AutomationRun[] }>('/runs?limit=10'),
         ]);
 
         setDepartments(deptRes || []);
@@ -56,13 +57,13 @@ export default function Dashboard() {
 
         // Check manager health
         try {
-          const healthRes = await fetch("http://localhost:8080/health");
-          setManagerStatus(healthRes.ok ? "healthy" : "degraded");
+          const healthRes = await fetch('http://localhost:8080/health');
+          setManagerStatus(healthRes.ok ? 'healthy' : 'degraded');
         } catch {
-          setManagerStatus("down");
+          setManagerStatus('down');
         }
-      } catch (error) {
-        show("Failed to load AI Business Engine data", "error");
+      } catch {
+        show('Failed to load AI Business Engine data', 'error');
       } finally {
         setLoading(false);
       }
@@ -76,12 +77,12 @@ export default function Dashboard() {
   const triggerLifeAutomation = async (endpoint: string, label: string) => {
     try {
       const res = await apiFetch<{ run_id: string; status: string }>(endpoint, {
-        method: "POST",
+        method: 'POST',
         body: JSON.stringify({}),
       });
-      show(`${label} queued: ${res.run_id}`, "success");
-    } catch (error) {
-      show(`${label} failed`, "error");
+      show(`${label} queued: ${res.run_id}`, 'success');
+    } catch {
+      show(`${label} failed`, 'error');
     }
   };
 
@@ -102,11 +103,15 @@ export default function Dashboard() {
           Autonomous AI agents running your business end-to-end
         </p>
         <div className="flex items-center justify-center gap-4">
-          <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-            managerStatus === "healthy" ? "bg-green-100 text-green-800" :
-            managerStatus === "degraded" ? "bg-yellow-100 text-yellow-800" :
-            "bg-red-100 text-red-800"
-          }`}>
+          <div
+            className={`px-3 py-1 rounded-full text-sm font-medium ${
+              managerStatus === 'healthy'
+                ? 'bg-green-100 text-green-800'
+                : managerStatus === 'degraded'
+                  ? 'bg-yellow-100 text-yellow-800'
+                  : 'bg-red-100 text-red-800'
+            }`}
+          >
             Manager: {managerStatus}
           </div>
           <Link href="/runs" className="text-blue-600 hover:underline">
@@ -122,14 +127,17 @@ export default function Dashboard() {
       <div>
         <h2 className="text-2xl font-semibold mb-4">AI Departments</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {departments.map((dept) => (
-            <div key={dept.id} className="p-6 border rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow">
+          {departments.map(dept => (
+            <div
+              key={dept.id}
+              className="p-6 border rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow"
+            >
               <h3 className="text-lg font-semibold mb-2">{dept.name}</h3>
               <p className="text-gray-600 mb-3">{dept.description}</p>
               <div className="mb-3">
                 <span className="text-sm font-medium text-gray-700">Capabilities:</span>
                 <div className="flex flex-wrap gap-1 mt-1">
-                  {dept.capabilities.slice(0, 3).map((cap) => (
+                  {dept.capabilities.slice(0, 3).map(cap => (
                     <span key={cap} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
                       {cap}
                     </span>
@@ -143,7 +151,10 @@ export default function Dashboard() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">{dept.task_count} tasks available</span>
-                <Link href={`/departments/${dept.id}`} className="text-blue-600 hover:underline text-sm">
+                <Link
+                  href={`/departments/${dept.id}`}
+                  className="text-blue-600 hover:underline text-sm"
+                >
                   View Tasks
                 </Link>
               </div>
@@ -156,15 +167,19 @@ export default function Dashboard() {
       <div>
         <h2 className="text-2xl font-semibold mb-4">Available Tasks</h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {taskCatalog.slice(0, 6).map((task) => (
+          {taskCatalog.slice(0, 6).map(task => (
             <div key={task.id} className="p-4 border rounded-lg bg-white">
               <div className="flex items-start justify-between mb-2">
                 <h3 className="font-medium">{task.name}</h3>
-                <span className={`px-2 py-1 text-xs rounded ${
-                  task.complexity === "high" ? "bg-red-100 text-red-800" :
-                  task.complexity === "medium" ? "bg-yellow-100 text-yellow-800" :
-                  "bg-green-100 text-green-800"
-                }`}>
+                <span
+                  className={`px-2 py-1 text-xs rounded ${
+                    task.complexity === 'high'
+                      ? 'bg-red-100 text-red-800'
+                      : task.complexity === 'medium'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : 'bg-green-100 text-green-800'
+                  }`}
+                >
                   {task.complexity}
                 </span>
               </div>
@@ -188,18 +203,18 @@ export default function Dashboard() {
         <h2 className="text-2xl font-semibold mb-4">Life Automation</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
           {[
-            { path: "/life/health/wellness", label: "Wellness", icon: "🏃‍♂️" },
-            { path: "/life/nutrition/plan", label: "Nutrition", icon: "🥗" },
-            { path: "/life/home/evening", label: "Home", icon: "🏠" },
-            { path: "/life/transport/commute", label: "Commute", icon: "🚗" },
-            { path: "/life/learning/upskill", label: "Learning", icon: "📚" },
-            { path: "/life/finance/investments", label: "Investments", icon: "📈" },
-            { path: "/life/finance/bills", label: "Bills", icon: "💰" },
-            { path: "/life/security/sweep", label: "Security", icon: "🔒" },
-            { path: "/life/travel/plan", label: "Travel", icon: "✈️" },
-            { path: "/life/calendar/organize", label: "Calendar", icon: "📅" },
-            { path: "/life/shopping/optimize", label: "Shopping", icon: "🛒" },
-          ].map((automation) => (
+            { path: '/life/health/wellness', label: 'Wellness', icon: '🏃‍♂️' },
+            { path: '/life/nutrition/plan', label: 'Nutrition', icon: '🥗' },
+            { path: '/life/home/evening', label: 'Home', icon: '🏠' },
+            { path: '/life/transport/commute', label: 'Commute', icon: '🚗' },
+            { path: '/life/learning/upskill', label: 'Learning', icon: '📚' },
+            { path: '/life/finance/investments', label: 'Investments', icon: '📈' },
+            { path: '/life/finance/bills', label: 'Bills', icon: '💰' },
+            { path: '/life/security/sweep', label: 'Security', icon: '🔒' },
+            { path: '/life/travel/plan', label: 'Travel', icon: '✈️' },
+            { path: '/life/calendar/organize', label: 'Calendar', icon: '📅' },
+            { path: '/life/shopping/optimize', label: 'Shopping', icon: '🛒' },
+          ].map(automation => (
             <button
               key={automation.path}
               className="p-4 border rounded-lg bg-white hover:bg-gray-50 transition-colors text-center"
@@ -252,7 +267,9 @@ export default function Dashboard() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-lg font-medium text-gray-900">Idea Engine</h3>
-              <p className="text-gray-600 text-sm">AI-powered business idea generation and market validation</p>
+              <p className="text-gray-600 text-sm">
+                AI-powered business idea generation and market validation
+              </p>
             </div>
             <Link
               href="/business"
@@ -286,31 +303,52 @@ export default function Dashboard() {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Run ID</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Intent</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Correlation ID</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Run ID
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Intent
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Department
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Correlation ID
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Created
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {recentRuns.map((run) => (
+                {recentRuns.map(run => (
                   <tr key={run.run_id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm font-mono text-gray-900">{run.run_id.slice(0, 8)}...</td>
+                    <td className="px-4 py-3 text-sm font-mono text-gray-900">
+                      {run.run_id.slice(0, 8)}...
+                    </td>
                     <td className="px-4 py-3">
-                      <span className={`px-2 py-1 text-xs rounded-full ${
-                        run.status === "completed" ? "bg-green-100 text-green-800" :
-                        run.status === "started" ? "bg-blue-100 text-blue-800" :
-                        run.status === "failed" ? "bg-red-100 text-red-800" :
-                        "bg-gray-100 text-gray-800"
-                      }`}>
+                      <span
+                        className={`px-2 py-1 text-xs rounded-full ${
+                          run.status === 'completed'
+                            ? 'bg-green-100 text-green-800'
+                            : run.status === 'started'
+                              ? 'bg-blue-100 text-blue-800'
+                              : run.status === 'failed'
+                                ? 'bg-red-100 text-red-800'
+                                : 'bg-gray-100 text-gray-800'
+                        }`}
+                      >
                         {run.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{run.intent || "N/A"}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{run.department || "N/A"}</td>
-                    <td className="px-4 py-3 text-sm font-mono text-gray-500">{run.correlation_id?.slice(0, 8) || "N/A"}...</td>
+                    <td className="px-4 py-3 text-sm text-gray-900">{run.intent || 'N/A'}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{run.department || 'N/A'}</td>
+                    <td className="px-4 py-3 text-sm font-mono text-gray-500">
+                      {run.correlation_id?.slice(0, 8) || 'N/A'}...
+                    </td>
                     <td className="px-4 py-3 text-sm text-gray-500">
                       {new Date(run.created_at).toLocaleDateString()}
                     </td>
@@ -333,7 +371,9 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <button
             className="p-4 border rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors text-center"
-            onClick={() => triggerLifeAutomation("/life/calendar/organize", "Calendar Organization")}
+            onClick={() =>
+              triggerLifeAutomation('/life/calendar/organize', 'Calendar Organization')
+            }
           >
             <div className="text-2xl mb-2">📅</div>
             <div className="font-medium">Organize Calendar</div>
@@ -342,7 +382,9 @@ export default function Dashboard() {
 
           <button
             className="p-4 border rounded-lg bg-green-50 hover:bg-green-100 transition-colors text-center"
-            onClick={() => triggerLifeAutomation("/life/finance/investments", "Investment Analysis")}
+            onClick={() =>
+              triggerLifeAutomation('/life/finance/investments', 'Investment Analysis')
+            }
           >
             <div className="text-2xl mb-2">📊</div>
             <div className="font-medium">Analyze Investments</div>
@@ -351,7 +393,7 @@ export default function Dashboard() {
 
           <button
             className="p-4 border rounded-lg bg-purple-50 hover:bg-purple-100 transition-colors text-center"
-            onClick={() => triggerLifeAutomation("/life/learning/upskill", "Learning Plan")}
+            onClick={() => triggerLifeAutomation('/life/learning/upskill', 'Learning Plan')}
           >
             <div className="text-2xl mb-2">🎯</div>
             <div className="font-medium">Create Learning Plan</div>

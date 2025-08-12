@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-business-engine-backend"
+version = "0.1.0"
+description = "AI Business Engine Backend"
+requires-python = ">=3.11"
+
+[tool.ruff]
+line-length = 100
+select = ["E","F","I","UP","B","SIM"]
+ignore = ["E501"]
+fix = true
+
+[tool.ruff.format]
+quote-style = "single"

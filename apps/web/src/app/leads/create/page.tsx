@@ -1,14 +1,15 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { apiFetch } from "@/lib/api";
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+
+import { apiFetch } from '@/lib/api';
 
 type CreateLeadBody = { name: string; email?: string; notes?: string };
 
 export default function CreateLeadPage() {
   const router = useRouter();
-  const [form, setForm] = useState<CreateLeadBody>({ name: "", email: "", notes: "" });
+  const [form, setForm] = useState<CreateLeadBody>({ name: '', email: '', notes: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [autoRun, setAutoRun] = useState(true);
@@ -20,7 +21,7 @@ export default function CreateLeadPage() {
     setLoading(true);
     try {
       const created = await apiFetch<{ id: number }>(`/leads/`, {
-        method: "POST",
+        method: 'POST',
         body: JSON.stringify({
           name: form.name,
           email: form.email || undefined,
@@ -33,21 +34,22 @@ export default function CreateLeadPage() {
       if (autoRun) {
         // Kick off agent summarize + email generation
         await apiFetch<{ run_id: number }>(`/agent/run`, {
-          method: "POST",
-          body: JSON.stringify({ lead_id: leadId, context: form.notes || "" }),
+          method: 'POST',
+          body: JSON.stringify({ lead_id: leadId, context: form.notes || '' }),
         }).catch(() => void 0);
       }
 
       if (scheduleTask) {
         await apiFetch<{ id: number }>(`/tasks/`, {
-          method: "POST",
+          method: 'POST',
           body: JSON.stringify({ title: `Send follow-up email to ${form.name}` }),
         }).catch(() => void 0);
       }
 
       router.replace(`/leads/${leadId}`);
-    } catch (e: any) {
-      setError(e.message || "Failed to create lead");
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Failed to create lead';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -62,7 +64,7 @@ export default function CreateLeadPage() {
           className="border rounded px-3 py-2 w-full"
           placeholder="Name"
           value={form.name}
-          onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+          onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
           required
         />
         <input
@@ -70,20 +72,24 @@ export default function CreateLeadPage() {
           placeholder="Email (optional)"
           type="email"
           value={form.email}
-          onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+          onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
         />
         <textarea
           className="border rounded px-3 py-2 w-full"
           placeholder="Notes (optional)"
           value={form.notes}
-          onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+          onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
         />
         <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={autoRun} onChange={(e) => setAutoRun(e.target.checked)} />
+          <input type="checkbox" checked={autoRun} onChange={e => setAutoRun(e.target.checked)} />
           Auto-summarize + draft email via Agent
         </label>
         <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={scheduleTask} onChange={(e) => setScheduleTask(e.target.checked)} />
+          <input
+            type="checkbox"
+            checked={scheduleTask}
+            onChange={e => setScheduleTask(e.target.checked)}
+          />
           Schedule follow-up task
         </label>
         <div className="flex gap-3">
@@ -92,7 +98,7 @@ export default function CreateLeadPage() {
             disabled={loading}
             className="px-4 py-2 rounded bg-blue-600 text-white disabled:opacity-50"
           >
-            {loading ? "Creating..." : "Create"}
+            {loading ? 'Creating...' : 'Create'}
           </button>
         </div>
       </form>

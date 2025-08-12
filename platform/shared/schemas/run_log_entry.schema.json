@@ -45,11 +45,7 @@
       "type": "object"
     }
   },
-  "required": [
-    "run_id",
-    "level",
-    "message"
-  ],
+  "required": ["run_id", "level", "message"],
   "title": "RunLogEntry",
   "type": "object"
 }

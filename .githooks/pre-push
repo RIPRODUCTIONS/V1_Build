@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ "${CI:-}" == "true" ]] && exit 0
+[[ "${SKIP_HOOKS:-}" == "1" ]] && exit 0
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+cd "${ROOT}" || exit 1
+echo "› pre-push: doctor check…"
+CHECK_FRONTEND=0 scripts/doctor.sh || {
+  echo "✖ pre-push: doctor failed."
+  exit 1
+}
+echo "› pre-push: backend smoke test…"
+pushd backend >/dev/null
+if [[ -x .venv/bin/python ]]; then
+  source .venv/bin/activate
+fi
+python scripts/smoke_check.py || {
+  echo "✖ pre-push: smoke test failed."
+  exit 1
+}
+popd >/dev/null
+echo "✔ pre-push: all good — proceeding with push."

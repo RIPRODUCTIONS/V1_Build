@@ -1,220 +1,175 @@
 from __future__ import annotations
 
+import hashlib
+import json
+from contextlib import suppress
+from datetime import datetime
 from typing import Any
 
-from app.db import get_db
-from app.dependencies.auth import require_runs_read_scope, require_runs_write_scope
-from app.models import AgentRun, Artifact
-from app.obs.run_logger import run_logger
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-router = APIRouter(prefix="/runs", tags=["runs"])
+from app.automation.state import get_status, list_recent
+from app.db import get_db
+from app.dependencies.auth import optional_require_life_read
+from app.models import AgentRun, Artifact
+from app.obs.run_logger import run_logger
+
+router = APIRouter(prefix='', tags=['runs'])
 get_db_dep = Depends(get_db)
+optional_life_read_dep = Depends(optional_require_life_read)
 
 
-@router.get("/")
-def list_runs(  # noqa: PLR0913
-    db: Session = get_db_dep,
-    page_limit: int = Query(default=50, ge=1, le=1000),
-    page_offset: int = Query(default=0, ge=0),
-    sort: str = Query(default="created_desc"),
-    status: str | None = Query(default=None),
-    intent: str | None = Query(default=None),
-    department: str | None = Query(default=None),
-    correlation_id: str | None = Query(default=None),
-    subject: str = Depends(require_runs_read_scope),
-) -> dict[str, Any]:
+class RunOut(BaseModel):
+    id: str
+    intent: str
+    status: str
+    created_at: datetime
+    updated_at: datetime
+    detail: dict | None = None
+
+
+@router.get('/runs')
+async def list_runs(
+    response: Response,
+    intent: str | None = Query(None, description='Filter by intent'),
+    status: str | None = Query(
+        None, regex='^(queued|running|succeeded|failed)$', description='Filter by status'
+    ),
+    from_ts: str | None = Query(
+        None, alias='from', description='Filter from timestamp (ISO format)'
+    ),
+    to_ts: str | None = Query(None, alias='to', description='Filter to timestamp (ISO format)'),
+    limit: int = Query(25, ge=1, le=100, description='Number of runs to return'),
+    offset: int = Query(0, ge=0, description='Offset for pagination'),
+    sort: str | None = Query(None, description='Sort order, e.g., created_desc'),
+    cursor: str | None = Query(None, description='Cursor for pagination (created_at|id format)'),
+    _: str | None = optional_life_read_dep,
+):
     """List automation runs with filtering and pagination."""
-    q = db.query(AgentRun)
+    try:
+        # Parse timestamps if provided
+        from_dt = None
+        to_dt = None
+        if from_ts:
+            with suppress(ValueError):
+                from_dt = datetime.fromisoformat(from_ts.replace('Z', '+00:00'))
+        if to_ts:
+            with suppress(ValueError):
+                to_dt = datetime.fromisoformat(to_ts.replace('Z', '+00:00'))
 
-    # Apply filters
-    if status:
-        q = q.filter(AgentRun.status == status)
-    if intent:
-        q = q.filter(AgentRun.intent == intent)
-    if department:
-        q = q.filter(AgentRun.department == department)
-    if correlation_id:
-        q = q.filter(AgentRun.correlation_id == correlation_id)
+        # Get recent runs (this will need to be enhanced for proper filtering)
+        runs_data = await list_recent(limit)
 
-    # Apply sorting
-    if sort == "created_desc":
-        q = q.order_by(AgentRun.created_at.desc())
-    elif sort == "created_asc":
-        q = q.order_by(AgentRun.created_at.asc())
-    elif sort == "status":
-        q = q.order_by(AgentRun.status, AgentRun.created_at.desc())
-    elif sort == "intent":
-        q = q.order_by(AgentRun.intent, AgentRun.created_at.desc())
-    else:
-        q = q.order_by(AgentRun.created_at.desc())
+        # Apply filters
+        filtered_runs = []
+        for run in runs_data:
+            # Filter by intent
+            if intent and run.get('detail', {}).get('intent') != intent:
+                continue
 
-    rows = q.offset(page_offset).limit(page_limit).all()
-    items = [
-        {
-            "run_id": str(r.id),
-            "status": r.status,
-            "intent": r.intent or "N/A",
-            "department": r.department or "N/A",
-            "correlation_id": r.correlation_id or "N/A",
-            "created_at": r.created_at.isoformat() + "Z",
-        }
-        for r in rows
-    ]
+            # Filter by status
+            if status and run.get('status') != status:
+                continue
 
-    # Log the query for audit
-    run_logger.log_run_event(
-        run_id="query",
-        event_type="runs.list",
-        status="success",
-        metadata={
-            "filters": {
-                "status": status,
-                "intent": intent,
-                "department": department,
-                "correlation_id": correlation_id,
-            },
-            "pagination": {"limit": page_limit, "offset": page_offset},
-            "sort": sort,
-            "count": len(items),
-        },
-    )
+            # Filter by timestamp range
+            if from_dt or to_dt:
+                run_ts = run.get('ts')
+                if run_ts:
+                    run_dt = datetime.fromtimestamp(run_ts)
+                    if from_dt and run_dt < from_dt:
+                        continue
+                    if to_dt and run_dt > to_dt:
+                        continue
 
-    return {"items": items}
+            # Convert to RunOut format
+            run_out = RunOut(
+                id=run.get('run_id', ''),
+                intent=run.get('detail', {}).get('intent', ''),
+                status=run.get('status', ''),
+                created_at=datetime.fromtimestamp(run.get('ts', 0))
+                if run.get('ts')
+                else datetime.now(),
+                updated_at=datetime.fromtimestamp(run.get('ts', 0))
+                if run.get('ts')
+                else datetime.now(),
+                detail=run.get('detail'),
+            )
+            filtered_runs.append(run_out)
 
+        # Apply cursor-based pagination if cursor provided
+        if cursor:
+            try:
+                created_at_str, _, rid = cursor.partition('|')
+                created_at = datetime.fromisoformat(created_at_str.replace('Z', '+00:00'))
 
-@router.get("/{run_id}")
-def get_run(
-    run_id: int,
-    db: Session = get_db_dep,
-    subject: str = Depends(require_runs_read_scope),
-    request: Request = None,
-) -> dict[str, Any]:
-    """Get details of a specific automation run."""
-    r = db.get(AgentRun, run_id)
-    if not r:
-        correlation_id = getattr(request.state, "correlation_id", None) if request else None
-        detail = {"error": "not_found"}
-        if correlation_id:
-            detail["correlation_id"] = correlation_id
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=detail)
+                # Filter runs created before the cursor
+                filtered_runs = [
+                    run
+                    for run in filtered_runs
+                    if (run.created_at < created_at)
+                    or (run.created_at == created_at and run.id < rid)
+                ]
+            except (ValueError, IndexError):
+                # Invalid cursor, return empty
+                filtered_runs = []
 
-    # Log the access
-    run_logger.log_run_event(
-        run_id=str(run_id),
-        event_type="run.detail",
-        status="accessed",
-        correlation_id=r.correlation_id,
-        intent=r.intent,
-        department=r.department,
-    )
+        # Limit results
+        # Offset/slice
+        filtered_runs = filtered_runs[offset : offset + limit]
 
-    return {
-        "run_id": str(r.id),
-        "status": r.status,
-        "intent": r.intent,
-        "department": r.department,
-        "correlation_id": r.correlation_id,
-        "created_at": r.created_at.isoformat() + "Z",
-    }
+        # Add caching headers
+        payload_items = [run.model_dump() for run in filtered_runs]
+        body = json.dumps(payload_items, separators=(',', ':'), default=str)
+        etag = hashlib.md5(body.encode()).hexdigest()
+        response.headers['ETag'] = etag
+        response.headers['Cache-Control'] = 'public, max-age=10'
+
+        # Back-compat shape expected by legacy tests
+        return {'items': payload_items, 'total': len(payload_items)}
+
+    except Exception as e:
+        # Log error and return empty list
+        print(f'Error in list_runs: {e}')
+        return []
 
 
-@router.patch("/{run_id}")
-def update_run(
-    run_id: int,
-    status: str | None = None,
-    intent: str | None = None,
-    department: str | None = None,
-    correlation_id: str | None = None,
-    db: Session = get_db_dep,
-    subject: str = Depends(require_runs_write_scope),
-    request: Request = None,
-) -> dict[str, Any]:
-    """Update run status and metadata (internal use only)."""
-    r = db.get(AgentRun, run_id)
-    if not r:
-        req_correlation_id = getattr(request.state, "correlation_id", None) if request else None
-        detail = {"error": "not_found"}
-        if req_correlation_id:
-            detail["correlation_id"] = req_correlation_id
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=detail)
-
-    # Validate status if provided
-    if status and status not in ["pending", "started", "completed", "failed", "cancelled"]:
-        req_correlation_id = getattr(request.state, "correlation_id", None) if request else None
-        detail = {
-            "error": f"Invalid status: {status}. Must be one of: pending, started, completed, failed, cancelled"
-        }
-        if req_correlation_id:
-            detail["correlation_id"] = req_correlation_id
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
-
-    # Track what's being updated
-    updates = {}
-    if status is not None:
-        updates["status"] = status
-        r.status = status
-    if intent is not None:
-        updates["intent"] = intent
-        r.intent = intent
-    if department is not None:
-        updates["department"] = department
-        r.department = department
-    if correlation_id is not None:
-        updates["correlation_id"] = correlation_id
-        r.correlation_id = correlation_id
-
-    if updates:
-        db.add(r)
-        db.commit()
-
-        # Log the update
-        run_logger.log_run_status_update(
-            run_id=str(run_id),
-            status=r.status,
-            correlation_id=r.correlation_id,
-            intent=r.intent,
-            department=r.department,
-            metadata={"updates": updates},
-        )
-
-    return {
-        "ok": True,
-        "run_id": str(run_id),
-        "updated": updates,
-        "current": {
-            "status": r.status,
-            "intent": r.intent,
-            "department": r.department,
-            "correlation_id": r.correlation_id,
-        },
-    }
+@router.get('/runs/{run_id}')
+async def get_run_detail(run_id: str, _: str | None = optional_life_read_dep):
+    """Get detailed information about a specific run."""
+    try:
+        run_data = await get_status(run_id)
+        if not run_data:
+            return {'error': 'Run not found'}
+        return {'run_id': run_id, **run_data}
+    except Exception as e:
+        return {'error': f'Failed to get run: {str(e)}'}
 
 
-@router.get("/{run_id}/artifacts")
+@router.get('/runs/{run_id}/artifacts')
 def run_artifacts(
     run_id: int,
     db: Session = get_db_dep,
-    subject: str = Depends(require_runs_read_scope),
+    _: str | None = optional_life_read_dep,
     request: Request = None,
 ) -> dict[str, Any]:
     """Get artifacts for a specific automation run."""
     r = db.get(AgentRun, run_id)
     if not r:
-        correlation_id = getattr(request.state, "correlation_id", None) if request else None
-        detail = {"error": "not_found"}
+        correlation_id = getattr(request.state, 'correlation_id', None) if request else None
+        detail = {'error': 'not_found'}
         if correlation_id:
-            detail["correlation_id"] = correlation_id
+            detail['correlation_id'] = correlation_id
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=detail)
 
     arts = db.query(Artifact).filter(Artifact.run_id == run_id).order_by(Artifact.id).all()
     items = [
         {
-            "id": a.id,
-            "kind": a.kind,
-            "status": a.status,
-            "file_path": a.file_path,
+            'id': a.id,
+            'kind': a.kind,
+            'status': a.status,
+            'file_path': a.file_path,
         }
         for a in arts
     ]
@@ -222,12 +177,12 @@ def run_artifacts(
     # Log the artifacts access
     run_logger.log_run_event(
         run_id=str(run_id),
-        event_type="run.artifacts",
-        status="accessed",
+        event_type='run.artifacts',
+        status='accessed',
         correlation_id=r.correlation_id,
         intent=r.intent,
         department=r.department,
-        metadata={"artifact_count": len(items)},
+        metadata={'artifact_count': len(items)},
     )
 
-    return {"items": items}
+    return {'items': items}
