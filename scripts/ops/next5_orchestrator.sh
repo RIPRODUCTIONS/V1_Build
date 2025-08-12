@@ -44,7 +44,9 @@ nohup uvicorn app.main:app --host 127.0.0.1 --port 8091 >/tmp/prod-boot-8091.log
 API_PID=$!
 sleep 3
 # Probe preferred health endpoint, then fall back to root 2xx
-if curl -sf http://127.0.0.1:8091/life/health >/dev/null 2>&1 || curl -sf http://127.0.0.1:8091/ >/dev/null 2>&1; then
+if curl -sf http://127.0.0.1:8091/life/health >/dev/null 2>&1 \
+  || curl -sf http://127.0.0.1:8091/metrics >/dev/null 2>&1 \
+  || curl -sf http://127.0.0.1:8091/ >/dev/null 2>&1; then
   ok "Prod boot sanity OK (health/root returned 2xx)."
 else
   kill $API_PID >/dev/null 2>&1 || true
