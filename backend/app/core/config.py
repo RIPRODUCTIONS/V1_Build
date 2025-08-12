@@ -1,10 +1,24 @@
+import os
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# Load .env for local/dev only. Never load .env in production.
+def _is_production() -> bool:
+    return os.getenv("ENV", "").lower() in {"production", "prod"}
+
+if not _is_production():  # pragma: no cover - convenience for local dev
+    try:
+        from dotenv import load_dotenv  # type: ignore
+
+        load_dotenv()
+    except Exception:
+        # Dotenv is optional in dev
+        pass
+
 
 class Settings(BaseSettings):
-    # In pydantic v2, allow extra keys in env/.env to avoid validation errors
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    # In pydantic v2, allow extra keys; do not rely on env_file (we preload via dotenv in dev)
+    model_config = SettingsConfigDict(extra="ignore")
     jwt_secret: str = Field(default="change-me", env="JWT_SECRET")
     jwt_algorithm: str = Field(default="HS256", env="JWT_ALGORITHM")
     access_token_expire_minutes: int = Field(default=60, env="ACCESS_TOKEN_EXPIRE_MINUTES")

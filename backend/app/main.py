@@ -71,7 +71,30 @@ def _wire_instrumentation(app: FastAPI) -> None:
         setup_metrics(app)
 
 
+def _required_secrets() -> list[str]:
+    # Minimal set to boot in production; extend as needed
+    return [
+        "JWT_SECRET",
+    ]
+
+
+def _fail_fast_if_missing_secrets() -> None:
+    env = os.getenv("ENV", "").lower()
+    if env in {"production", "prod"}:
+        missing: list[str] = []
+        for key in _required_secrets():
+            if not os.getenv(key):
+                missing.append(key)
+        if missing:
+            # Clear, actionable error for CI/runtime
+            raise RuntimeError(
+                f"Missing required secrets for production: {', '.join(missing)}. "
+                "Configure via environment (no .env files in production)."
+            )
+
+
 def create_app() -> FastAPI:
+    _fail_fast_if_missing_secrets()
     # Sentry (optional)
     dsn = os.getenv("SENTRY_DSN")
     if dsn:
