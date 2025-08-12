@@ -51,3 +51,25 @@ k6:
 
 db-upgrade:
 	@alembic -c backend/alembic.ini upgrade head
+
+.PHONY: post-merge
+post-merge:
+	@bash scripts/ops/post_merge_runner.sh | tee /tmp/post_merge_runner.out; test $${PIPESTATUS[0]} -eq 0
+
+.PHONY: next5
+next5:
+	@bash scripts/ops/next5_orchestrator.sh | tee /tmp/next5_orchestrator.out; test $${PIPESTATUS[0]} -eq 0
+
+.PHONY: all-post-merge
+all-post-merge:
+	@set -e; \
+	echo "[ $$(date -Iseconds) ] Starting full post-merge chain"; \
+	$(MAKE) post-merge; \
+	echo "[ $$(date -Iseconds) ] post-merge complete"; \
+	$(MAKE) next5; \
+	echo "[ $$(date -Iseconds) ] next5 complete"; \
+	echo "[ $$(date -Iseconds) ] All steps finished successfully"
+
+.PHONY: web-upgrade-next
+web-upgrade-next:
+	@bash scripts/web/upgrade_next.sh $(version)
