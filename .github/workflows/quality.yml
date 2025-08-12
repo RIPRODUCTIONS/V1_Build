@@ -62,3 +62,25 @@ jobs:
           npm ci
           npm audit --audit-level=high || true
 
+      - name: Security - Bandit (blocking)
+        run: scripts/ci/run_bandit_blocking.sh
+
+      - name: Security - pip-audit (blocking)
+        run: scripts/ci/run_pip_audit_blocking.sh
+
+      - name: Start API for DAST/smoke
+        run: |
+          export PYTHONPATH=backend
+          nohup uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 >/tmp/api.log 2>&1 &
+          sleep 3
+
+      - name: Install jq (for ZAP gating)
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Security - ZAP baseline (block on High)
+        run: scripts/ci/run_zap_blocking.sh http://127.0.0.1:8000
+
+      - name: k6 smoke
+        run: |
+          docker run --rm -e API=http://127.0.0.1:8000 -v $PWD/scripts:/scripts grafana/k6 run /scripts/k6_smoke.js
+
