@@ -8,6 +8,8 @@ from app.dependencies.auth import get_current_user
 from app.models import User
 from app.schemas import LoginRequest, RegisterRequest, UserOut
 from fastapi import APIRouter, Depends, HTTPException, status
+from app.security.deps import require_scopes
+from app.security.scopes import ADMIN_USERS
 from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -25,7 +27,12 @@ def verify_password(password: str, password_hash: str) -> bool:
     return pwd_context.verify(password, password_hash)
 
 
-@router.post("/register", response_model=UserOut, status_code=201)
+@router.post(
+    "/register",
+    response_model=UserOut,
+    status_code=201,
+    dependencies=[Depends(require_scopes({ADMIN_USERS}))],
+)
 def register(payload: RegisterRequest, db: Annotated[Session, Depends(get_db)]) -> UserOut:
     existing = db.scalar(select(User).where(User.email == payload.email))
     if existing:
@@ -46,6 +53,10 @@ def login(payload: LoginRequest, db: Annotated[Session, Depends(get_db)]):
     return {"access_token": token, "token_type": "bearer"}
 
 
-@router.get("/me", response_model=UserOut)
+@router.get(
+    "/me",
+    response_model=UserOut,
+    dependencies=[Depends(require_scopes({ADMIN_USERS}))],
+)
 def me(current_user: Annotated[User, Depends(get_current_user)]):
     return current_user

@@ -4,6 +4,8 @@ from typing import Annotated
 
 from app.db import get_db
 from app.dependencies.auth import get_current_user
+from app.security.deps import require_scopes
+from app.security.scopes import READ_TASKS, WRITE_TASKS
 from app.models import Task, User
 from app.schemas import IdResponse, TaskCreate, TaskOut, TaskUpdate
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -13,7 +15,12 @@ from sqlalchemy.orm import Session
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 
-@router.post("/", response_model=IdResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=IdResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_scopes({WRITE_TASKS}))],
+)
 def create_task(
     payload: TaskCreate,
     current_user: Annotated[User, Depends(get_current_user)],
@@ -26,8 +33,16 @@ def create_task(
     return IdResponse(id=task.id)
 
 
-@router.get("/", response_model=list[TaskOut])
-@router.get("", response_model=list[TaskOut])
+@router.get(
+    "/",
+    response_model=list[TaskOut],
+    dependencies=[Depends(require_scopes({READ_TASKS}))],
+)
+@router.get(
+    "",
+    response_model=list[TaskOut],
+    dependencies=[Depends(require_scopes({READ_TASKS}))],
+)
 def list_tasks(  # noqa: PLR0913 - FastAPI dependency signature
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
@@ -68,7 +83,11 @@ def list_tasks(  # noqa: PLR0913 - FastAPI dependency signature
     return rows
 
 
-@router.get("/{task_id}", response_model=TaskOut)
+@router.get(
+    "/{task_id}",
+    response_model=TaskOut,
+    dependencies=[Depends(require_scopes({READ_TASKS}))],
+)
 def get_task(
     task_id: int,
     current_user: Annotated[User, Depends(get_current_user)],
@@ -80,7 +99,11 @@ def get_task(
     return task
 
 
-@router.put("/{task_id}", response_model=TaskOut)
+@router.put(
+    "/{task_id}",
+    response_model=TaskOut,
+    dependencies=[Depends(require_scopes({WRITE_TASKS}))],
+)
 def update_task(
     task_id: int,
     payload: TaskUpdate,
@@ -101,7 +124,11 @@ def update_task(
     return task
 
 
-@router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{task_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_scopes({WRITE_TASKS}))],
+)
 def delete_task(
     task_id: int,
     current_user: Annotated[User, Depends(get_current_user)],
