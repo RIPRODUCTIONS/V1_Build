@@ -1,0 +1,18 @@
+{
+  "title": "Workers & DB",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Celery retries",
+      "targets": [{"expr": "sum(rate(celery_task_retry_total[5m])) by (task)"}]
+    },
+    {
+      "type": "timeseries",
+      "title": "DB connections",
+      "targets": [{"expr": "sum(pg_connections)"}]
+    }
+  ],
+  "schemaVersion": 37,
+  "version": 1
+}
+

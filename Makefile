@@ -41,3 +41,13 @@ cli-health:
 
 pre-commit-install:
 	$(VENV_DIR)/bin/pre-commit install
+
+.PHONY: zap k6 db-upgrade
+zap:
+	@bash scripts/ci/run_zap_blocking.sh http://127.0.0.1:8000 scripts/ci/zap-allowlist.txt
+
+k6:
+	@docker run --rm -e API=http://127.0.0.1:8000 -v $(PWD)/scripts:/scripts grafana/k6 run /scripts/k6_smoke.js
+
+db-upgrade:
+	@alembic -c backend/alembic.ini upgrade head
