@@ -43,15 +43,42 @@ export ENV=production JWT_SECRET="${JWT_SECRET:-local-strong-secret}" PYTHONPATH
 nohup uvicorn app.main:app --host 127.0.0.1 --port 8091 >/tmp/prod-boot-8091.log 2>&1 &
 API_PID=$!
 sleep 3
-# Probe preferred health endpoint, then fall back to root 2xx
-if curl -sf http://127.0.0.1:8091/life/health >/dev/null 2>&1 \
-  || curl -sf http://127.0.0.1:8091/metrics >/dev/null 2>&1 \
-  || curl -sf http://127.0.0.1:8091/ >/dev/null 2>&1; then
-  ok "Prod boot sanity OK (health/root returned 2xx)."
+# Probe health endpoints dynamically (OpenAPI) then fall back to canonical health and root
+HEALTH_OK=0
+HEALTH_CANDIDATES=""
+if command -v python3 >/dev/null 2>&1; then
+  HEALTH_CANDIDATES=$(curl -sf http://127.0.0.1:8091/openapi.json 2>/dev/null | python3 - <<'PY' || true
+import sys, json, re
+try:
+    data = json.load(sys.stdin)
+    paths = data.get('paths', {})
+    cands = [p for p in paths.keys() if re.search(r'(health|live|ready)', p)]
+    print(' '.join(cands))
+except Exception:
+    pass
+PY
+  )
+fi
+
+for p in $HEALTH_CANDIDATES; do
+  if curl -sf "http://127.0.0.1:8091${p}" >/dev/null 2>&1; then HEALTH_OK=1; break; fi
+done
+
+if [ "$HEALTH_OK" -ne 1 ]; then
+  if curl -sf http://127.0.0.1:8091/api/health/live >/dev/null 2>&1 \
+    || curl -sf http://127.0.0.1:8091/api/health/ready >/dev/null 2>&1 \
+    || curl -sf http://127.0.0.1:8091/metrics >/dev/null 2>&1 \
+    || curl -sf http://127.0.0.1:8091/ >/dev/null 2>&1; then
+    HEALTH_OK=1
+  fi
+fi
+
+if [ "$HEALTH_OK" -eq 1 ]; then
+  ok "Prod boot sanity OK (health probe returned 2xx)."
 else
   kill $API_PID >/dev/null 2>&1 || true
   tail -n 80 /tmp/prod-boot-8091.log || true
-  die "Prod boot check failed. Remediation: ensure ENV=production & JWT_SECRET; verify health route (/life/health) exists."
+  die "Prod boot check failed. Remediation: ensure ENV=production & JWT_SECRET; verify health routes (/api/health/live or /api/health/ready)."
 fi
 kill $API_PID >/dev/null 2>&1 || true
 
