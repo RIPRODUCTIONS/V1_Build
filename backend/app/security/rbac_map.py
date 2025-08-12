@@ -20,7 +20,8 @@ RBAC_ROUTE_SCOPE_MAP: list[tuple[re.Pattern[str], dict[str, set[str]]]] = [
         "GET": {READ_RUNS},
         "POST": {WRITE_RUNS},
     }),
-    (re.compile(r"^/api/runs/\d+$"), {
+    # Match FastAPI route literal with param token
+    (re.compile(r"^/api/runs/\{run_id\}$"), {
         "GET": {READ_RUNS},
         "PATCH": {WRITE_RUNS},
         "PUT": {WRITE_RUNS},
@@ -33,11 +34,11 @@ RBAC_ROUTE_SCOPE_MAP: list[tuple[re.Pattern[str], dict[str, set[str]]]] = [
     }),
 
     # Tasks (CRUD)
-    (re.compile(r"^/tasks$"), {
+    (re.compile(r"^/tasks/?$"), {
         "GET": {READ_TASKS},
         "POST": {WRITE_TASKS},
     }),
-    (re.compile(r"^/tasks/\\d+$"), {
+    (re.compile(r"^/tasks/\{task_id\}$"), {
         "GET": {READ_TASKS},
         "PUT": {WRITE_TASKS},
         "PATCH": {WRITE_TASKS},
