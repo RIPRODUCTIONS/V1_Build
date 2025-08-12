@@ -23,6 +23,19 @@ jobs:
       - name: Pytest
         run: |
           PYTHONPATH=backend pytest -q
+      - name: API Health Check
+        run: |
+          export PYTHONPATH=backend
+          nohup uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 >/tmp/ci-api.log 2>&1 &
+          for i in {1..10}; do
+            if curl -sSf http://127.0.0.1:8000/health/live; then
+              echo "API is healthy!"
+              exit 0
+            fi
+            echo "API not ready yet, retrying..."
+            sleep 2
+          done
+          echo "API failed to start within 20 seconds." && exit 1
 
   prod-fail-fast:
     runs-on: ubuntu-latest
