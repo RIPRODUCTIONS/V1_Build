@@ -44,13 +44,12 @@ RBAC_ROUTE_SCOPE_MAP: list[tuple[re.Pattern[str], dict[str, set[str]]]] = [
         "DELETE": {WRITE_TASKS},
     }),
 
-    # Users/admin (example)
-    (re.compile(r"^/api/users.*$"), {
+    # Users/admin: protect explicit admin endpoints; login remains outside RBAC map
+    (re.compile(r"^/users/me$"), {
         "GET": {ADMIN_USERS},
+    }),
+    (re.compile(r"^/users/register$"), {
         "POST": {ADMIN_USERS},
-        "PUT": {ADMIN_USERS},
-        "PATCH": {ADMIN_USERS},
-        "DELETE": {ADMIN_USERS},
     }),
 ]
 
