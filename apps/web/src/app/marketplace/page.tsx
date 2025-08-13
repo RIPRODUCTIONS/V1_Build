@@ -52,6 +52,20 @@ export default function MarketplacePage() {
     setLoading(true);
     setMessage("");
     try {
+      // Try Stripe Checkout first
+      const checkout = await fetch(`/api/marketplace/buy_credits/checkout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount_usd: Number(buyAmount || 0) }),
+      });
+      if (checkout.ok) {
+        const data = await checkout.json();
+        if (data.url) {
+          window.location.href = data.url;
+          return;
+        }
+      }
+      // Fallback to immediate credit for dev mode
       const res = await fetch(`/api/marketplace/buy_credits`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

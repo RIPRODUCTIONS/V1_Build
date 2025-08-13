@@ -149,3 +149,11 @@ class AutomationUsage(Base):
     executed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     success: Mapped[bool] = mapped_column(Boolean, default=False)
     results_summary_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class ProcessedCheckoutSession(Base):
+    __tablename__ = "processed_checkout_sessions"
+
+    session_id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    credited_amount_usd: Mapped[float] = mapped_column(Float, default=0.0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)

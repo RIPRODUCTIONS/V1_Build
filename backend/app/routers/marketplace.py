@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.db import get_db
 from app.operator.template_library import AutomationTemplateLibrary
 from app.billing.pay_per_use import PayPerUseBilling
-from app.models import AutomationTemplate, AutomationUsage
+from app.models import AutomationTemplate, AutomationUsage, ProcessedCheckoutSession, UserCredits
 
 
 router = APIRouter(prefix="/marketplace", tags=["marketplace"])
@@ -39,6 +39,70 @@ async def buy_credits(amount_usd: float, db: Annotated[Session, Depends(get_db)]
     user_id = get_current_user_id()
     billing = PayPerUseBilling(db)
     return billing.create_prepaid_credits(user_id, amount_usd)
+
+
+@router.post("/buy_credits/checkout")
+async def buy_credits_checkout(amount_usd: float, db: Annotated[Session, Depends(get_db)]) -> Dict[str, Any]:
+    """Create a Stripe Checkout Session for credits purchase when STRIPE_SECRET_KEY is configured.
+
+    The frontend should redirect to the returned url. On success (webhook or client return),
+    call /marketplace/buy_credits/confirm with the session_id to finalize crediting.
+    """
+    from app.core.config import get_settings
+    s = get_settings()
+    if not s.STRIPE_SECRET_KEY:
+        raise HTTPException(status_code=400, detail={"error": "stripe_not_configured"})
+
+    import stripe  # type: ignore
+
+    stripe.api_key = s.STRIPE_SECRET_KEY
+    amount_cents = int(round(max(0.0, float(amount_usd)) * 100))
+    if amount_cents <= 0:
+        raise HTTPException(status_code=400, detail={"error": "invalid_amount"})
+    session = stripe.checkout.Session.create(
+        mode="payment",
+        payment_method_types=["card"],
+        line_items=[{
+            "price_data": {
+                "currency": "usd",
+                "product_data": {"name": "Automation Credits"},
+                "unit_amount": amount_cents,
+            },
+            "quantity": 1,
+        }],
+        success_url="http://localhost:3000/marketplace?success=1&session_id={CHECKOUT_SESSION_ID}",
+        cancel_url="http://localhost:3000/marketplace?canceled=1",
+    )
+    return {"id": session["id"], "url": session["url"]}
+
+
+@router.post("/buy_credits/confirm")
+async def buy_credits_confirm(session_id: str, db: Annotated[Session, Depends(get_db)]) -> Dict[str, Any]:
+    """Confirm a Stripe Checkout session and credit the user, idempotently."""
+    from app.core.config import get_settings
+    s = get_settings()
+    if not s.STRIPE_SECRET_KEY:
+        raise HTTPException(status_code=400, detail={"error": "stripe_not_configured"})
+
+    # Idempotency: avoid double-credit for same session
+    if db.get(ProcessedCheckoutSession, session_id):
+        wallet = db.get(UserCredits, get_current_user_id())
+        return {"status": "ok", "already_confirmed": True, "balance_usd": round((wallet and wallet.credits_balance) or 0.0, 2)}
+
+    import stripe  # type: ignore
+
+    stripe.api_key = s.STRIPE_SECRET_KEY
+    sess = stripe.checkout.Session.retrieve(session_id)
+    if sess and sess["payment_status"] == "paid":
+        amount_paid = float(sess.get("amount_total", 0) or 0) / 100.0
+        user_id = get_current_user_id()
+        # Apply credits and record processed session
+        billing = PayPerUseBilling(db)
+        info = billing.create_prepaid_credits(user_id, amount_paid)
+        db.add(ProcessedCheckoutSession(session_id=session_id, credited_amount_usd=amount_paid))
+        db.commit()
+        return {"status": "ok", "balance_usd": info.get("balance_usd", 0.0)}
+    raise HTTPException(status_code=400, detail={"error": "payment_not_completed"})
 
 
 @router.post("/run/{template_id}")

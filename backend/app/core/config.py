@@ -122,6 +122,9 @@ class Settings(BaseSettings):
     GRAFANA_BASE_URL: str | None = Field(default=None, env="GRAFANA_BASE_URL")
     GRAFANA_DASHBOARD_UID: str | None = Field(default=None, env="GRAFANA_DASHBOARD_UID")
 
+    # Stripe (optional)
+    STRIPE_SECRET_KEY: str | None = Field(default=None, env="STRIPE_SECRET_KEY")
+
     # System event bus consumer
     SYSTEM_EVENT_CONSUMER_ENABLED: bool = Field(default=False, env="SYSTEM_EVENT_CONSUMER_ENABLED")
     EVENT_BUS_CONSUMER_GROUP: str = Field(default="system:cg", env="EVENT_BUS_CONSUMER_GROUP")

@@ -97,13 +97,13 @@ function TemplateCard({ id, name }: { id: string; name: string }) {
       <div className="mt-2">
         {series ? (
           <div>
-            <div className="flex gap-1 items-end" aria-label={`sparkline-${id}`}>
+            <div className="grid grid-cols-24 gap-px items-end" aria-label={`sparkline-${id}`}>
               {series.map((b, i) => {
                 const total = b.success + b.failed;
                 const h = Math.max(2, Math.round((total / max) * 40));
                 const okh = Math.round((b.success / Math.max(1, total)) * h);
                 return (
-                  <div key={i} className="w-2 bg-red-300 relative" style={{ height: h }}>
+                  <div key={i} className="w-2 bg-red-300 relative h-[40px]">
                     <div className="absolute bottom-0 left-0 right-0 bg-green-500" style={{ height: okh }} />
                   </div>
                 );

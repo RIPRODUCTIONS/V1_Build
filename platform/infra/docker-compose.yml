@@ -1,0 +1,117 @@
+version: '3.9'
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: temporal
+      POSTGRES_PASSWORD: temporal
+      POSTGRES_DB: temporal
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  minio:
+    image: minio/minio:RELEASE.2024-06-13T22-53-53Z
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ACCESS_KEY: minio
+      MINIO_SECRET_KEY: minio123
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio:/data
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    ports:
+      - "16686:16686"  # UI
+      - "14250:14250"  # gRPC
+      - "4317:4317"    # OTLP gRPC
+      - "4318:4318"    # OTLP HTTP
+
+  temporal:
+    image: temporalio/auto-setup:1.23.0
+    environment:
+      DB: postgresql
+      DB_PORT: 5432
+      POSTGRES_USER: temporal
+      POSTGRES_PWD: temporal
+      POSTGRES_SEEDS: postgres
+      DYNAMIC_CONFIG_FILE_PATH: config/dynamicconfig/development.yaml
+    ports:
+      - "7233:7233"
+    depends_on:
+      - postgres
+
+  temporal-web:
+    image: temporalio/ui:2.21.3
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+    ports:
+      - "8088:8080"
+    depends_on:
+      - temporal
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    command: --config.file=/etc/prometheus/prometheus.yml --storage.tsdb.retention.time=24h
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:10.4.3
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    depends_on:
+      - prometheus
+      - alertmanager
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ../../deploy/observability/grafana/dashboard_life_metrics.json:/var/lib/grafana/dashboards/life.json:ro
+    command: >
+      sh -c "mkdir -p /etc/grafana/provisioning/dashboards && \
+      printf '%s' '{\n  "apiVersion": 1,\n  "providers": [{\n    "name": "default",\n    "orgId": 1,\n    "type": "file",\n    "disableDeletion": false,\n    "options": {"path": "/var/lib/grafana/dashboards"}\n  }]\n}\n' > /etc/grafana/provisioning/dashboards/provider.yaml && \
+      /run.sh"
+
+  manager:
+    build:
+      context: ../..
+      dockerfile: platform/orchestration/manager/Dockerfile
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      MANAGER_METRICS_PORT: 9109
+      MANAGER_HEALTH_PORT: 8011
+    depends_on:
+      - redis
+    ports:
+      - "8011:8011"
+      - "9109:9109"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8011/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+
+volumes:
+  pgdata: {}
+  minio: {}
+  grafana-data: {}

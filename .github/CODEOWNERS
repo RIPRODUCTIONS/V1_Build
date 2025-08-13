@@ -1,0 +1,3 @@
+platform/** @RIPRODUCTIONS
+deploy/** @RIPRODUCTIONS
+backend/app/routers/life.py @RIPRODUCTIONS
