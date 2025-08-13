@@ -6,7 +6,13 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.tasks.personal_automation_tasks import execute_personal_research, execute_personal_shopping
+from app.tasks.personal_automation_tasks import (
+    execute_personal_research,
+    execute_personal_shopping,
+    execute_personal_social,
+    execute_personal_email,
+    execute_personal_finance,
+)
 from app.agent.celery_app import celery_app
 from celery.result import AsyncResult
 
@@ -21,6 +27,15 @@ def run_personal(template_id: str, payload: Dict[str, Any], db: Annotated[Sessio
         return {"status": "queued", "task_id": job.id}
     if template_id == "shopping_assistant":
         job = execute_personal_shopping.delay(payload)
+        return {"status": "queued", "task_id": job.id}
+    if template_id == "social_media_manager":
+        job = execute_personal_social.delay(payload)
+        return {"status": "queued", "task_id": job.id}
+    if template_id == "personal_email_manager":
+        job = execute_personal_email.delay(payload)
+        return {"status": "queued", "task_id": job.id}
+    if template_id == "personal_finance_tracker":
+        job = execute_personal_finance.delay(payload)
         return {"status": "queued", "task_id": job.id}
     return {"status": "unsupported", "template_id": template_id}
 
