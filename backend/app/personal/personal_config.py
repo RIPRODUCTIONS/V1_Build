@@ -1,40 +1,29 @@
 from __future__ import annotations
 
+import os
+from dataclasses import dataclass
 
+
+@dataclass
 class PersonalConfig:
-    """Personal account preferences (edit locally)."""
+    twitter_enabled: bool
+    twitter_bearer_token: str | None
+    linkedin_enabled: bool
+    linkedin_access_token: str | None
 
-    PERSONAL_EMAIL = "your.email@gmail.com"
-    EMAIL_CHECK_FREQUENCY_MIN = 30
-    EMAIL_CATEGORIES = ["bills", "newsletters", "personal", "work", "actionable"]
 
-    BANK_ACCOUNTS = [
-        {"name": "Main Checking", "type": "checking", "import_method": "csv"},
-        {"name": "Savings", "type": "savings", "import_method": "csv"},
-        {"name": "Credit Card", "type": "credit", "import_method": "csv"},
-    ]
-    BUDGET_CATEGORIES = {
-        "food": 800,
-        "transport": 300,
-        "utilities": 200,
-        "entertainment": 400,
-        "shopping": 500,
-    }
+def _as_bool(value: str | None) -> bool:
+    if not value:
+        return False
+    v = value.strip().lower()
+    return v in {"1", "true", "yes", "on"}
 
-    SOCIAL_ACCOUNTS = {
-        "twitter": {"username": "@yourusername", "auto_post": True},
-        "linkedin": {"profile": "your-linkedin", "auto_post": True},
-    }
-    OPTIMAL_POST_TIMES = ["09:00", "13:00", "17:00"]
 
-    RESEARCH_INTERESTS = ["AI", "automation", "productivity", "technology"]
-    RESEARCH_SOURCES = ["arxiv", "google_scholar", "news", "reddit"]
-
-    DAILY_AUTOMATIONS = {
-        "08:00": ["personal_email_manager", "calendar_briefing"],
-        "12:00": ["social_media_check"],
-        "18:00": ["finance_update"],
-        "22:00": ["daily_summary"],
-    }
-
+def get_personal_config() -> PersonalConfig:
+    return PersonalConfig(
+        twitter_enabled=_as_bool(os.getenv("TWITTER_ENABLED")),
+        twitter_bearer_token=os.getenv("TWITTER_BEARER_TOKEN"),
+        linkedin_enabled=_as_bool(os.getenv("LINKEDIN_ENABLED")),
+        linkedin_access_token=os.getenv("LINKEDIN_ACCESS_TOKEN"),
+    )
 

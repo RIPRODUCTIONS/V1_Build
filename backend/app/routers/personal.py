@@ -15,6 +15,7 @@ from app.tasks.personal_automation_tasks import (
 )
 from app.agent.celery_app import celery_app
 from celery.result import AsyncResult
+from app.personal.personal_config import get_personal_config
 
 
 router = APIRouter(prefix="/personal", tags=["personal"])
@@ -61,4 +62,13 @@ def get_result(task_id: str) -> Dict[str, Any]:
     else:
         response["status"] = "pending"
     return response
+
+
+@router.get("/config")
+def get_personal_integration_config() -> Dict[str, Any]:
+    cfg = get_personal_config()
+    return {
+        "twitter_enabled": bool(cfg.twitter_enabled),
+        "linkedin_enabled": bool(cfg.linkedin_enabled),
+    }
 

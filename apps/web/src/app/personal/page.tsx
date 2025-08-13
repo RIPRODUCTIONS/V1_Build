@@ -6,6 +6,8 @@ export default function PersonalDashboard() {
   const [onboarding, setOnboarding] = useState<any>(null);
   const [running, setRunning] = useState<Record<string, boolean>>({});
   const [lastResult, setLastResult] = useState<Record<string, any>>({});
+  const [postText, setPostText] = useState("Hello world");
+  const [postPlatforms, setPostPlatforms] = useState<string>("twitter,linkedin");
 
   useEffect(() => {
     (async () => {
@@ -71,6 +73,44 @@ export default function PersonalDashboard() {
         </div>
       )}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="border rounded p-4 bg-white col-span-1 md:col-span-2">
+          <div className="font-medium mb-2">Quick Social Post</div>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium">Post Text</label>
+            <textarea className="w-full border rounded p-2 text-sm" rows={3} value={postText} onChange={(e) => setPostText(e.target.value)} placeholder="Write your post..." />
+            <label className="block text-sm font-medium">Platforms (comma-separated)</label>
+            <input className="w-full border rounded p-2 text-sm" value={postPlatforms} onChange={(e) => setPostPlatforms(e.target.value)} placeholder="twitter,linkedin" />
+            <div>
+              <button
+                className="bg-blue-600 text-white px-3 py-1 rounded text-sm"
+                onClick={() =>
+                  runPersonalAutomation("social_media_manager", {
+                    text: postText,
+                    platforms: postPlatforms.split(",").map((s) => s.trim()).filter(Boolean),
+                    post_now: false,
+                  })
+                }
+              >
+                Draft
+              </button>
+              <button
+                className="bg-green-600 text-white px-3 py-1 rounded text-sm ml-2"
+                onClick={() =>
+                  runPersonalAutomation("social_media_manager", {
+                    text: postText,
+                    platforms: postPlatforms.split(",").map((s) => s.trim()).filter(Boolean),
+                    post_now: true,
+                  })
+                }
+              >
+                Post (if enabled)
+              </button>
+            </div>
+          </div>
+          {lastResult["social_media_manager"] && (
+            <pre className="mt-2 text-xs bg-gray-50 p-2 rounded overflow-x-auto">{JSON.stringify(lastResult["social_media_manager"], null, 2)}</pre>
+          )}
+        </div>
         {widgets.map((w) => (
           <div key={w.automation} className="border rounded p-4 bg-white">
             <div className="font-medium">{w.title}</div>

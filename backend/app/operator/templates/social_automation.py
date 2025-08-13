@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any, Dict, List
+from app.integrations.social import SocialIntegration
 
 
 class PersonalSocialMediaManager:
@@ -12,10 +13,16 @@ class PersonalSocialMediaManager:
     }
 
     async def execute(self, parameters: Dict[str, Any]) -> Dict[str, Any]:
-        text = parameters.get("text") or "Hello world"
-        platforms = parameters.get("platforms") or ["twitter", "linkedin"]
-        # Stub: Only drafts content now. Real posting will use API creds.
-        drafts = [{"platform": p, "draft": text} for p in platforms]
-        return {"success": True, "posted": False, "drafts": drafts}
+        text: str = parameters.get("text") or "Hello world"
+        platforms: List[str] = parameters.get("platforms") or ["twitter", "linkedin"]
+        post_now: bool = bool(parameters.get("post_now", False))
+
+        if not post_now:
+            drafts = [{"platform": p, "draft": text} for p in platforms]
+            return {"success": True, "posted": False, "drafts": drafts}
+
+        integ = SocialIntegration()
+        results = await integ.post(text, platforms)
+        return {"success": True, "posted": True, "results": results}
 
 
