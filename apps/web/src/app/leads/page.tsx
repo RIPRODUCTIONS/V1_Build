@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+// import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch, LeadOut } from "@/lib/api";
 
 export default function LeadsListPage() {
-  const router = useRouter();
+  // const _router = useRouter();
   const [q, setQ] = useState("");
   const [sort, setSort] = useState("created_desc");
 

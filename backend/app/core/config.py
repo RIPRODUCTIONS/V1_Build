@@ -82,6 +82,52 @@ class Settings(BaseSettings):
         default="redis://127.0.0.1:6379/2", env="CELERY_RESULT_BACKEND"
     )
 
+    # Integrations / OAuth
+    GOOGLE_CLIENT_ID: str | None = Field(default=None, env="GOOGLE_CLIENT_ID")
+    GOOGLE_CLIENT_SECRET: str | None = Field(default=None, env="GOOGLE_CLIENT_SECRET")
+    GOOGLE_CALENDAR_SYNC: bool = Field(default=False, env="GOOGLE_CALENDAR_SYNC")
+    INTEGRATION_VAULT_KEY: str | None = Field(default=None, env="INTEGRATION_VAULT_KEY")
+
+    # Automation feature flags
+    AUTOMATION_ENGINE_ENABLED: bool = Field(default=False, env="AUTOMATION_ENGINE_ENABLED")
+    AUTOMATION_LEARNING_ENABLED: bool = Field(default=False, env="AUTOMATION_LEARNING_ENABLED")
+    AUTOMATION_SUGGESTIONS_ENABLED: bool = Field(default=False, env="AUTOMATION_SUGGESTIONS_ENABLED")
+
+    # Webhook/DLQ/Retry config
+    WEBHOOK_BASE_URL: str = Field(default="http://localhost:8000", env="WEBHOOK_BASE_URL")
+    WEBHOOK_SECRET: str | None = Field(default=None, env="GMAIL_WEBHOOK_SECRET")
+    DLQ_MAX_ITEMS_PER_QUEUE: int = Field(default=1000, env="DLQ_MAX_ITEMS_PER_QUEUE")
+    DLQ_RETENTION_DAYS: int = Field(default=7, env="DLQ_RETENTION_DAYS")
+    DLQ_ALERT_THRESHOLD: int = Field(default=100, env="DLQ_ALERT_THRESHOLD")
+    DLQ_AUTO_RETRY_ENABLED: bool = Field(default=True, env="DLQ_AUTO_RETRY_ENABLED")
+    DLQ_AUTO_RETRY_MAX_ATTEMPTS: int = Field(default=3, env="DLQ_AUTO_RETRY_MAX_ATTEMPTS")
+    GOOGLE_API_MAX_RETRIES: int = Field(default=3, env="GOOGLE_API_MAX_RETRIES")
+    GOOGLE_API_BACKOFF_MULTIPLIER: float = Field(default=2.0, env="GOOGLE_API_BACKOFF_MULTIPLIER")
+    CIRCUIT_BREAKER_FAILURE_THRESHOLD: int = Field(default=5, env="CIRCUIT_BREAKER_FAILURE_THRESHOLD")
+    CIRCUIT_BREAKER_RECOVERY_TIMEOUT: int = Field(default=30, env="CIRCUIT_BREAKER_RECOVERY_TIMEOUT")
+
+    # Operator System feature flags and tuning
+    OPERATOR_WEB_ENABLED: bool = Field(default=False, env="OPERATOR_WEB_ENABLED")
+    OPERATOR_DESKTOP_ENABLED: bool = Field(default=False, env="OPERATOR_DESKTOP_ENABLED")
+    OPERATOR_MAX_CONCURRENT_TASKS: int = Field(default=3, env="OPERATOR_MAX_CONCURRENT_TASKS")
+    OPERATOR_TASK_TIMEOUT_S: int = Field(default=3600, env="OPERATOR_TASK_TIMEOUT")
+    OPERATOR_MONITORING_ENABLED: bool = Field(default=True, env="OPERATOR_MONITORING_ENABLED")
+    OPERATOR_WEB_REAL: bool = Field(default=False, env="OPERATOR_WEB_REAL")
+    OPERATOR_AI_ENABLED: bool = Field(default=False, env="OPERATOR_AI_ENABLED")
+    OPERATOR_ALLOWED_DOMAINS: str = Field(default="*", env="OPERATOR_ALLOWED_DOMAINS")
+    ROI_HOURLY_RATE_USD: float = Field(default=50.0, env="ROI_HOURLY_RATE_USD")
+    ROI_SUCCESS_RATE_THRESHOLD: float = Field(default=0.8, env="ROI_SUCCESS_RATE_THRESHOLD")
+
+    # Observability / Grafana (optional)
+    GRAFANA_BASE_URL: str | None = Field(default=None, env="GRAFANA_BASE_URL")
+    GRAFANA_DASHBOARD_UID: str | None = Field(default=None, env="GRAFANA_DASHBOARD_UID")
+
+    # System event bus consumer
+    SYSTEM_EVENT_CONSUMER_ENABLED: bool = Field(default=False, env="SYSTEM_EVENT_CONSUMER_ENABLED")
+    EVENT_BUS_CONSUMER_GROUP: str = Field(default="system:cg", env="EVENT_BUS_CONSUMER_GROUP")
+    EVENT_BUS_CONSUMER_NAME: str = Field(default="api-1", env="EVENT_BUS_CONSUMER_NAME")
+    EVENT_PROCESSED_CAP: int = Field(default=10000, env="EVENT_PROCESSED_CAP")
+
     # Note: Pydantic v2 uses model_config; do not also define class Config
 
 

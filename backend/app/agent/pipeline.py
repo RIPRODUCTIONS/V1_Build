@@ -1,5 +1,58 @@
 from __future__ import annotations
 
+import asyncio
+from typing import Any, Dict
+
+from app.core.config import get_settings
+from app.core.event_bus import SystemEventBus
+
+
+async def start_event_consumer() -> None:
+    settings = get_settings()
+    if not settings.SYSTEM_EVENT_CONSUMER_ENABLED:
+        return
+    bus = SystemEventBus()
+
+    async def _on_operator_event(evt: Dict[str, Any]) -> None:
+        from app.db import SessionLocal
+        from app.models import OperatorEvent, OperatorRun
+
+        db = SessionLocal()
+        try:
+            et = (evt or {}).get("type")
+            data = (evt or {}).get("data") or {}
+            corr = str(data.get("correlation_id") or "")
+            if not corr:
+                return
+            run = db.query(OperatorRun).filter(OperatorRun.correlation_id == corr).first()
+            if not run:
+                run = OperatorRun(
+                    correlation_id=corr,
+                    description=str(data.get("description") or ""),
+                    url=str(data.get("url") or None) if data.get("url") else None,
+                    status="planned" if et == "operator.task.planned" else "running",
+                )
+                db.add(run)
+                db.flush()
+            # Update status transitions
+            if et == "operator.task.started":
+                run.status = "running"
+            elif et == "operator.task.completed":
+                run.status = str(data.get("status") or "completed")
+            elif et == "operator.task.failed":
+                run.status = "failed"
+            # Persist event
+            db.add(OperatorEvent(run_id=run.id, event_type=et or "unknown", payload=__import__("json").dumps(evt)))
+            db.commit()
+        except Exception:
+            db.rollback()
+        finally:
+            db.close()
+
+    await bus.subscribe("operator.task.started", _on_operator_event)
+    await bus.subscribe("operator.task.completed", _on_operator_event)
+    await bus.consume(settings.EVENT_BUS_CONSUMER_GROUP, settings.EVENT_BUS_CONSUMER_NAME)
+
 import json
 import uuid
 

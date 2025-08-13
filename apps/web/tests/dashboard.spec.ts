@@ -1,7 +1,9 @@
 import { test, expect } from '@playwright/test';
-import { awaitNextRequest, awaitNextResponse } from './utils/net';
+import { awaitNextRequest } from './utils/net';
 
-async function seed(request: any, counts: { leads?: number; tasks?: number } = {}) {
+import type { APIRequestContext } from '@playwright/test';
+
+async function seed(request: APIRequestContext, counts: { leads?: number; tasks?: number } = {}) {
   const uniq = Date.now().toString();
   const email = `user+${uniq}@example.com`;
   const password = 'secret123';
@@ -36,8 +38,8 @@ async function seed(request: any, counts: { leads?: number; tasks?: number } = {
 }
 
 test.describe('Dashboard filters, sorting, infinite scroll, and toasts', () => {
-  test('filters/sorting UI wires query params and shows toast', async ({ page, request }) => {
-    const { token, uniq } = await seed(request);
+  test('filters/sorting UI wires query params and shows toast', async ({ page, request: _request }) => {
+    const { token, uniq } = await seed(_request);
     await page.addInitScript(([t]) => localStorage.setItem('token', t), [token]);
     await page.goto('/dashboard');
 
@@ -58,8 +60,8 @@ test.describe('Dashboard filters, sorting, infinite scroll, and toasts', () => {
     await expect(page.getByText('Filters applied').first()).toBeVisible({ timeout: 10000 });
   });
 
-  test('infinite scroll loads more', async ({ page, request }) => {
-    const { token } = await seed(request, { leads: 50, tasks: 50 });
+  test('infinite scroll loads more', async ({ page, request: _request }) => {
+    const { token } = await seed(_request, { leads: 50, tasks: 50 });
     await page.addInitScript(([t]) => localStorage.setItem('token', t), [token]);
     await page.goto('/dashboard');
     // Ensure we see initial items, then scroll to trigger more
@@ -70,8 +72,8 @@ test.describe('Dashboard filters, sorting, infinite scroll, and toasts', () => {
     await expect(page).toHaveURL(/.*\/dashboard$/);
   });
 
-  test('empty filter yields no results', async ({ page, request }) => {
-    const { token, uniq } = await seed(request, { leads: 5, tasks: 5 });
+  test('empty filter yields no results', async ({ page, request: _request }) => {
+    const { token, uniq } = await seed(_request, { leads: 5, tasks: 5 });
     await page.addInitScript(([t]) => localStorage.setItem('token', t), [token]);
     await page.goto('/dashboard');
     const search = page.getByLabel('Leads search');
@@ -83,15 +85,15 @@ test.describe('Dashboard filters, sorting, infinite scroll, and toasts', () => {
     await expect(page.locator('li', { hasText: uniq + '-no-match' })).toHaveCount(0);
   });
 
-  test('sorting stable with larger dataset', async ({ page, request }) => {
-    const { token, uniq } = await seed(request, { leads: 60, tasks: 0 });
+  test('sorting stable with larger dataset', async ({ page, request: _request }) => {
+    const { token, uniq } = await seed(_request, { leads: 60, tasks: 0 });
     await page.addInitScript(([t]) => localStorage.setItem('token', t), [token]);
     await page.goto('/dashboard');
     const search = page.getByLabel('Leads search');
     await expect(search).toBeVisible();
     await search.fill(uniq);
     // Network-level assertion: capture the next request(s) and assert final state
-    let nextReq = awaitNextRequest(page, '/leads?');
+    const nextReq = awaitNextRequest(page, '/leads?');
     await page.locator('#lead-sort').selectOption('name_asc');
     let req = await nextReq;
     let url = new URL(req.url());

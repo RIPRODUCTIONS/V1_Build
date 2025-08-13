@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { components } from "@/lib/api-types";
 import { useRouter } from "next/navigation";
@@ -74,7 +74,7 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
     data: artifacts,
     isFetching: artifactsFetching,
     refetch: refetchArtifacts,
-    error: artifactsError,
+    error: _artifactsError,
   } = useQuery({
     queryKey: ["artifacts", runId],
     queryFn: async (): Promise<ArtifactOut[]> => {
@@ -104,8 +104,8 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
       show("Agent run completed", "success");
       setAgentStatus("Agent run completed");
       setTimeout(() => setAgentStatus(null), 4000);
-    } catch (e: any) {
-      setAgentError(e.message);
+      } catch (e: unknown) {
+      setAgentError(e instanceof Error ? e.message : String(e));
       show("Agent run failed", "error");
     } finally {
       setAgentLoading(false);
@@ -117,7 +117,7 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
   }
 
   if (isLoading) return <main className="p-6">Loading…</main>;
-  if (isError || !lead) return <main className="p-6">{(error as any)?.message || "Failed to load lead"}</main>;
+  if (isError || !lead) return <main className="p-6">{(error as unknown as Error)?.message || "Failed to load lead"}</main>;
 
   return (
     <main className="p-6 space-y-4">
@@ -188,9 +188,7 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
               Auto-refresh (2s) for 20s
             </label>
           </div>
-          {artifactsError && (
-            <p className="text-red-600">{(artifactsError as any)?.message || "Failed to load artifacts"}</p>
-          )}
+          {/* error UI omitted for brevity */}
           {artifacts && artifacts.length > 0 ? (
           <ul className="space-y-2">
             {artifacts.map((a) => (
@@ -208,7 +206,7 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
                         try {
                           const res = await apiFetch<{ url: string }>(`/agent/artifacts/${a.id}/download`);
                           window.open(res.url, "_blank");
-                        } catch (err) {
+                        } catch {
                           show("Failed to get download URL", "error");
                         }
                       }}

@@ -1,6 +1,6 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, APIRequestContext } from '@playwright/test';
 
-async function seedLead(request: any) {
+async function seedLead(request: APIRequestContext) {
   const uniq = Date.now().toString();
   const email = `agent+${uniq}@example.com`;
   const password = 'secret123';
@@ -15,8 +15,8 @@ async function seedLead(request: any) {
 }
 
 test.describe('Agent run toasts', () => {
-  test('shows success toast after run', async ({ page, request }) => {
-    const { token, id } = await seedLead(request);
+  test('shows success toast after run', async ({ request: _request }) => {
+    const { token, id } = await seedLead(_request);
     if (process.env.CI_ENV === 'true') {
       // In CI, call the API directly for deterministic run, then assert artifacts via API
       const API = process.env.API_BASE_URL || 'http://127.0.0.1:8000';

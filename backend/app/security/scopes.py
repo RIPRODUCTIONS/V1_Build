@@ -7,6 +7,12 @@ WRITE_RUNS = "runs:write"
 READ_TASKS = "tasks:read"
 WRITE_TASKS = "tasks:write"
 
+# Leads (read access for analytics-style endpoints)
+READ_LEADS = "leads:read"
+
+# AI analysis/prediction authoring
+WRITE_AI = "ai:write"
+
 # Users/admin
 ADMIN_TASKS = "tasks:admin"
 ADMIN_USERS = "users:admin"
@@ -22,6 +28,8 @@ ALL_SCOPES = {
     ADMIN_TASKS,
     ADMIN_USERS,
     AUTH_PUBLIC,
+    READ_LEADS,
+    WRITE_AI,
 }
 
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, Float, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -63,3 +63,89 @@ class Artifact(Base):
     file_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
     status: Mapped[str] = mapped_column(String(50), default="completed", nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class OperatorRun(Base):
+    __tablename__ = "operator_runs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    correlation_id: Mapped[str] = mapped_column(String(64), index=True, unique=True)
+    description: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    status: Mapped[str] = mapped_column(String(50), default="planned", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class OperatorEvent(Base):
+    __tablename__ = "operator_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    run_id: Mapped[int] = mapped_column(ForeignKey("operator_runs.id"), index=True, nullable=False)
+    event_type: Mapped[str] = mapped_column(String(100), nullable=False)
+    payload: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class AutomationTemplate(Base):
+    __tablename__ = "automation_templates"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    category: Mapped[str] = mapped_column(String(64), nullable=False)
+    difficulty: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    estimated_time_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    price_per_run_usd: Mapped[float | None] = mapped_column(Float, nullable=True)
+    business_value_description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    success_rate: Mapped[float] = mapped_column(Float, default=0.0)
+    usage_count: Mapped[int] = mapped_column(Integer, default=0)
+    template_config_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    required_parameters_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    optional_parameters_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    example_outputs_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class TemplateUsage(Base):
+    __tablename__ = "template_usage"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    template_id: Mapped[str] = mapped_column(String(64), index=True)
+    user_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    queued_tasks: Mapped[int] = mapped_column(Integer, default=0)
+    success: Mapped[bool] = mapped_column(Boolean, default=False)
+    parameters_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class TemplatePreset(Base):
+    __tablename__ = "template_presets"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    template_id: Mapped[str] = mapped_column(String(64), index=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    parameters_json: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class UserCredits(Base):
+    __tablename__ = "user_credits"
+
+    user_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    credits_balance: Mapped[float] = mapped_column(Float, default=0.0)
+    total_spent: Mapped[float] = mapped_column(Float, default=0.0)
+    last_purchase: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class AutomationUsage(Base):
+    __tablename__ = "automation_usage"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    template_id: Mapped[str] = mapped_column(String(64), index=True)
+    cost_usd: Mapped[float] = mapped_column(Float, default=0.0)
+    executed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    success: Mapped[bool] = mapped_column(Boolean, default=False)
+    results_summary_json: Mapped[str | None] = mapped_column(Text, nullable=True)

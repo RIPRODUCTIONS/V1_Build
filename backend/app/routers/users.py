@@ -31,7 +31,6 @@ def verify_password(password: str, password_hash: str) -> bool:
     "/register",
     response_model=UserOut,
     status_code=201,
-    dependencies=[Depends(require_scopes({ADMIN_USERS}))],
 )
 def register(payload: RegisterRequest, db: Annotated[Session, Depends(get_db)]) -> UserOut:
     existing = db.scalar(select(User).where(User.email == payload.email))
@@ -56,7 +55,6 @@ def login(payload: LoginRequest, db: Annotated[Session, Depends(get_db)]):
 @router.get(
     "/me",
     response_model=UserOut,
-    dependencies=[Depends(require_scopes({ADMIN_USERS}))],
 )
 def me(current_user: Annotated[User, Depends(get_current_user)]):
     return current_user

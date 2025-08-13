@@ -6,6 +6,7 @@ type Run = { run_id: string; status: string; detail?: any };
 export default function AutomationRuns() {
   const [ids, setIds] = useState<string[]>([]);
   const [runs, setRuns] = useState<Record<string, Run>>({});
+  const [stream, setStream] = useState<EventSource | null>(null);
 
   async function poll(id: string) {
     const r = await fetch(`/api/automation/runs/${id}`).then((x) => x.json());
@@ -15,6 +16,22 @@ export default function AutomationRuns() {
   useEffect(() => {
     const t = setInterval(() => ids.forEach((id) => poll(id)), 1000);
     return () => clearInterval(t);
+  }, [ids]);
+
+  useEffect(() => {
+    if (!ids[0]) return;
+    // Bind to first run for demo streaming
+    const base = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://127.0.0.1:8000';
+    const es = new EventSource(`${base}/operator/runs/${ids[0]}/stream`);
+    es.onmessage = (ev) => {
+      try {
+        const payload = JSON.parse(ev.data);
+        // naive: refresh list on messages
+        poll(ids[0]);
+      } catch {}
+    };
+    setStream(es);
+    return () => { es.close(); setStream(null); };
   }, [ids]);
 
   return (

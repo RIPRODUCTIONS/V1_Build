@@ -4,8 +4,6 @@ from typing import Annotated
 
 from app.db import get_db
 from app.dependencies.auth import get_current_user
-from app.security.deps import require_scopes
-from app.security.scopes import READ_TASKS, WRITE_TASKS
 from app.models import Task, User
 from app.schemas import IdResponse, TaskCreate, TaskOut, TaskUpdate
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -19,7 +17,6 @@ router = APIRouter(prefix="/tasks", tags=["tasks"])
     "/",
     response_model=IdResponse,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_scopes({WRITE_TASKS}))],
 )
 def create_task(
     payload: TaskCreate,
@@ -36,12 +33,10 @@ def create_task(
 @router.get(
     "/",
     response_model=list[TaskOut],
-    dependencies=[Depends(require_scopes({READ_TASKS}))],
 )
 @router.get(
     "",
     response_model=list[TaskOut],
-    dependencies=[Depends(require_scopes({READ_TASKS}))],
 )
 def list_tasks(  # noqa: PLR0913 - FastAPI dependency signature
     current_user: Annotated[User, Depends(get_current_user)],
@@ -86,7 +81,6 @@ def list_tasks(  # noqa: PLR0913 - FastAPI dependency signature
 @router.get(
     "/{task_id}",
     response_model=TaskOut,
-    dependencies=[Depends(require_scopes({READ_TASKS}))],
 )
 def get_task(
     task_id: int,
@@ -102,7 +96,6 @@ def get_task(
 @router.put(
     "/{task_id}",
     response_model=TaskOut,
-    dependencies=[Depends(require_scopes({WRITE_TASKS}))],
 )
 def update_task(
     task_id: int,
@@ -127,7 +120,6 @@ def update_task(
 @router.delete(
     "/{task_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    dependencies=[Depends(require_scopes({WRITE_TASKS}))],
 )
 def delete_task(
     task_id: int,

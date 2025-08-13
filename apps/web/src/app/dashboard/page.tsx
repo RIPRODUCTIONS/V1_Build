@@ -10,6 +10,7 @@ type Task = { id: string; title: string; status: string; created_at: string };
 
 export default function Dashboard() {
   const { show } = useToast();
+  const [roi, setRoi] = useState<{ hourly_rate: number; roi: { id: string; name: string; estimated_cost_savings_usd: number }[] } | null>(null);
   // Filters
   const [leadQuery, setLeadQuery] = useState("");
   const [leadStatus, setLeadStatus] = useState<string | undefined>(undefined);
@@ -87,6 +88,31 @@ export default function Dashboard() {
 
   return (
     <section className="space-y-6 p-6">
+      <div className="p-3 rounded border bg-white">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-medium">Automation ROI</h2>
+          <button
+            className="border px-3 py-1 rounded"
+            onClick={async () => {
+              try {
+                const base = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://127.0.0.1:8000';
+                const r = await fetch(`${base}/admin/templates/roi`, { headers: { 'X-CI-Token': (typeof window!=='undefined' ? localStorage.getItem('ci_token')||'' : '') } });
+                if (!r.ok) throw new Error('roi');
+                const data = await r.json();
+                setRoi(data);
+                show('ROI refreshed', 'success');
+              } catch {
+                show('ROI fetch failed', 'error');
+              }
+            }}
+          >Refresh</button>
+        </div>
+        {roi && (
+          <div className="mt-2 text-sm">
+            Hourly rate: ${'{'}roi.hourly_rate{'}'} /hr · Total savings: ${'{'}roi.roi.reduce((a, x)=>a+(x.estimated_cost_savings_usd||0),0).toFixed(2){'}'}
+          </div>
+        )}
+      </div>
       <div>
         <h2 className="text-xl font-medium mb-2">Leads</h2>
 
@@ -223,7 +249,7 @@ export default function Dashboard() {
                   }),
                 });
                 show(`Finance run queued: ${res.run_id}`, "success");
-              } catch (e) {
+              } catch {
                 show("Failed to enqueue finance run", "error");
               }
             }}
@@ -235,6 +261,7 @@ export default function Dashboard() {
       </div>
 
       <RecentRuns />
+      <RecentTemplateUsage />
 
       <div>
         <h2 className="text-xl font-medium mb-2">Ideation</h2>
@@ -248,7 +275,7 @@ export default function Dashboard() {
                   body: JSON.stringify({ topic: "automation business engine", count: 5 }),
                 });
                 show(`Ideation run queued: ${res.run_id}`, "success");
-              } catch (e) {
+              } catch {
                 show("Failed to enqueue ideation run", "error");
               }
             }}
@@ -276,7 +303,7 @@ export default function Dashboard() {
                   }),
                 });
                 show(`Openers run queued: ${res.run_id}`, "success");
-              } catch (e) {
+              } catch {
                 show("Failed to enqueue openers run", "error");
               }
             }}
@@ -444,20 +471,20 @@ export default function Dashboard() {
 function RecentRuns() {
   const [items, setItems] = useState<{ run_id: string; status: string; meta?: any; detail?: any }[]>([]);
   const { show } = useToast();
-  async function load() {
+  const load = React.useCallback(async () => {
     try {
       const res = await apiFetch<{ items: any[] }>("/automation/recent");
       setItems(res.items ?? []);
     } catch {
       show("Failed to load recent runs", "error");
     }
-  }
+  }, [show]);
   // simple poll
   React.useEffect(() => {
     load();
     const t = setInterval(load, 3500);
     return () => clearInterval(t);
-  }, []);
+  }, [load]);
   if (!items.length) return null;
   return (
     <div>
@@ -472,6 +499,41 @@ function RecentRuns() {
             <div className="text-xs text-gray-600">
               {it?.meta?.intent} {it?.detail?.executed ? `— ${it.detail.executed.join(" → ")}` : ""}
             </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function RecentTemplateUsage() {
+  const [items, setItems] = useState<{ template_id: string; queued_tasks: number; success: boolean; created_at: string }[]>([]);
+  const { show } = useToast();
+  const load = React.useCallback(async () => {
+    try {
+      const res = await apiFetch<{ items: any[] }>(`/templates/usage?limit=10`);
+      setItems(res.items ?? []);
+    } catch {
+      show("Failed to load template usage", "error");
+    }
+  }, [show]);
+  React.useEffect(() => {
+    load();
+    const t = setInterval(load, 5000);
+    return () => clearInterval(t);
+  }, [load]);
+  if (!items.length) return null;
+  return (
+    <div>
+      <h2 className="text-xl font-medium mb-2">Recent Template Usage</h2>
+      <ul className="space-y-2">
+        {items.map((it, idx) => (
+          <li key={`${it.template_id}-${idx}-${it.created_at}`} className="p-3 rounded border bg-white">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-sm">{it.template_id}</span>
+              <span className="text-sm">{new Date(it.created_at).toLocaleString()}</span>
+            </div>
+            <div className="text-xs text-gray-600">Queued: {it.queued_tasks} · {it.success ? "ok" : "failed"}</div>
           </li>
         ))}
       </ul>

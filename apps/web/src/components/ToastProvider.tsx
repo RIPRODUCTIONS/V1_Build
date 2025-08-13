@@ -1,11 +1,11 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 
 type Toast = { id: number; message: string; type?: "success" | "error" | "info" };
 
 type ToastContextValue = {
-  show: (message: string, type?: Toast["type"]) => void;
+  show: (_message: string, _type?: Toast["type"]) => void;
 };
 
 const ToastContext = createContext<ToastContextValue | null>(null);

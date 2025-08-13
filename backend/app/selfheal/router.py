@@ -1,0 +1,59 @@
+from __future__ import annotations
+
+from datetime import datetime
+from typing import List
+
+from fastapi import APIRouter, Depends
+
+from app.security.deps import require_scopes
+from app.security import deps as security_deps
+from app.security.scopes import ADMIN_TASKS
+from .models import SystemHealth, HealingResult, BuildResult
+
+
+router = APIRouter(prefix="/selfheal", tags=["selfheal"])
+
+
+@router.get(
+    "/health",
+    response_model=List[SystemHealth],
+)
+async def get_system_health(user=Depends(require_scopes({ADMIN_TASKS}))) -> list[SystemHealth]:
+    now = datetime.utcnow()
+    # Stub with a couple of components; extend with real checks later
+    return [
+        SystemHealth(
+            component="api",
+            health_score=0.95,
+            issues=[],
+            performance_metrics={"p95_latency_ms": 42.0},
+            last_check=now,
+        ),
+        SystemHealth(
+            component="worker",
+            health_score=0.88,
+            issues=["sporadic queue spikes"],
+            performance_metrics={"tasks_pending": 3.0},
+            last_check=now,
+        ),
+    ]
+
+
+@router.post(
+    "/heal",
+    response_model=HealingResult,
+)
+async def trigger_healing(user=Depends(require_scopes({ADMIN_TASKS}))) -> HealingResult:
+    # Stub OK response; to be replaced with actual orchestration
+    return HealingResult(success=True, message="Healing initiated", strategy_applied="restart-component", attempts=1)
+
+
+@router.post(
+    "/rebuild",
+    response_model=BuildResult,
+)
+async def trigger_self_build(user=Depends(require_scopes({ADMIN_TASKS}))) -> BuildResult:
+    # Stub OK response
+    return BuildResult(success=True, component="# generated component code ...", performance_improvements={"cpu": 0.12})
+
+

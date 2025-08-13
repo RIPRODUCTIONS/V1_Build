@@ -1,6 +1,8 @@
-import { request as makeRequest, FullConfig } from '@playwright/test';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import type { FullConfig as _FullConfig } from '@playwright/test';
+import { request as makeRequest } from '@playwright/test';
 
-export default async function globalTeardown(config: FullConfig) {
+export default async function globalTeardown() {
   const apiBase = process.env.API_BASE_URL || 'http://127.0.0.1:8000';
   const token = process.env.CI_CLEANUP_TOKEN || '';
   const ciEnv = process.env.CI_ENV === 'true';

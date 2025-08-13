@@ -1,0 +1,61 @@
+{
+  "dashboard": {
+    "title": "Automation Engine",
+    "refresh": "10s",
+    "panels": [
+      {
+        "title": "Events Processing Rate",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+        "targets": [
+          {
+            "expr": "rate(automation_events_processed_total[5m])",
+            "legendFormat": "{{event_type}}"
+          }
+        ]
+      },
+      {
+        "title": "Rule Success Rate",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+        "targets": [
+          {
+            "expr": "(rate(automation_rule_executions_total{status='success'}[5m]) / rate(automation_rule_executions_total[5m])) * 100",
+            "legendFormat": "{{rule_name}}"
+          }
+        ]
+      },
+      {
+        "title": "Active Rules",
+        "gridPos": { "h": 4, "w": 6, "x": 0, "y": 8 },
+        "targets": [
+          { "expr": "sum(active_automation_rules)", "legendFormat": "Total Active" }
+        ]
+      },
+      {
+        "title": "Redis Stream Lag",
+        "gridPos": { "h": 4, "w": 6, "x": 6, "y": 8 },
+        "targets": [
+          { "expr": "redis_stream_length{stream='automation-events'}", "legendFormat": "Pending Events" }
+        ]
+      },
+      {
+        "title": "Execution Latency (p95)",
+        "gridPos": { "h": 4, "w": 12, "x": 12, "y": 8 },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(automation_rule_latency_seconds_bucket[5m]))",
+            "legendFormat": "{{rule_name}}"
+          }
+        ]
+      },
+      {
+        "title": "Errors (Last Hour)",
+        "gridPos": { "h": 4, "w": 24, "x": 0, "y": 12 },
+        "targets": [
+          { "expr": "increase(automation_rule_executions_total{status='failed'}[1h])", "legendFormat": "{{rule_name}}" }
+        ]
+      }
+    ]
+  }
+}
+
+

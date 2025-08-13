@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 type Options<T> = {
   key: unknown[];
-  fetchPage: (args: { offset: number; limit: number }) => Promise<T[]>;
+  fetchPage: (_args: { offset: number; limit: number }) => Promise<T[]>;
   pageSize?: number;
 };
 
@@ -22,8 +22,8 @@ export function usePagedList<T>({ key, fetchPage, pageSize = 20 }: Options<T>) {
       const data = await fetchPage({ offset: reset ? 0 : offset, limit: pageSize });
       setItems((prev) => (reset ? data : [...prev, ...data]));
       if (!reset && data.length > 0) setOffset((v) => v + pageSize);
-    } catch (e: any) {
-      setError(e?.message || "Failed to load data");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to load data");
     }
   }
 

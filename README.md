@@ -1,3 +1,23 @@
+## Google Integrations (Calendar)
+
+1. Environment
+- Set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `INTEGRATION_VAULT_KEY`, and `GOOGLE_CALENDAR_SYNC=true` in your environment or `.env`.
+
+2. Seed Tokens (OAuth Playground)
+- Use OAuth 2.0 Playground (Settings → Use your own OAuth credentials) with your Client ID/Secret.
+- Scope: `https://www.googleapis.com/auth/calendar`.
+- Exchange code, get access/refresh tokens.
+- Run `backend/scripts/setup_integrations.py` and paste tokens for user id `1`.
+
+3. Test & Sync
+- Create test event: `POST /integrations/google/calendar/test_event/1`
+- Create custom event: `POST /integrations/google/calendar/create/1` with JSON payload:
+  `{ "summary": "Title", "start_iso": "2025-08-15T09:00:00", "end_iso": "2025-08-15T09:30:00", "timezone": "America/Chicago" }`
+- Sync: `POST /integrations/sync/1`
+
+4. Automations
+- Metrics: `GET /automations/metrics`
+- Admin tasks (dev): `GET /admin/tasks` with header `X-CI-Token: <CI_CLEANUP_TOKEN>`
 # Builder
 
 A clean, well-structured foundation for AI project scaffolding. Centralized env, consistent tooling, and clear entry points.

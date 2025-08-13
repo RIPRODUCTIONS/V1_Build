@@ -1,6 +1,7 @@
-import { FullConfig } from '@playwright/test';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import type { FullConfig as _FullConfig } from '@playwright/test';
 
-export default async function globalSetup(config: FullConfig) {
+export default async function globalSetup() {
   // ensure API env hints exist for local runs if desired
   process.env.API_BASE_URL = process.env.API_BASE_URL || 'http://127.0.0.1:8000';
 }

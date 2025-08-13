@@ -1,11 +1,24 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Path
+from sqlalchemy.orm import Session
 
+from app.db import get_db
+from app.models import Task
 from app.security.deps import require_scopes
 from app.security.scopes import READ_RUNS, WRITE_RUNS
+
+
+automation_router = APIRouter(prefix="/automation", tags=["automation:runs"])
+
+
+@automation_router.get("/recent", dependencies=[Depends(require_scopes({READ_RUNS}))])
+def recent_runs(db: Annotated[Session, Depends(get_db)], limit: int = 10) -> dict:
+    rows = db.query(Task).order_by(Task.created_at.desc()).limit(max(1, min(50, limit))).all()
+    items = [{"run_id": str(t.id), "status": t.status, "detail": None, "meta": {"intent": t.title}} for t in rows]
+    return {"items": items}
 
 
 router = APIRouter(prefix="/api/runs", tags=["runs"])
