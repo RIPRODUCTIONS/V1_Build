@@ -157,3 +157,28 @@ class ProcessedCheckoutSession(Base):
     session_id: Mapped[str] = mapped_column(String(255), primary_key=True)
     credited_amount_usd: Mapped[float] = mapped_column(Float, default=0.0)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class PersonalRun(Base):
+    __tablename__ = "personal_runs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    template_id: Mapped[str] = mapped_column(String(128), index=True)
+    task_id: Mapped[str] = mapped_column(String(128), index=True)
+    status: Mapped[str] = mapped_column(String(50), default="queued")
+    parameters_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    result_summary_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class SocialAuth(Base):
+    __tablename__ = "social_auth"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    provider: Mapped[str] = mapped_column(String(32), index=True)
+    access_token: Mapped[str] = mapped_column(Text, nullable=False)
+    refresh_token: Mapped[str | None] = mapped_column(Text, nullable=True)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)

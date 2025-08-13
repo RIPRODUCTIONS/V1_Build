@@ -4,10 +4,18 @@ import { useEffect, useState } from "react";
 export default function PersonalDashboard() {
   const [summary, setSummary] = useState<any>(null);
   const [onboarding, setOnboarding] = useState<any>(null);
+  const [config, setConfig] = useState<any>(null);
   const [running, setRunning] = useState<Record<string, boolean>>({});
   const [lastResult, setLastResult] = useState<Record<string, any>>({});
+  const [recentRuns, setRecentRuns] = useState<Array<{ id: number; template_id: string; task_id: string; status: string; created_at?: string }>>([]);
+  const [oauthStatus, setOauthStatus] = useState<{ twitter?: boolean; linkedin?: boolean }>({});
   const [postText, setPostText] = useState("Hello world");
   const [postPlatforms, setPostPlatforms] = useState<string>("twitter,linkedin");
+  const [emailQuery, setEmailQuery] = useState<string>("newer_than:1d");
+  const [emailMax, setEmailMax] = useState<number>(50);
+  const [researchTopic, setResearchTopic] = useState<string>("AI automation trends");
+  const [shopQuery, setShopQuery] = useState<string>("laptop under $1000");
+  const [shopMax, setShopMax] = useState<number>(20);
 
   useEffect(() => {
     (async () => {
@@ -19,8 +27,47 @@ export default function PersonalDashboard() {
         const m = await fetch(`/api/operator/metrics/summary`).then((x) => x.json());
         setSummary(m);
       } catch {}
+      try {
+        const c = await fetch(`/api/personal/config`).then((x) => x.json());
+        setConfig(c);
+      } catch {}
+      try {
+        const s = await fetch(`/api/personal/social/oauth/status`).then((x) => x.json());
+        setOauthStatus(s);
+      } catch {}
+      try {
+        const r = await fetch(`/api/personal/runs`).then((x) => x.json());
+        setRecentRuns(r.items || []);
+      } catch {}
     })();
   }, []);
+  useEffect(() => {
+    const t = setInterval(async () => {
+      try {
+        const r = await fetch(`/api/personal/runs`).then((x) => x.json());
+        setRecentRuns(r.items || []);
+      } catch {}
+    }, 5000);
+    return () => clearInterval(t);
+  }, []);
+
+  const followRun = (taskId: string, templateId?: string) => {
+    try {
+      const es = new EventSource(`/api/personal/stream/${taskId}`);
+      es.onmessage = (evt) => {
+        const data = JSON.parse(evt.data);
+        const key = templateId || taskId;
+        setLastResult((prev) => ({ ...prev, [key]: data }));
+        if (data?.status === "completed" || data?.status === "error") {
+          es.close();
+        }
+      };
+      es.onerror = () => es.close();
+    } catch (e) {
+      // no-op
+    }
+  };
+
 
   const runPersonalAutomation = async (templateId: string, parameters: any = {}) => {
     try {
@@ -84,9 +131,48 @@ export default function PersonalDashboard() {
               <li key={i} className={s.completed ? "text-green-700" : ""}>{s.title}</li>
             ))}
           </ul>
+          {config && (
+            <div className="text-xs text-gray-600 mt-2">
+              Social enabled: Twitter {config.twitter_enabled ? 'on' : 'off'} · LinkedIn {config.linkedin_enabled ? 'on' : 'off'} · Real posting {config.post_real_enabled ? 'on' : 'off'}
+            </div>
+          )}
         </div>
       )}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="border rounded p-4 bg-white">
+          <div className="font-medium mb-2">Connect Accounts</div>
+          <div className="text-sm text-gray-700">Twitter: {oauthStatus.twitter ? 'connected' : 'not connected'}</div>
+          {config?.oauth?.twitter && (
+            <a className="underline text-blue-600 text-sm" href="/api/personal/social/oauth/twitter/start">Connect Twitter</a>
+          )}
+          <div className="text-sm text-gray-700 mt-2">LinkedIn: {oauthStatus.linkedin ? 'connected' : 'not connected'}</div>
+          {config?.oauth?.linkedin && (
+            <a className="underline text-blue-600 text-sm" href="/api/personal/social/oauth/linkedin/start">Connect LinkedIn</a>
+          )}
+        </div>
+        <div className="border rounded p-4 bg-white">
+          <div className="font-medium mb-2">Recent Personal Runs</div>
+          {!recentRuns.length && <div className="text-sm text-gray-600">No runs yet.</div>}
+          {!!recentRuns.length && (
+            <ul className="space-y-2">
+              {recentRuns.map((r) => (
+                <li key={r.id} className="text-sm flex items-center justify-between">
+                  <div>
+                    <div className="font-mono text-xs">{r.template_id}</div>
+                    <div className={`text-xs ${r.status === 'completed' ? 'text-green-600' : r.status === 'error' ? 'text-red-600' : 'text-gray-600'}`}>{r.status}</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      className="underline text-blue-600 text-xs"
+                      onClick={() => followRun(r.task_id, r.template_id)}
+                      title="Stream live updates"
+                    >View live</button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
         <div className="border rounded p-4 bg-white col-span-1 md:col-span-2">
           <div className="font-medium mb-2">Quick Social Post</div>
           <div className="space-y-2">
@@ -123,6 +209,120 @@ export default function PersonalDashboard() {
           </div>
           {lastResult["social_media_manager"] && (
             <pre className="mt-2 text-xs bg-gray-50 p-2 rounded overflow-x-auto">{JSON.stringify(lastResult["social_media_manager"], null, 2)}</pre>
+          )}
+        </div>
+        <div className="border rounded p-4 bg-white">
+          <div className="font-medium mb-2">Research Assistant</div>
+          <label className="block text-sm font-medium">Topic</label>
+          <input
+            className="w-full border rounded p-2 text-sm"
+            value={researchTopic}
+            onChange={(e) => setResearchTopic(e.target.value)}
+            placeholder="AI automation trends"
+          />
+          <div className="mt-2">
+            <button
+              className="bg-blue-600 text-white px-3 py-1 rounded text-sm"
+              onClick={() => runPersonalAutomation("research_assistant", { topic: researchTopic })}
+              disabled={!!running["research_assistant"]}
+            >Run</button>
+          </div>
+          {lastResult["research_assistant"] && (
+            <pre className="mt-2 text-xs bg-gray-50 p-2 rounded overflow-x-auto">{JSON.stringify(lastResult["research_assistant"], null, 2)}</pre>
+          )}
+        </div>
+        <div className="border rounded p-4 bg-white">
+          <div className="font-medium mb-2">Shopping Assistant</div>
+          <label className="block text-sm font-medium">Product Query</label>
+          <input
+            className="w-full border rounded p-2 text-sm"
+            value={shopQuery}
+            onChange={(e) => setShopQuery(e.target.value)}
+            placeholder="laptop under $1000"
+          />
+          <label className="block text-sm font-medium mt-2">Max Results</label>
+          <input
+            type="number"
+            className="w-full border rounded p-2 text-sm"
+            value={shopMax}
+            onChange={(e) => setShopMax(Number(e.target.value || 0))}
+            placeholder="20"
+          />
+          <div className="mt-2">
+            <button
+              className="bg-blue-600 text-white px-3 py-1 rounded text-sm"
+              onClick={() => runPersonalAutomation("shopping_assistant", { product_query: shopQuery, max_results: shopMax })}
+              disabled={!!running["shopping_assistant"]}
+            >Run</button>
+          </div>
+          {lastResult["shopping_assistant"] && (
+            <pre className="mt-2 text-xs bg-gray-50 p-2 rounded overflow-x-auto">{JSON.stringify(lastResult["shopping_assistant"], null, 2)}</pre>
+          )}
+        </div>
+        <div className="border rounded p-4 bg-white">
+          <div className="font-medium mb-2">Quick Email Sweep</div>
+          <label className="block text-sm font-medium">Query</label>
+          <div className="flex gap-2">
+            <input className="w-full border rounded p-2 text-sm" value={emailQuery} onChange={(e) => setEmailQuery(e.target.value)} placeholder="newer_than:1d" />
+            <select
+              className="border rounded p-2 text-sm"
+              onChange={(e) => setEmailQuery(e.target.value)}
+              value={emailQuery}
+              title="Presets"
+            >
+              <option value="newer_than:1d">Last day</option>
+              <option value="newer_than:7d">Last week</option>
+              <option value="from:billing OR subject:invoice newer_than:30d">Bills & invoices (30d)</option>
+              <option value="label:news newer_than:14d">Newsletters (14d)</option>
+            </select>
+          </div>
+          <label className="block text-sm font-medium mt-2">Max Results</label>
+          <input type="number" className="w-full border rounded p-2 text-sm" value={emailMax} onChange={(e) => setEmailMax(Number(e.target.value || 0))} placeholder="50" />
+          <div className="mt-2">
+            <button
+              className="bg-blue-600 text-white px-3 py-1 rounded text-sm"
+              onClick={() => runPersonalAutomation("personal_email_manager", { query: emailQuery, max_results: emailMax })}
+              disabled={!!running["personal_email_manager"]}
+            >Run</button>
+          </div>
+          {lastResult["personal_email_manager"] && (
+            <pre className="mt-2 text-xs bg-gray-50 p-2 rounded overflow-x-auto">{JSON.stringify(lastResult["personal_email_manager"], null, 2)}</pre>
+          )}
+        </div>
+        <div className="border rounded p-4 bg-white">
+          <div className="font-medium mb-2">Finance Update</div>
+          <div className="text-sm text-gray-700">Fetch and summarize latest finance data</div>
+          <div className="mt-2">
+            <button
+              className="bg-blue-600 text-white px-3 py-1 rounded text-sm"
+              onClick={() => runPersonalAutomation("personal_finance_tracker", {})}
+              disabled={!!running["personal_finance_tracker"]}
+            >Run</button>
+          </div>
+          <div className="mt-3">
+            <div className="text-sm font-medium">Import CSV</div>
+            <label className="block text-sm font-medium">Upload Transactions CSV</label>
+            <input
+              type="file"
+              accept=".csv"
+              className="text-sm"
+              title="Choose a CSV file to import transactions"
+              onChange={async (e) => {
+                const f = e.target.files?.[0];
+                if (!f) return;
+                const body = new FormData();
+                body.append("file", f);
+                const res = await fetch(`/api/personal/finance/import_csv`, { method: "POST", body });
+                const data = await res.json();
+                setLastResult((prev) => ({ ...prev, finance_csv: data }));
+              }}
+            />
+          </div>
+          {lastResult["personal_finance_tracker"] && (
+            <pre className="mt-2 text-xs bg-gray-50 p-2 rounded overflow-x-auto">{JSON.stringify(lastResult["personal_finance_tracker"], null, 2)}</pre>
+          )}
+          {lastResult["finance_csv"] && (
+            <pre className="mt-2 text-xs bg-gray-50 p-2 rounded overflow-x-auto">{JSON.stringify(lastResult["finance_csv"], null, 2)}</pre>
           )}
         </div>
         {widgets.map((w) => (
