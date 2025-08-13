@@ -23,7 +23,7 @@ export default function PersonalDashboard() {
   const runPersonalAutomation = async (templateId: string, parameters: any = {}) => {
     try {
       setRunning((r) => ({ ...r, [templateId]: true }));
-      const r = await fetch(`/api/marketplace/run/${templateId}`, {
+      const r = await fetch(`/api/personal/run/${templateId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(parameters),

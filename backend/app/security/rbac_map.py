@@ -118,6 +118,11 @@ RBAC_ROUTE_SCOPE_MAP: list[tuple[re.Pattern[str], dict[str, set[str]]]] = [
     (re.compile(r"^/api/comm/auto_reply$"), {"POST": {READ_LEADS}}),
     # Automation runs (recent list)
     (re.compile(r"^/automation/recent$"), {"GET": {READ_RUNS}}),
+    # Personal automation endpoints
+    (re.compile(r"^/personal/?.*$"), {
+        "GET": {READ_RUNS},
+        "POST": {WRITE_RUNS},
+    }),
 ]
 
 SAFE_METHODS: set[str] = {"GET", "HEAD", "OPTIONS"}

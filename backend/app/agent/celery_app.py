@@ -25,6 +25,8 @@ celery_app.conf.update(
         "app.integrations.tasks.*": {"queue": "integrations"},
         "app.automations.tasks.*": {"queue": "automations"},
         "automation.execute_web_task": {"queue": "automations"},
+        "personal.research.execute": {"queue": "automations"},
+        "personal.shopping.execute": {"queue": "automations"},
     },
     beat_schedule={
         # Nightly housekeeping at 03:00 UTC: cleanup artifacts older than 30 days
