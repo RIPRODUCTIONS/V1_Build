@@ -73,6 +73,139 @@ async def execute(intent: str, user_id: str = "1") -> Dict[str, Any]:
     return out
 
 
+@router.post("/self_build/scan")
+def self_build_scan() -> dict:
+    """Analyze recent runs and propose next templates automatically."""
+    from app.db import SessionLocal
+    from app.models import InvestigationRun, SystemInsight, AutoTemplateProposal
+    from datetime import datetime, timedelta
+    import json as _json
+    from app.ai.system_brain import propose_new_templates
+
+    db = SessionLocal()
+    try:
+        since = datetime.utcnow() - timedelta(days=7)
+        runs = (
+            db.query(InvestigationRun)
+            .filter(InvestigationRun.created_at >= since)
+            .order_by(InvestigationRun.created_at.desc())
+            .all()
+        )
+        platform_counts: dict[str, int] = {}
+        for r in runs:
+            try:
+                if r.result_summary_json:
+                    s = _json.loads(r.result_summary_json)
+                    # try dict form first
+                    if isinstance(s.get("platforms"), dict):
+                        for k in s["platforms"].keys():
+                            platform_counts[k] = platform_counts.get(k, 0) + 1
+                    elif isinstance(s.get("platforms"), list):
+                        for k in s["platforms"]:
+                            if isinstance(k, str):
+                                platform_counts[k] = platform_counts.get(k, 0) + 1
+            except Exception:
+                continue
+        proposals = propose_new_templates({"platform_counts": platform_counts})
+        # Persist insights
+        insight = SystemInsight(kind="investigation", title="Weekly self-build scan", details_json=_json.dumps({"platform_counts": platform_counts}))
+        db.add(insight)
+        for p in proposals:
+            rec = AutoTemplateProposal(
+                template_id=p.get("template_id"),
+                name=p["name"],
+                description=p.get("description"),
+                category=p.get("category", "generated"),
+                parameters_json=_json.dumps(p.get("parameters") or {}),
+                score=float(p.get("score") or 0.0),
+            )
+            db.add(rec)
+        db.commit()
+        return {"status": "ok", "platform_counts": platform_counts, "proposals": proposals}
+    finally:
+        db.close()
+
+
+@router.get("/self_build/proposals")
+def list_self_build_proposals(limit: int = 50) -> dict:
+    from app.db import SessionLocal
+    from app.models import AutoTemplateProposal
+    db = SessionLocal()
+    try:
+        rows = (
+            db.query(AutoTemplateProposal)
+            .order_by(AutoTemplateProposal.created_at.desc())
+            .limit(max(1, min(200, limit)))
+            .all()
+        )
+        items = []
+        for r in rows:
+            items.append({
+                "id": r.id,
+                "template_id": r.template_id,
+                "name": r.name,
+                "description": r.description,
+                "category": r.category,
+                "score": r.score,
+                "status": r.status,
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+            })
+        return {"items": items}
+    finally:
+        db.close()
+
+
+@router.post("/self_build/proposals/{proposal_id}/approve")
+def approve_self_build_proposal(proposal_id: int) -> dict:
+    from app.db import SessionLocal
+    from app.models import AutoTemplateProposal
+    db = SessionLocal()
+    try:
+        r = db.query(AutoTemplateProposal).filter(AutoTemplateProposal.id == proposal_id).first()
+        if not r:
+            return {"status": "not_found"}
+        r.status = "approved"
+        db.add(r)
+        db.commit()
+        return {"status": "ok", "id": r.id, "new_status": r.status}
+    finally:
+        db.close()
+
+
+@router.post("/self_build/proposals/{proposal_id}/apply")
+def apply_self_build_proposal(proposal_id: int) -> dict:
+    from app.db import SessionLocal
+    from app.models import AutoTemplateProposal, AutomationTemplate
+    import json as _json
+    db = SessionLocal()
+    try:
+        r = db.query(AutoTemplateProposal).filter(AutoTemplateProposal.id == proposal_id).first()
+        if not r:
+            return {"status": "not_found"}
+        # Create or update AutomationTemplate
+        tpl = db.query(AutomationTemplate).filter(AutomationTemplate.id == (r.template_id or r.name.lower().replace(' ', '_'))).first()
+        if not tpl:
+            tpl_id = r.template_id or r.name.lower().replace(' ', '_')
+            tpl = AutomationTemplate(
+                id=tpl_id,
+                name=r.name,
+                description=r.description,
+                category=r.category,
+                template_config_json=_json.dumps({"generated": True}),
+                required_parameters_json=r.parameters_json or _json.dumps({}),
+            )
+        else:
+            tpl.name = r.name
+            tpl.description = r.description
+            tpl.category = r.category
+        db.add(tpl)
+        r.status = "applied"
+        db.add(r)
+        db.commit()
+        return {"status": "ok", "template_id": tpl.id}
+    finally:
+        db.close()
+
 def _extract_between(text: str, start: str, end: str) -> str | None:
     try:
         i = text.index(start)

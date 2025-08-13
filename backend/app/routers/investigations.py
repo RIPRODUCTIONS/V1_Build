@@ -266,6 +266,142 @@ def get_malware_report(task_id: str, x_api_key: str | None = Header(default=None
         db.close()
 
 
+@router.get("/autopilot/report/{task_id}")
+def get_autopilot_report(task_id: str, x_api_key: str | None = Header(default=None)) -> Response:
+    _enforce_api_key(x_api_key, read_only=True)
+    from app.models import InvestigationRun
+    import json as _json
+    db = SessionLocal()
+    try:
+        run = db.query(InvestigationRun).filter(InvestigationRun.task_id == task_id, InvestigationRun.kind == "autopilot").first()
+        if not run:
+            return Response(status_code=404)
+        summary = None
+        try:
+            summary = _json.loads(run.result_summary_json or "{}") if run.result_summary_json else None
+        except Exception:
+            summary = None
+        try:
+            from app.reports.autopilot_report import build_autopilot_report  # type: ignore
+            pdf_bytes = build_autopilot_report(summary or {})
+            return Response(content=pdf_bytes, media_type="application/pdf")
+        except Exception:
+            return Response(content=b"report generation not available", media_type="text/plain", status_code=501)
+    finally:
+        db.close()
+
+
+# Artifact downloads (JSON/CSV) derived from stored InvestigationRun summaries
+@router.get("/osint/entities/{task_id}.json")
+def get_osint_entities_json(task_id: str, x_api_key: str | None = Header(default=None)) -> Response:
+    _enforce_api_key(x_api_key, read_only=True)
+    from app.models import InvestigationRun
+    import json as _json
+    db = SessionLocal()
+    try:
+        run = (
+            db.query(InvestigationRun)
+            .filter(InvestigationRun.task_id == task_id, InvestigationRun.kind == "osint")
+            .first()
+        )
+        if not run:
+            return Response(status_code=404)
+        try:
+            summary = _json.loads(run.result_summary_json or "{}") if run.result_summary_json else {}
+        except Exception:
+            summary = {}
+        data = _json.dumps({"entities": summary.get("entities", [])}).encode()
+        return Response(content=data, media_type="application/json")
+    finally:
+        db.close()
+
+
+@router.get("/osint/timeline/{task_id}.csv")
+def get_osint_timeline_csv(task_id: str, x_api_key: str | None = Header(default=None)) -> Response:
+    _enforce_api_key(x_api_key, read_only=True)
+    from app.models import InvestigationRun
+    import json as _json
+    from io import StringIO
+    import csv as _csv
+    db = SessionLocal()
+    try:
+        run = (
+            db.query(InvestigationRun)
+            .filter(InvestigationRun.task_id == task_id, InvestigationRun.kind == "osint")
+            .first()
+        )
+        if not run:
+            return Response(status_code=404)
+        try:
+            summary = _json.loads(run.result_summary_json or "{}") if run.result_summary_json else {}
+        except Exception:
+            summary = {}
+        rows = summary.get("timeline", []) or []
+        buf = StringIO()
+        writer = _csv.writer(buf)
+        writer.writerow(["date_text", "context"])
+        for ev in rows:
+            writer.writerow([ev.get("date_text", ""), (ev.get("context", "") or "")])
+        return Response(content=buf.getvalue().encode(), media_type="text/csv")
+    finally:
+        db.close()
+
+
+@router.get("/malware/iocs/{task_id}.json")
+def get_malware_iocs_json(task_id: str, x_api_key: str | None = Header(default=None)) -> Response:
+    _enforce_api_key(x_api_key, read_only=True)
+    from app.models import InvestigationRun
+    import json as _json
+    db = SessionLocal()
+    try:
+        run = (
+            db.query(InvestigationRun)
+            .filter(InvestigationRun.task_id == task_id, InvestigationRun.kind == "malware_dynamic")
+            .first()
+        )
+        if not run:
+            return Response(status_code=404)
+        try:
+            summary = _json.loads(run.result_summary_json or "{}") if run.result_summary_json else {}
+        except Exception:
+            summary = {}
+        data = _json.dumps({"iocs": summary.get("iocs", summary.get("findings", {}))}).encode()
+        return Response(content=data, media_type="application/json")
+    finally:
+        db.close()
+
+
+@router.get("/forensics/events/{task_id}.csv")
+def get_forensics_events_csv(task_id: str, x_api_key: str | None = Header(default=None)) -> Response:
+    _enforce_api_key(x_api_key, read_only=True)
+    from app.models import InvestigationRun
+    import json as _json
+    from io import StringIO
+    import csv as _csv
+    db = SessionLocal()
+    try:
+        run = (
+            db.query(InvestigationRun)
+            .filter(InvestigationRun.task_id == task_id, InvestigationRun.kind == "forensics_timeline")
+            .first()
+        )
+        if not run:
+            return Response(status_code=404)
+        try:
+            summary = _json.loads(run.result_summary_json or "{}") if run.result_summary_json else {}
+        except Exception:
+            summary = {}
+        rows = summary.get("sample", []) or []
+        buf = StringIO()
+        writer = _csv.writer(buf)
+        writer.writerow(["timestamp", "event", "path", "url"])
+        for ev in rows:
+            writer.writerow([ev.get("timestamp", ""), ev.get("event", ""), ev.get("path", ""), ev.get("url", "")])
+        return Response(content=buf.getvalue().encode(), media_type="text/csv")
+    finally:
+        db.close()
+
+
 def _record(kind: str, task_id: str, params: Dict[str, Any], task_id_override: str | None = None) -> None:
     from app.models import InvestigationRun
     import json as _json

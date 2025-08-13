@@ -72,5 +72,11 @@ celery_app.conf.update(
                     "args": [{"subject": {"name": "Jane Doe"}}],
                 }} if os.getenv("AUTOPILOT_SCHEDULE_ENABLED", "false").lower() == "true" else {}
             ),
+            **(
+                {"assistant_self_build_scan_daily": {
+                    "task": "app.agent.tasks.noop",  # use a lightweight task name; actual scan via app route runner
+                    "schedule": 24 * 60 * 60,
+                }} if os.getenv("SELF_BUILD_SCAN_ENABLED", "false").lower() == "true" else {}
+            ),
     },
 )

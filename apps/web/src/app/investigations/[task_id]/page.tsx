@@ -73,6 +73,7 @@ export default function InvestigationDetailPage({ params }: { params: { task_id:
   const osintPdfUrl = detail?.task_id ? `/api/investigations/osint/report/${detail.task_id}` : undefined;
   const fxPdfUrl = detail?.task_id ? `/api/investigations/forensics/report/${detail.task_id}` : undefined;
   const mwPdfUrl = detail?.task_id ? `/api/investigations/malware/report/${detail.task_id}` : undefined;
+  const apPdfUrl = detail?.task_id ? `/api/investigations/autopilot/report/${detail.task_id}` : undefined;
 
   // Extract aggregated artifacts for autopilot shape
   const autopilot = Array.isArray(summary?.steps) ? summary : null;
@@ -100,6 +101,9 @@ export default function InvestigationDetailPage({ params }: { params: { task_id:
         )}
         {kind === 'malware_dynamic' && mwPdfUrl && (
           <a href={mwPdfUrl} target="_blank" rel="noreferrer" className="underline text-blue-700 text-sm">Malware PDF</a>
+        )}
+        {kind === 'autopilot' && apPdfUrl && (
+          <a href={apPdfUrl} target="_blank" rel="noreferrer" className="underline text-blue-700 text-sm">Autopilot PDF</a>
         )}
       </div>
       {msg && <div className="text-xs text-gray-700">{msg}</div>}

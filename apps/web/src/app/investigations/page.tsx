@@ -209,6 +209,9 @@ export default function InvestigationsPage() {
                 {r.kind === 'malware_dynamic' && r.task_id && (
                   <a className="underline text-blue-600 text-xs ml-2" href={`/api/investigations/malware/report/${r.task_id}`} target="_blank" rel="noreferrer">Malware PDF</a>
                 )}
+                {r.kind === 'autopilot' && r.task_id && (
+                  <a className="underline text-blue-600 text-xs ml-2" href={`/api/investigations/autopilot/report/${r.task_id}`} target="_blank" rel="noreferrer">Autopilot PDF</a>
+                )}
               </li>
             ))}
           </ul>

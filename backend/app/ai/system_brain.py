@@ -29,3 +29,24 @@ def plan_investigations(context: Dict[str, Any] | None = None) -> List[Dict[str,
     return steps
 
 
+def propose_new_templates(observed: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Generate basic proposals for new automation templates.
+
+    Heuristic: if repeated investigations mention the same platform or action,
+    propose a dedicated template.
+    """
+    proposals: List[Dict[str, Any]] = []
+    platforms = observed.get("platform_counts", {})
+    for platform, count in platforms.items():
+        if count >= 3:
+            proposals.append({
+                "name": f"{platform.title()} Investigator",
+                "template_id": f"investigate_{platform}",
+                "category": "investigations",
+                "description": f"Collect, enrich, and report on {platform} data for a subject.",
+                "parameters": {"subject": {"name": ""}},
+                "score": min(1.0, 0.2 + 0.1 * count),
+            })
+    return proposals
+
+
