@@ -1,0 +1,30 @@
+name: E2E
+
+on:
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  web-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install web deps
+        working-directory: apps/web
+        run: npm ci
+      - name: Install Playwright browsers
+        working-directory: apps/web
+        run: npx playwright install --with-deps chromium
+      - name: Build web
+        working-directory: apps/web
+        run: npm run build
+      - name: Run E2E tests
+        working-directory: apps/web
+        env:
+          BASE_URL: http://localhost:3000
+        run: npm run test:e2e
+
+

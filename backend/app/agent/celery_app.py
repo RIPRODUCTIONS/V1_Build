@@ -78,5 +78,11 @@ celery_app.conf.update(
                     "schedule": 24 * 60 * 60,
                 }} if os.getenv("SELF_BUILD_SCAN_ENABLED", "false").lower() == "true" else {}
             ),
+            **(
+                {"system_autonomy_tick": {
+                    "task": "system.autonomy.tick",
+                    "schedule": 10 * 60,
+                }} if os.getenv("SYSTEM_AUTONOMY_ENABLED", "false").lower() == "true" else {}
+            ),
     },
 )

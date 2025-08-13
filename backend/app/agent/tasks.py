@@ -88,3 +88,39 @@ def cleanup_old_artifacts(days: int = 30) -> int:
         return deleted
     finally:
         db.close()
+
+
+@celery_app.task(name="system.autonomy.tick", autoretry_for=(Exception,), retry_backoff=True)
+def system_autonomy_tick() -> dict[str, any]:
+    from app.db import SessionLocal
+    from app.models import SystemAutonomy
+    from datetime import datetime, timedelta
+    from app.tasks.investigation_tasks import run_investigations_autopilot
+
+    db: Session = SessionLocal()
+    try:
+        cfg = db.query(SystemAutonomy).first()
+        if not cfg or not cfg.enabled:
+            return {"status": "disabled"}
+        now = datetime.utcnow()
+        if cfg.last_tick and now - cfg.last_tick < timedelta(minutes=cfg.run_interval_minutes):
+            return {"status": "skipped", "next_in_minutes": cfg.run_interval_minutes}
+        res = run_investigations_autopilot.apply(args=[["task_data"], {"subject": {"name": "Jane Doe"}, "task_id": None}]) if False else run_investigations_autopilot.apply(args=[{"subject": {"name": "Jane Doe"}, "task_id": None}])
+        cfg.last_tick = now
+        cfg.last_error = None
+        db.add(cfg)
+        db.commit()
+        data = res.result if hasattr(res, "result") else {}
+        return {"status": "ok", "executed": True, "plan": data.get("plan"), "steps": [list(s.keys())[0] for s in data.get("steps", [])]}
+    except Exception as e:
+        try:
+            cfg = db.query(SystemAutonomy).first()
+            if cfg:
+                cfg.last_error = str(e)
+                db.add(cfg)
+                db.commit()
+        except Exception:
+            pass
+        return {"status": "error", "error": str(e)}
+    finally:
+        db.close()

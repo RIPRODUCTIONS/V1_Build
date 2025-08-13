@@ -219,3 +219,13 @@ class AutoTemplateProposal(Base):
     score: Mapped[float] = mapped_column(Float, default=0.0)
     status: Mapped[str] = mapped_column(String(32), default="proposed")  # proposed|approved|applied|rejected
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class SystemAutonomy(Base):
+    __tablename__ = "system_autonomy"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    run_interval_minutes: Mapped[int] = mapped_column(Integer, default=60, nullable=False)
+    last_tick: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)

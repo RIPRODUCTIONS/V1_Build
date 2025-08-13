@@ -8,10 +8,23 @@ from app.collectors.osint_collectors import get_collectors
 from app.db import SessionLocal
 from app.core.single_user import get_or_create_single_user
 from app.ai.system_brain import plan_investigations
+from app.operator.web_metrics import (
+    automation_tasks_started as web_automation_tasks_started,
+    automation_tasks_completed as web_automation_tasks_completed,
+    automation_actions_total as web_automation_actions_total,
+    automation_action_errors_total as web_automation_action_errors_total,
+    automation_task_duration_s as web_automation_task_duration_s,
+)
 
 
 @shared_task(bind=True, name="investigation.osint.run")
 def run_osint_dossier(self, task_data: Dict[str, Any]) -> Dict[str, Any]:
+    import time
+    start_t = time.time()
+    try:
+        web_automation_tasks_started.inc()
+    except Exception:
+        pass
     # Planner → steps; collectors would run next (future)
     subject = (task_data or {}).get("subject") or {}
     steps = plan_osint(subject)
@@ -28,6 +41,10 @@ def run_osint_dossier(self, task_data: Dict[str, Any]) -> Dict[str, Any]:
                     if collector.platform == platform:
                         items = await collector.collect(query)
                         gathered.setdefault("platforms", {}).setdefault(platform, []).extend(items)
+                        try:
+                            web_automation_actions_total.inc()
+                        except Exception:
+                            pass
 
         asyncio.run(_run_collect())
     except Exception:
@@ -116,6 +133,11 @@ def run_osint_dossier(self, task_data: Dict[str, Any]) -> Dict[str, Any]:
     except Exception:
         pass
 
+    try:
+        web_automation_tasks_completed.inc()
+        web_automation_task_duration_s.observe(max(0.0, time.time() - start_t))
+    except Exception:
+        pass
     return result
 
 
