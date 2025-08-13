@@ -33,14 +33,28 @@ export default function PersonalDashboard() {
       // Best-effort: record immediate ack
       setLastResult((prev) => ({ ...prev, [templateId]: r }));
       const taskId = r?.task_id;
-      if (taskId) {
-        // simple polling loop
-        for (let i = 0; i < 20; i++) {
-          await new Promise((res) => setTimeout(res, 1500));
-          const s = await fetch(`/api/personal/result/${taskId}`).then((x) => x.json());
-          if (s?.status === "completed" || s?.status === "error") {
-            setLastResult((prev) => ({ ...prev, [templateId]: s }));
-            break;
+      if (taskId && typeof window !== "undefined") {
+        try {
+          const es = new EventSource(`/api/personal/stream/${taskId}`);
+          es.onmessage = (evt) => {
+            const data = JSON.parse(evt.data);
+            setLastResult((prev) => ({ ...prev, [templateId]: data }));
+            if (data?.status === "completed" || data?.status === "error") {
+              es.close();
+            }
+          };
+          es.onerror = () => {
+            es.close();
+          };
+        } catch (e) {
+          // Fallback to polling on SSE failure
+          for (let i = 0; i < 20; i++) {
+            await new Promise((res) => setTimeout(res, 1500));
+            const s = await fetch(`/api/personal/result/${taskId}`).then((x) => x.json());
+            if (s?.status === "completed" || s?.status === "error") {
+              setLastResult((prev) => ({ ...prev, [templateId]: s }));
+              break;
+            }
           }
         }
       }

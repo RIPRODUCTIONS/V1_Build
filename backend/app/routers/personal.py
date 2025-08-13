@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Dict, Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.db import get_db
@@ -16,6 +17,8 @@ from app.tasks.personal_automation_tasks import (
 from app.agent.celery_app import celery_app
 from celery.result import AsyncResult
 from app.personal.personal_config import get_personal_config
+import asyncio
+import json
 
 
 router = APIRouter(prefix="/personal", tags=["personal"])
@@ -71,4 +74,37 @@ def get_personal_integration_config() -> Dict[str, Any]:
         "twitter_enabled": bool(cfg.twitter_enabled),
         "linkedin_enabled": bool(cfg.linkedin_enabled),
     }
+
+
+@router.get("/stream/{task_id}")
+async def stream_personal_task(task_id: str, request: Request) -> StreamingResponse:
+    async def event_generator():
+        last_state: str | None = None
+        while True:
+            if await request.is_disconnected():
+                break
+            result: AsyncResult = celery_app.AsyncResult(task_id)
+            state = result.state
+            payload: Dict[str, Any] = {"task_id": task_id, "state": state}
+            status = "pending"
+            if state == "SUCCESS":
+                try:
+                    payload["result"] = result.get(timeout=0)
+                except Exception as exc:  # pragma: no cover
+                    payload["error"] = str(exc)
+                status = "completed"
+            elif state in {"FAILURE", "REVOKED"}:
+                try:
+                    payload["error"] = str(result.result)
+                except Exception:  # pragma: no cover
+                    pass
+                status = "error"
+            payload["status"] = status
+            if state != last_state or status in {"completed", "error"}:
+                yield f"data: {json.dumps(payload)}\n\n"
+                last_state = state
+            if status in {"completed", "error"}:
+                break
+            await asyncio.sleep(1)
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
