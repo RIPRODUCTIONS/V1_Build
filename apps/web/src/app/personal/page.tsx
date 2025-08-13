@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 export default function PersonalDashboard() {
   const [summary, setSummary] = useState<any>(null);
   const [onboarding, setOnboarding] = useState<any>(null);
+  const [running, setRunning] = useState<Record<string, boolean>>({});
+  const [lastResult, setLastResult] = useState<Record<string, any>>({});
 
   useEffect(() => {
     (async () => {
@@ -17,6 +19,23 @@ export default function PersonalDashboard() {
       } catch {}
     })();
   }, []);
+
+  const runPersonalAutomation = async (templateId: string, parameters: any = {}) => {
+    try {
+      setRunning((r) => ({ ...r, [templateId]: true }));
+      const r = await fetch(`/api/marketplace/run/${templateId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(parameters),
+      }).then((x) => x.json());
+      // Best-effort: record immediate ack
+      setLastResult((prev) => ({ ...prev, [templateId]: r }));
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setRunning((r) => ({ ...r, [templateId]: false }));
+    }
+  };
 
   const widgets = [
     { title: "Email Status", data: "—", automation: "personal_email_manager" },
@@ -47,6 +66,18 @@ export default function PersonalDashboard() {
             <div className="mt-2">
               <a className="underline text-sm" href={`/templates/${w.automation}`}>Open</a>
             </div>
+            <div className="mt-2">
+              <button
+                onClick={() => runPersonalAutomation(w.automation, w.automation === 'research_assistant' ? { topic: 'AI automation trends' } : {})}
+                className="bg-blue-600 text-white px-3 py-1 rounded text-sm"
+                disabled={!!running[w.automation]}
+              >
+                {running[w.automation] ? 'Running…' : 'Run Now'}
+              </button>
+            </div>
+            {lastResult[w.automation] && (
+              <pre className="mt-2 text-xs bg-gray-50 p-2 rounded overflow-x-auto">{JSON.stringify(lastResult[w.automation], null, 2)}</pre>
+            )}
           </div>
         ))}
       </div>

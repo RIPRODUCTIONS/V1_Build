@@ -12,6 +12,7 @@ celery_app = Celery("builder", broker=REDIS_URL, backend=REDIS_URL, include=[
     "app.integrations.tasks",
     "app.automations.tasks",
     "app.tasks.web_automation_tasks",
+    "app.tasks.personal_automation_tasks",
 ])
 
 celery_app.conf.update(

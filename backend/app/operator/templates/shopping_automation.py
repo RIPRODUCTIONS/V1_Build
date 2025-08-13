@@ -23,10 +23,9 @@ class PersonalShoppingAssistant:
         max_results = int(parameters.get("max_results", 20))
 
         amazon = await self._search_amazon(query, max_results)
-        # Stubs for future providers
-        ebay: List[Dict[str, Any]] = []
-        google: List[Dict[str, Any]] = []
-        walmart: List[Dict[str, Any]] = []
+        ebay = await self._search_ebay(query, max_results)
+        google = await self._search_google_shopping(query, max_results)
+        walmart = await self._search_walmart(query, max_results)
 
         all_results = amazon + ebay + google + walmart
         price_values = []
@@ -104,6 +103,139 @@ class PersonalShoppingAssistant:
                 p["platform"] = "Amazon"
                 p["platform_url"] = "amazon.com"
             return products
+        finally:
+            await browser.close()
+            await pw.stop()
+
+    async def _search_ebay(self, product_query: str, max_results: int) -> List[Dict[str, Any]]:
+        from playwright.async_api import async_playwright
+
+        executor = MVPWebExecutor()
+        plan = {
+            "steps": [
+                {
+                    "action": "navigate",
+                    "target": "https://www.ebay.com",
+                    "wait_for_content": True,
+                    "expected_content": ["#gh-ac"],
+                },
+                {
+                    "action": "search_and_extract",
+                    "search_term": product_query,
+                    "search_selector": "#gh-ac",
+                    "expected_results": [".s-item"],
+                    "extraction_rules": {
+                        "title": "h3.s-item__title",
+                        "price": ".s-item__price",
+                        "rating": ".x-star-rating span",
+                        "url": "a.s-item__link",
+                    },
+                },
+                {
+                    "action": "infinite_scroll_extract",
+                    "target_count": max_results,
+                    "item_selector": ".s-item",
+                    "extraction_rules": {
+                        "title": "h3.s-item__title",
+                        "price": ".s-item__price",
+                        "rating": ".x-star-rating span",
+                        "shipping": ".s-item__shipping",
+                    },
+                },
+            ]
+        }
+        pw = await async_playwright().start()
+        browser = await pw.chromium.launch(headless=True)
+        page = await browser.new_page()
+        try:
+            res = await executor.execute_plan_steps(page, plan)
+            hit = next((r for r in (res.get("results") or []) if r.get("action") == "infinite_scroll_extract"), None)
+            items = (hit or {}).get("data", [])
+            for it in items:
+                it["platform"] = "eBay"
+                it["platform_url"] = "ebay.com"
+            return items
+        finally:
+            await browser.close()
+            await pw.stop()
+
+    async def _search_google_shopping(self, product_query: str, max_results: int) -> List[Dict[str, Any]]:
+        from playwright.async_api import async_playwright
+
+        executor = MVPWebExecutor()
+        url = f"https://www.google.com/search?tbm=shop&q={product_query.replace(' ', '+')}"
+        plan = {
+            "steps": [
+                {
+                    "action": "navigate",
+                    "target": url,
+                    "wait_for_content": True,
+                    "expected_content": [".sh-dgr__content", ".sh-pr__product-results"],
+                },
+                {
+                    "action": "infinite_scroll_extract",
+                    "target_count": max_results,
+                    "item_selector": ".sh-dgr__content",
+                    "extraction_rules": {
+                        "title": ".tAxDx",
+                        "price": ".a8Pemb",
+                        "url": "a.shntl",
+                    },
+                },
+            ]
+        }
+        pw = await async_playwright().start()
+        browser = await pw.chromium.launch(headless=True)
+        page = await browser.new_page()
+        try:
+            res = await executor.execute_plan_steps(page, plan)
+            hit = next((r for r in (res.get("results") or []) if r.get("action") == "infinite_scroll_extract"), None)
+            items = (hit or {}).get("data", [])
+            for it in items:
+                it["platform"] = "Google Shopping"
+                it["platform_url"] = "google.com/shopping"
+            return items
+        finally:
+            await browser.close()
+            await pw.stop()
+
+    async def _search_walmart(self, product_query: str, max_results: int) -> List[Dict[str, Any]]:
+        from playwright.async_api import async_playwright
+
+        executor = MVPWebExecutor()
+        url = f"https://www.walmart.com/search?q={product_query.replace(' ', '+')}"
+        plan = {
+            "steps": [
+                {
+                    "action": "navigate",
+                    "target": url,
+                    "wait_for_content": True,
+                    "expected_content": ["input[type='search']"],
+                },
+                {
+                    "action": "infinite_scroll_extract",
+                    "target_count": max_results,
+                    "item_selector": "[data-automation-id='search-product-result']",
+                    "extraction_rules": {
+                        "title": "a span",
+                        "price": "span[class*='price']",
+                        "rating": "span[aria-label*='out of']",
+                        "url": "a",
+                    },
+                },
+            ]
+        }
+        pw = await async_playwright().start()
+        browser = await pw.chromium.launch(headless=True)
+        page = await browser.new_page()
+        try:
+            res = await executor.execute_plan_steps(page, plan)
+            hit = next((r for r in (res.get("results") or []) if r.get("action") == "infinite_scroll_extract"), None)
+            items = (hit or {}).get("data", [])
+            for it in items:
+                it["platform"] = "Walmart"
+                it["platform_url"] = "walmart.com"
+            return items
         finally:
             await browser.close()
             await pw.stop()
