@@ -108,6 +108,52 @@ class AutomationTemplateLibrary:
                 "required_parameters": [{"name": "brand_terms", "type": "list"}],
                 "optional_parameters": [],
             },
+            # Personal automation templates (non-billing)
+            "personal_email_manager": {
+                "id": "personal_email_manager",
+                "name": "Personal Email Manager",
+                "category": "productivity",
+                "estimated_time_minutes": 2,
+                "description": "Automatically sort, respond to, and manage your personal emails",
+                "required_parameters": [{"name": "labels", "type": "list", "optional": True}],
+                "optional_parameters": [{"name": "auto_reply_templates", "type": "object", "optional": True}],
+            },
+            "personal_finance_tracker": {
+                "id": "personal_finance_tracker",
+                "name": "Personal Finance Tracker",
+                "category": "finance",
+                "estimated_time_minutes": 3,
+                "description": "Track expenses, monitor accounts, and manage your personal finances",
+                "required_parameters": [{"name": "accounts", "type": "list", "optional": True}],
+                "optional_parameters": [{"name": "budgets", "type": "object", "optional": True}],
+            },
+            "social_media_manager": {
+                "id": "social_media_manager",
+                "name": "Personal Social Media Manager",
+                "category": "social",
+                "estimated_time_minutes": 2,
+                "description": "Manage your social media presence and engagement",
+                "required_parameters": [{"name": "platforms", "type": "list"}],
+                "optional_parameters": [{"name": "schedule", "type": "list", "optional": True}],
+            },
+            "research_assistant": {
+                "id": "research_assistant",
+                "name": "Personal Research Assistant",
+                "category": "research",
+                "estimated_time_minutes": 5,
+                "description": "Research topics, gather information, and create summaries for you",
+                "required_parameters": [{"name": "topics", "type": "list"}],
+                "optional_parameters": [{"name": "depth", "type": "string", "default": "thorough"}],
+            },
+            "shopping_assistant": {
+                "id": "shopping_assistant",
+                "name": "Personal Shopping Assistant",
+                "category": "shopping",
+                "estimated_time_minutes": 3,
+                "description": "Find best deals, track prices, and manage your purchases",
+                "required_parameters": [{"name": "wishlist", "type": "list", "optional": True}],
+                "optional_parameters": [{"name": "retailers", "type": "list", "optional": True}],
+            },
         })
 
     async def get_template(self, template_id: str) -> Dict[str, Any]:

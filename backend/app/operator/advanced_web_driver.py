@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
+import asyncio
 
 
 class AdvancedWebDriver:
@@ -32,8 +33,97 @@ class AdvancedWebDriver:
     async def adaptive_element_interaction(self, selector: str, action_type: str, data: Any | None = None) -> bool:
         return False
 
-    async def handle_dynamic_content(self, expected_changes: List[str]) -> Dict[str, Any]:
-        return {"changes": expected_changes, "handled": False}
+    async def handle_dynamic_content(
+        self,
+        page: Any,
+        expected_changes: List[str] | None = None,
+        *,
+        max_scrolls: int = 12,
+        wait_network_idle: bool = True,
+        wait_per_scroll_s: float = 0.6,
+    ) -> Dict[str, Any]:
+        """Handle lazy loading, infinite scroll, AJAX completion, and SPA navigation.
+
+        - Performs incremental scrolls until content stops increasing or max_scrolls reached
+        - Waits for network idle after actions if requested
+        - Checks for presence of expected selectors/text to confirm change
+        - Returns change analysis including scrolls performed and detected deltas
+        """
+        observed_changes: List[Dict[str, Any]] = []
+        scrolls_performed = 0
+        url_before = getattr(page, 'url', None)
+
+        async def _get_scroll_height() -> int:
+            try:
+                return int(await page.evaluate("() => document.documentElement.scrollHeight"))
+            except Exception:
+                return 0
+
+        async def _network_idle():
+            if not wait_network_idle:
+                return
+            try:
+                # networkidle works well for many SPAs; fallback to a short sleep if unsupported
+                await page.wait_for_load_state('networkidle', timeout=5000)
+            except Exception:
+                await asyncio.sleep(0.3)
+
+        # Initial height
+        last_height = await _get_scroll_height()
+
+        # Infinite scroll / lazy loading loop
+        for _ in range(max_scrolls):
+            try:
+                await page.evaluate("() => window.scrollBy(0, Math.ceil(window.innerHeight * 0.9))")
+            except Exception:
+                break
+            scrolls_performed += 1
+            await asyncio.sleep(wait_per_scroll_s)
+            await _network_idle()
+
+            new_height = await _get_scroll_height()
+            if new_height > last_height:
+                observed_changes.append({"type": "height_increase", "from": last_height, "to": new_height})
+                last_height = new_height
+            else:
+                # No more content loading
+                break
+
+        # Check expected changes (selectors or text fragments)
+        if expected_changes:
+            for token in expected_changes:
+                found = False
+                # Try selector first
+                try:
+                    el = await page.query_selector(token)
+                    if el:
+                        found = True
+                        observed_changes.append({"type": "selector_present", "selector": token})
+                except Exception:
+                    # Not a selector; try text search
+                    try:
+                        match = await page.locator(f"text={token}").first
+                        if await match.count() > 0:
+                            found = True
+                            observed_changes.append({"type": "text_present", "text": token})
+                    except Exception:
+                        pass
+                if not found:
+                    observed_changes.append({"type": "not_found", "token": token})
+
+        # SPA navigation detection via URL change
+        url_after = getattr(page, 'url', None)
+        if url_before and url_after and url_before != url_after:
+            observed_changes.append({"type": "url_changed", "from": url_before, "to": url_after})
+
+        return {
+            "handled": True,
+            "scrolls": scrolls_performed,
+            "final_height": last_height,
+            "url_before": url_before,
+            "url_after": url_after,
+            "observed": observed_changes,
+        }
 
     async def intelligent_form_analysis(self, form_element: str) -> Dict[str, Any]:
         return {"form": form_element, "fields": [], "status": "disabled"}

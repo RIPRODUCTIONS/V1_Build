@@ -1,15 +1,18 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any, Dict, List
 import asyncio
 import time
 import uuid
 from app.core.config import get_settings
 from app.operator import web_metrics as metrics
 from app.core.event_bus import SystemEventBus
+from app.operator.advanced_web_driver import AdvancedWebDriver
 
 
 class MVPWebExecutor:
+    def __init__(self) -> None:
+        self.advanced_driver = AdvancedWebDriver()
     async def execute_contact_form(self, website_url: str, form_data: Dict[str, Any], correlation_id: str | None = None) -> Dict[str, Any]:
         # Build a concrete plan for contact form
         plan = {
@@ -189,6 +192,25 @@ class MVPWebExecutor:
                                 metrics.automation_actions_total.labels(action="fill_form").inc()
                             except Exception:
                                 pass
+                        elif action == "search_and_extract":
+                            data = await asyncio.wait_for(self._search_and_extract_data(page, s), timeout=min(per_action_timeout, 10))
+                            s["_result"] = data
+                            try:
+                                metrics.automation_actions_total.labels(action="search_and_extract").inc()
+                            except Exception:
+                                pass
+                        elif action == "infinite_scroll_extract":
+                            data = await asyncio.wait_for(self._infinite_scroll_extract(page, s), timeout=min(per_action_timeout, 10))
+                            s["_result"] = data
+                            try:
+                                metrics.automation_actions_total.labels(action="infinite_scroll_extract").inc()
+                            except Exception:
+                                pass
+                        if action == "navigate" and s.get("wait_for_content"):
+                            try:
+                                await self._handle_post_navigation_content(page, s)
+                            except Exception:
+                                pass
                         executed += 1
                     except Exception:
                         try:
@@ -197,9 +219,96 @@ class MVPWebExecutor:
                             pass
                         break
                 status = "completed" if executed == len(steps) else "partial"
-                return {"executed_steps": executed, "status": status}
+                # Collect any per-step _result payloads for caller
+                results: List[Dict[str, Any]] = [s.get("_result") for s in steps if isinstance(s, dict) and s.get("_result")]
+                return {"executed_steps": executed, "status": status, "results": results}
             # Fallback
             return {"executed_steps": len(steps), "status": "disabled"}
 
         return await retry_async(_do, retries=2, base_delay_s=0.2)
+
+    async def _handle_post_navigation_content(self, page: Any, step: Dict[str, Any]) -> None:
+        settings = get_settings()
+        if not (settings.OPERATOR_WEB_REAL and hasattr(page, "evaluate")):
+            return
+        expected = step.get("expected_content") or []
+        await self.advanced_driver.handle_dynamic_content(
+            page,
+            expected,
+            max_scrolls=int(step.get("max_scrolls", 12)),
+        )
+
+    async def _search_and_extract_data(self, page: Any, step: Dict[str, Any]) -> Dict[str, Any]:
+        settings = get_settings()
+        if not (settings.OPERATOR_WEB_REAL and hasattr(page, "wait_for_selector")):
+            return {"action": "search_and_extract", "success": False, "reason": "disabled"}
+        search_term = step.get("search_term") or ""
+        search_selector = step.get("search_selector", "input[type='search']")
+        search_box = await page.wait_for_selector(search_selector, timeout=5000)
+        await search_box.fill(search_term)
+        await search_box.press("Enter")
+        expected = step.get("expected_results") or []
+        await self.advanced_driver.handle_dynamic_content(page, expected)
+        extracted = await self._extract_structured_data(page, step.get("extraction_rules") or {})
+        return {"action": "search_and_extract", "success": True, "search_term": search_term, "results_found": len(extracted), "data": extracted}
+
+    async def _infinite_scroll_extract(self, page: Any, step: Dict[str, Any]) -> Dict[str, Any]:
+        settings = get_settings()
+        if not (settings.OPERATOR_WEB_REAL and hasattr(page, "query_selector_all")):
+            return {"action": "infinite_scroll_extract", "success": False, "reason": "disabled"}
+        target_count = int(step.get("target_count", 50))
+        item_selector = step.get("item_selector", ".item")
+        initial_items = await page.query_selector_all(item_selector)
+        initial_count = len(initial_items)
+        await self.advanced_driver.handle_dynamic_content(page, [], max_scrolls=20)
+        final_items = await page.query_selector_all(item_selector)
+        rules = step.get("extraction_rules") or {}
+        data: List[Dict[str, Any]] = []
+        for el in final_items[:target_count]:
+            data.append(await self._extract_item_data(el, rules))
+        return {
+            "action": "infinite_scroll_extract",
+            "success": True,
+            "initial_count": initial_count,
+            "final_count": len(final_items),
+            "extracted_count": len(data),
+            "data": data,
+        }
+
+    async def _extract_structured_data(self, page: Any, rules: Dict[str, str]) -> List[Dict[str, Any]]:
+        # Basic extractor: returns list of dicts from a result container when selectors align
+        items: List[Dict[str, Any]] = []
+        try:
+            # Heuristic: if a key is 'title' we try to infer container by that selector
+            container_selector = None
+            if rules:
+                container_selector = next(iter(rules.values()))
+            if not container_selector:
+                return []
+            nodes = await page.query_selector_all(container_selector)
+            for n in nodes[:50]:
+                items.append(await self._extract_item_data(n, rules))
+        except Exception:
+            return []
+        return items
+
+    async def _extract_item_data(self, node: Any, rules: Dict[str, str]) -> Dict[str, Any]:
+        out: Dict[str, Any] = {}
+        try:
+            for field, sel in rules.items():
+                try:
+                    el = await node.query_selector(sel)
+                    if not el:
+                        out[field] = None
+                        continue
+                    # Prefer textContent; for links extract href
+                    if field in ("url", "href"):
+                        out[field] = await el.get_attribute("href")
+                    else:
+                        out[field] = (await el.text_content()) or None
+                except Exception:
+                    out[field] = None
+        except Exception:
+            pass
+        return out
 

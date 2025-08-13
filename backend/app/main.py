@@ -56,6 +56,7 @@ from app.routers.template_library import router as template_library_router
 from app.routers.runs import router as automation_runs_router, automation_router as recent_runs_router
 from app.routers.operator_metrics import router as operator_metrics_router
 from app.routers.marketplace import router as marketplace_router
+from app.routers.onboarding import router as onboarding_router
 from app.core.config import get_settings
 from app.automations.tasks import consume_event_stream
 from app.operator.template_seed import seed_templates
@@ -220,6 +221,7 @@ def create_app() -> FastAPI:
     app.include_router(recent_runs_router)
     app.include_router(operator_metrics_router)
     app.include_router(marketplace_router)
+    app.include_router(onboarding_router)
     app.include_router(prototype_router)
     app.include_router(automation_router)
     app.include_router(cursor_bridge)

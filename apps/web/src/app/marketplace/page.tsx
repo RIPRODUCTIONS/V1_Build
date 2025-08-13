@@ -36,6 +36,23 @@ export default function MarketplacePage() {
 
   useEffect(() => {
     load();
+    // If redirected from Stripe Checkout
+    const url = new URL(window.location.href);
+    const sessionId = url.searchParams.get("session_id");
+    const success = url.searchParams.get("success");
+    if (success && sessionId) {
+      (async () => {
+        try {
+          const res = await fetch(`/api/marketplace/buy_credits/confirm`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ session_id: sessionId }),
+          }).then((x) => x.json());
+          setMessage(`Credits added successfully! New balance: $${Number(res.balance_usd || 0).toFixed(2)}`);
+          await load();
+        } catch {}
+      })();
+    }
   }, []);
 
   const grouped = useMemo(() => {
@@ -125,6 +142,21 @@ export default function MarketplacePage() {
           <button onClick={buyCredits} disabled={loading} className="bg-blue-600 text-white px-3 py-1 rounded">Buy</button>
         </div>
         <div className="text-xs text-gray-600 mt-1">$20, $50, $100+ packages. Larger packages include bonus credits.</div>
+        <div className="text-xs text-gray-600 mt-1">New here? Start with free $5 credits via Onboarding.</div>
+        <div className="mt-2">
+          <button
+            onClick={async () => {
+              try {
+                const r = await fetch(`/api/onboarding/start`, { method: "POST" }).then((x) => x.json());
+                setMessage(`$${r.free_credits_granted} free credits granted! Try LinkedIn Lead Extractor or Price Spy.`);
+                await load();
+              } catch {}
+            }}
+            className="bg-green-600 text-white px-3 py-1 rounded"
+          >
+            Claim $5 Free Credits
+          </button>
+        </div>
       </div>
 
       {message && <div className="p-3 rounded bg-yellow-50 border border-yellow-200 text-sm">{message}</div>}
