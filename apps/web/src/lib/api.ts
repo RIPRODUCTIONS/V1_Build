@@ -7,6 +7,8 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   const headers = new Headers(init.headers || {});
   if (!headers.has('Content-Type') && init.body) headers.set('Content-Type', 'application/json');
   if (token && !headers.has('Authorization')) headers.set('Authorization', `Bearer ${token}`);
+  const apiKey = process.env.NEXT_PUBLIC_INTERNAL_API_KEY;
+  if (apiKey && !headers.has('X-API-Key')) headers.set('X-API-Key', apiKey);
   const res = await fetch(`${API_BASE}${path}`, { ...init, headers });
   if (!res.ok) {
     const text = await res.text().catch(() => '');

@@ -140,7 +140,8 @@ def get_investigation(task_id: str, x_api_key: str | None = Header(default=None)
 
 @router.get("/stream/{task_id}")
 async def stream_investigation(task_id: str, request: Request, x_api_key: str | None = Header(default=None)) -> StreamingResponse:
-    _enforce_api_key(x_api_key, read_only=True)
+    token = request.query_params.get("token")
+    _enforce_api_key(token or x_api_key, read_only=True)
     async def event_generator():
         import json as _json
         import asyncio as _aio

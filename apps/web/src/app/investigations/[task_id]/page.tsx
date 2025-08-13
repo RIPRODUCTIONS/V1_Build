@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { sseUrl } from "@/lib/security";
 
 type Detail = {
   task_id: string;
@@ -33,7 +34,7 @@ export default function InvestigationDetailPage({ params }: { params: { task_id:
 
   useEffect(() => {
     load();
-    const es = new EventSource(`/api/investigations/stream/${taskId}`);
+    const es = new EventSource(sseUrl(`/api/investigations/stream/${taskId}`));
     es.onmessage = (e) => {
       try {
         const data = JSON.parse(e.data);

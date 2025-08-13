@@ -1,3 +1,49 @@
+# Builder Investigations Stack (Secure)
+
+## One-command local stack
+
+1. Export a strong API key:
+
+```bash
+export INTERNAL_API_KEY=$(python3 - <<'PY'
+import secrets
+print(secrets.token_hex(16))
+PY
+)
+```
+
+2. Start services:
+
+```bash
+docker-compose up --build
+```
+
+Services:
+- API: http://localhost:8000 (SECURE_MODE enabled, pass `X-API-Key: $INTERNAL_API_KEY`)
+- Web: http://localhost:3000 (auto-injects API key for requests and SSE)
+- Redis: redis://localhost:6379
+
+## Secure mode
+
+All investigations and self-build endpoints require `X-API-Key` when `SECURE_MODE=true`.
+
+## Reports and artifacts
+
+- OSINT PDF: `/investigations/osint/report/{task_id}`
+- Forensics PDF: `/investigations/forensics/report/{task_id}`
+- Malware PDF: `/investigations/malware/report/{task_id}`
+- Autopilot PDF: `/investigations/autopilot/report/{task_id}`
+- OSINT entities JSON: `/investigations/osint/entities/{task_id}.json`
+- OSINT timeline CSV: `/investigations/osint/timeline/{task_id}.csv`
+- Malware IOCs JSON: `/investigations/malware/iocs/{task_id}.json`
+- Forensics events CSV: `/investigations/forensics/events/{task_id}.csv`
+
+## Self-build (admin)
+
+- Run scan: `POST /assistant/self_build/scan` (secured)
+- UI: `/admin/self-build`
+- Approve/apply proposals via UI or API.
+
 ## Google Integrations (Calendar)
 
 1. Environment

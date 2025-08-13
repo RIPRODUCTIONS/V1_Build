@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Header
 
 from app.integrations.hub import IntegrationHub
 from app.integrations.google_workspace import (
@@ -74,7 +74,8 @@ async def execute(intent: str, user_id: str = "1") -> Dict[str, Any]:
 
 
 @router.post("/self_build/scan")
-def self_build_scan() -> dict:
+def self_build_scan(x_api_key: str | None = Header(default=None)) -> dict:
+    _enforce_api_key(x_api_key)
     """Analyze recent runs and propose next templates automatically."""
     from app.db import SessionLocal
     from app.models import InvestigationRun, SystemInsight, AutoTemplateProposal
@@ -127,7 +128,8 @@ def self_build_scan() -> dict:
 
 
 @router.get("/self_build/proposals")
-def list_self_build_proposals(limit: int = 50) -> dict:
+def list_self_build_proposals(limit: int = 50, x_api_key: str | None = Header(default=None)) -> dict:
+    _enforce_api_key(x_api_key, read_only=True)
     from app.db import SessionLocal
     from app.models import AutoTemplateProposal
     db = SessionLocal()
@@ -156,7 +158,8 @@ def list_self_build_proposals(limit: int = 50) -> dict:
 
 
 @router.post("/self_build/proposals/{proposal_id}/approve")
-def approve_self_build_proposal(proposal_id: int) -> dict:
+def approve_self_build_proposal(proposal_id: int, x_api_key: str | None = Header(default=None)) -> dict:
+    _enforce_api_key(x_api_key)
     from app.db import SessionLocal
     from app.models import AutoTemplateProposal
     db = SessionLocal()
@@ -173,7 +176,8 @@ def approve_self_build_proposal(proposal_id: int) -> dict:
 
 
 @router.post("/self_build/proposals/{proposal_id}/apply")
-def apply_self_build_proposal(proposal_id: int) -> dict:
+def apply_self_build_proposal(proposal_id: int, x_api_key: str | None = Header(default=None)) -> dict:
+    _enforce_api_key(x_api_key)
     from app.db import SessionLocal
     from app.models import AutoTemplateProposal, AutomationTemplate
     import json as _json
@@ -205,6 +209,15 @@ def apply_self_build_proposal(proposal_id: int) -> dict:
         return {"status": "ok", "template_id": tpl.id}
     finally:
         db.close()
+
+
+def _enforce_api_key(x_api_key: str | None, read_only: bool = False) -> None:
+    import os as _os
+    if (_os.getenv("SECURE_MODE", "false").lower() == "true"):
+        expected = _os.getenv("INTERNAL_API_KEY")
+        if not expected or x_api_key != expected:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=401, detail="unauthorized")
 
 def _extract_between(text: str, start: str, end: str) -> str | None:
     try:
