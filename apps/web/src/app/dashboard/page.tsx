@@ -109,7 +109,7 @@ export default function Dashboard() {
         </div>
         {roi && (
           <div className="mt-2 text-sm">
-            Hourly rate: ${'{'}roi.hourly_rate{'}'} /hr · Total savings: ${'{'}roi.roi.reduce((a, x)=>a+(x.estimated_cost_savings_usd||0),0).toFixed(2){'}'}
+            Hourly rate: $ {roi.hourly_rate} /hr · Total savings: $ {roi.roi.reduce((a, x)=>a+(x.estimated_cost_savings_usd||0),0).toFixed(2)}
           </div>
         )}
       </div>

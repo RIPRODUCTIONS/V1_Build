@@ -19,24 +19,23 @@ export default function MarketplacePage() {
   const [message, setMessage] = useState<string>("");
   const [usage, setUsage] = useState<any[]>([]);
 
-  const load = async () => {
-    try {
-      const tpl = await fetch(`/api/marketplace/templates`).then((x) => x.json());
-      setTemplates(tpl.templates || []);
-    } catch {}
-    try {
-      const c = await fetch(`/api/marketplace/credits`).then((x) => x.json());
-      setBalance(Number(c.balance_usd || 0));
-    } catch {}
-    try {
-      const u = await fetch(`/api/marketplace/usage?limit=20`).then((x) => x.json());
-      setUsage(u.items || []);
-    } catch {}
-  };
-
   useEffect(() => {
+    const load = async () => {
+      try {
+        const tpl = await fetch(`/api/marketplace/templates`).then((x) => x.json());
+        setTemplates(tpl.templates || []);
+      } catch {}
+      try {
+        const c = await fetch(`/api/marketplace/credits`).then((x) => x.json());
+        setBalance(Number(c.balance_usd || 0));
+      } catch {}
+      try {
+        const u = await fetch(`/api/marketplace/usage?limit=20`).then((x) => x.json());
+        setUsage(u.items || []);
+      } catch {}
+    };
     load();
-    // If redirected from Stripe Checkout
+
     const url = new URL(window.location.href);
     const sessionId = url.searchParams.get("session_id");
     const success = url.searchParams.get("success");
@@ -69,7 +68,6 @@ export default function MarketplacePage() {
     setLoading(true);
     setMessage("");
     try {
-      // Try Stripe Checkout first
       const checkout = await fetch(`/api/marketplace/buy_credits/checkout`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -82,38 +80,14 @@ export default function MarketplacePage() {
           return;
         }
       }
-      // Fallback to immediate credit for dev mode
       const res = await fetch(`/api/marketplace/buy_credits`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ amount_usd: Number(buyAmount || 0) }),
       }).then((x) => x.json());
       setMessage(`Credits purchased. Balance: $${res.balance_usd}`);
-      await load();
     } catch (e: any) {
       setMessage(`Failed to buy credits: ${e?.message || e}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const runTemplate = async (t: Template) => {
-    setLoading(true);
-    setMessage("");
-    try {
-      const res = await fetch(`/api/marketplace/run/${t.id}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(paramsFor(t.id)),
-      }).then((x) => x.json());
-      if (res?.billing?.ok) {
-        setMessage(`Queued ${t.name}. ${res.task_count} task(s). Charged $${res.total_price_usd}. New balance: $${res.billing.balance_usd}`);
-        await load();
-      } else {
-        setMessage(`Failed to queue: ${res?.detail?.error || res?.detail || 'unknown error'}`);
-      }
-    } catch (e: any) {
-      setMessage(`Error: ${e?.message || e}`);
     } finally {
       setLoading(false);
     }
@@ -128,17 +102,41 @@ export default function MarketplacePage() {
     }
   };
 
+  const runTemplate = async (t: Template) => {
+    setLoading(true);
+    setMessage("");
+    try {
+      const res = await fetch(`/api/marketplace/run/${t.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(paramsFor(t.id)),
+      }).then((x) => x.json());
+      if (res?.billing?.ok) {
+        setMessage(`Queued ${t.name}. ${res.task_count} task(s). Charged $${res.total_price_usd}. New balance: $${res.billing.balance_usd}`);
+      } else {
+        setMessage(`Failed to queue: ${res?.detail?.error || res?.detail || 'unknown error'}`);
+      }
+    } catch (e: any) {
+      setMessage(`Error: ${e?.message || e}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <section className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Automation Marketplace</h1>
-        <div className="text-sm">Credits Balance: <span className="font-semibold">${balance.toFixed(2)}</span></div>
+        <div className="text-sm">
+          Credits Balance: <span className="font-semibold">$ {balance.toFixed(2)}</span>
+        </div>
       </div>
 
       <div className="border rounded p-4 bg-white">
         <h2 className="text-lg font-semibold mb-2">Buy Credits</h2>
         <div className="flex items-center gap-2">
-          <input className="border rounded px-2 py-1 w-28" type="number" min={0} step={1} value={buyAmount} onChange={(e) => setBuyAmount(e.target.value)} />
+          <label htmlFor="buy-amount" className="sr-only">Buy amount</label>
+          <input id="buy-amount" aria-label="Buy amount" placeholder="20" className="border rounded px-2 py-1 w-28" type="number" min={0} step={1} value={buyAmount} onChange={(e) => setBuyAmount(e.target.value)} />
           <button onClick={buyCredits} disabled={loading} className="bg-blue-600 text-white px-3 py-1 rounded">Buy</button>
         </div>
         <div className="text-xs text-gray-600 mt-1">$20, $50, $100+ packages. Larger packages include bonus credits.</div>
@@ -149,7 +147,6 @@ export default function MarketplacePage() {
               try {
                 const r = await fetch(`/api/onboarding/start`, { method: "POST" }).then((x) => x.json());
                 setMessage(`$${r.free_credits_granted} free credits granted! Try LinkedIn Lead Extractor or Price Spy.`);
-                await load();
               } catch {}
             }}
             className="bg-green-600 text-white px-3 py-1 rounded"
@@ -163,24 +160,24 @@ export default function MarketplacePage() {
 
       {Object.entries(grouped).map(([cat, list]) => (
         <div key={cat}>
-          <h2 className="text-xl font-semibold mb-2 capitalize">{cat.replaceAll('_',' ')}</h2>
+          <h2 className="text-xl font-semibold mb-2 capitalize">{cat.split("_").join(" ")}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {list.map((t) => (
               <div key={t.id} className="border rounded p-4 bg-white space-y-2">
                 <div className="font-medium">{t.name}</div>
                 {t.description && <div className="text-sm text-gray-700">{t.description}</div>}
-                <div className="text-xs text-gray-600">Est. {t.estimated_time_minutes ?? "-"} min · Price: ${t.price_per_run_usd?.toFixed(2) ?? "-"}</div>
+                <div className="text-xs text-gray-600">Est. {t.estimated_time_minutes ?? "-"} min · Price: $ {t.price_per_run_usd?.toFixed(2) ?? "-"}</div>
                 <div>
                   <label className="block text-xs font-medium mb-1">Parameters (JSON)</label>
                   <textarea
                     className="border rounded w-full p-2 text-xs"
                     rows={4}
-                    placeholder="{\n  \"target_websites\": [\"https://example.com\"]\n}"
+                    placeholder={"{\n  \"target_websites\": [\"https://example.com\"]\n}"}
                     value={params[t.id] || ""}
                     onChange={(e) => setParams((p) => ({ ...p, [t.id]: e.target.value }))}
                   />
                 </div>
-                <button onClick={() => runTemplate(t)} disabled={loading} className="bg-green-600 text-white px-3 py-1 rounded">Try for ${t.price_per_run_usd?.toFixed(2) ?? "-"}</button>
+                <button onClick={() => runTemplate(t)} disabled={loading} className="bg-green-600 text-white px-3 py-1 rounded">Try for $ {t.price_per_run_usd?.toFixed(2) ?? "-"}</button>
               </div>
             ))}
           </div>
@@ -206,8 +203,8 @@ export default function MarketplacePage() {
                   <tr key={r.id} className="border-b hover:bg-gray-50">
                     <td className="py-1 pr-4">{new Date(r.executed_at).toLocaleString()}</td>
                     <td className="py-1 pr-4">{r.template_id}</td>
-                    <td className="py-1 pr-4">${Number(r.cost_usd).toFixed(2)}</td>
-                    <td className="py-1 pr-4">{r.summary?.task_count ?? '-'}</td>
+                    <td className="py-1 pr-4">$ {Number(r.cost_usd).toFixed(2)}</td>
+                    <td className="py-1 pr-4">{r.summary?.task_count ?? "-"}</td>
                   </tr>
                 ))}
               </tbody>

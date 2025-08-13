@@ -120,17 +120,21 @@ export default function InvestigationsPage() {
 
       <div className="border rounded p-4 bg-white space-y-2">
         <div className="font-medium">OSINT Dossier</div>
-        <label className="block text-sm font-medium">Subject Name</label>
+        <label className="block text-sm font-medium" htmlFor="subject-name">Subject Name</label>
         <input
           className="border rounded p-2 text-sm w-full"
           placeholder="Jane Doe"
+          id="subject-name"
+          aria-label="Subject name"
           value={subjectName}
           onChange={(e) => setSubjectName(e.target.value)}
         />
-        <label className="block text-sm font-medium mt-2">Location (optional)</label>
+        <label className="block text-sm font-medium mt-2" htmlFor="subject-location">Location (optional)</label>
         <input
           className="border rounded p-2 text-sm w-full"
           placeholder="San Francisco, CA"
+          id="subject-location"
+          aria-label="Subject location"
           value={subjectLocation}
           onChange={(e) => setSubjectLocation(e.target.value)}
         />

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 
-type ROI = { id: string; name: string; usage: number; estimated_time_saved_hours: number; estimated_cost_savings_usd: number };
+type ROI = { id: string; name: string; usage: number; estimated_time_saved_hours: number; estimated_cost_savings_usd: number; last_24h?: { runs: number; success: number; failed: number; success_rate: number } };
 
 export default function AdminTemplatesROIPage() {
   const [ciToken, setCiToken] = useState<string>("");
