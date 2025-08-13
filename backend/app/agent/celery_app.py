@@ -13,6 +13,7 @@ celery_app = Celery("builder", broker=REDIS_URL, backend=REDIS_URL, include=[
     "app.automations.tasks",
     "app.tasks.web_automation_tasks",
     "app.tasks.personal_automation_tasks",
+    "app.tasks.investigation_tasks",
 ])
 
 celery_app.conf.update(
@@ -30,6 +31,13 @@ celery_app.conf.update(
         "personal.social.execute": {"queue": "automations"},
         "personal.email.execute": {"queue": "automations"},
         "personal.finance.execute": {"queue": "automations"},
+        "investigation.osint.run": {"queue": "automations"},
+        "investigation.finance.run": {"queue": "automations"},
+            "investigation.forensics.timeline.run": {"queue": "automations"},
+            "investigation.malware.dynamic.run": {"queue": "automations"},
+            "investigation.threat.apt_attribution.run": {"queue": "automations"},
+            "investigation.supplychain.sca.run": {"queue": "automations"},
+            "investigation.autopilot.run": {"queue": "automations"},
     },
     beat_schedule={
         # Nightly housekeeping at 03:00 UTC: cleanup artifacts older than 30 days
@@ -55,5 +63,14 @@ celery_app.conf.update(
             "task": "app.integrations.tasks.refresh_expiring_tokens",
             "schedule": 30 * 60,
         },
+            # Optional: Autopilot daily (disabled by default via ENV)
+            # Enable by setting AUTOPILOT_SCHEDULE_ENABLED=true
+            **(
+                {"investigations_autopilot_daily": {
+                    "task": "investigation.autopilot.run",
+                    "schedule": 24 * 60 * 60,
+                    "args": [{"subject": {"name": "Jane Doe"}}],
+                }} if os.getenv("AUTOPILOT_SCHEDULE_ENABLED", "false").lower() == "true" else {}
+            ),
     },
 )

@@ -254,7 +254,7 @@ def store_social_oauth(provider: str, payload: Dict[str, Any]) -> Dict[str, Any]
     db = SessionLocal()
     try:
         rec = SocialAuth(
-            user_id=1,  # placeholder single-user setup
+            user_id=int(payload.get("user_id") or 1),  # placeholder single-user setup
             provider=provider,
             access_token=str(payload.get("access_token") or ""),
             refresh_token=payload.get("refresh_token"),
@@ -273,13 +273,31 @@ def store_social_oauth(provider: str, payload: Dict[str, Any]) -> Dict[str, Any]
         db.close()
 
 
-@router.get("/social/oauth/status")
-def oauth_status() -> Dict[str, Any]:
+@router.delete("/social/oauth/{provider}")
+def disconnect_social_oauth(provider: str, user_id: int | None = None) -> Dict[str, Any]:
     from app.models import SocialAuth
     db = SessionLocal()
     try:
-        twitter = db.query(SocialAuth).filter(SocialAuth.provider == "twitter").count() > 0
-        linkedin = db.query(SocialAuth).filter(SocialAuth.provider == "linkedin").count() > 0
+        q = db.query(SocialAuth).filter(SocialAuth.provider == provider)
+        if user_id:
+            q = q.filter(SocialAuth.user_id == user_id)
+        deleted = q.delete()
+        db.commit()
+        return {"status": "ok", "deleted": deleted}
+    finally:
+        db.close()
+
+
+@router.get("/social/oauth/status")
+def oauth_status(user_id: int | None = None) -> Dict[str, Any]:
+    from app.models import SocialAuth
+    db = SessionLocal()
+    try:
+        q = db.query(SocialAuth)
+        if user_id:
+            q = q.filter(SocialAuth.user_id == user_id)
+        twitter = q.filter(SocialAuth.provider == "twitter").count() > 0
+        linkedin = q.filter(SocialAuth.provider == "linkedin").count() > 0
         return {"twitter": twitter, "linkedin": linkedin}
     finally:
         db.close()

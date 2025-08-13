@@ -14,7 +14,7 @@ class SocialIntegration:
     def __init__(self) -> None:
         self.cfg = get_personal_config()
 
-    async def post(self, text: str, platforms: List[str]) -> Dict[str, Any]:
+    async def post(self, text: str, platforms: List[str], *, user_id: int | None = None) -> Dict[str, Any]:
         results: Dict[str, Any] = {}
         for p in platforms:
             if p.lower() == "twitter":
@@ -25,14 +25,17 @@ class SocialIntegration:
                 results[p] = {"status": "unsupported"}
         return results
 
-    async def _post_twitter(self, text: str) -> Dict[str, Any]:
+    async def _post_twitter(self, text: str, *, user_id: int | None = None) -> Dict[str, Any]:
         # Prefer stored token if available
         token_db: str | None = None
         try:
             from app.models import SocialAuth
             db = SessionLocal()
             try:
-                rec = db.query(SocialAuth).filter(SocialAuth.provider == "twitter").order_by(SocialAuth.id.desc()).first()
+                q = db.query(SocialAuth).filter(SocialAuth.provider == "twitter")
+                if user_id:
+                    q = q.filter(SocialAuth.user_id == user_id)
+                rec = q.order_by(SocialAuth.id.desc()).first()
                 if rec and rec.access_token:
                     token_db = rec.access_token
             finally:
@@ -68,14 +71,17 @@ class SocialIntegration:
 
         return await asyncio.to_thread(_do)
 
-    async def _post_linkedin(self, text: str) -> Dict[str, Any]:
+    async def _post_linkedin(self, text: str, *, user_id: int | None = None) -> Dict[str, Any]:
         # Prefer stored token if available
         token_db: str | None = None
         try:
             from app.models import SocialAuth
             db = SessionLocal()
             try:
-                rec = db.query(SocialAuth).filter(SocialAuth.provider == "linkedin").order_by(SocialAuth.id.desc()).first()
+                q = db.query(SocialAuth).filter(SocialAuth.provider == "linkedin")
+                if user_id:
+                    q = q.filter(SocialAuth.user_id == user_id)
+                rec = q.order_by(SocialAuth.id.desc()).first()
                 if rec and rec.access_token:
                     token_db = rec.access_token
             finally:

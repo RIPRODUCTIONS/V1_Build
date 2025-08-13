@@ -122,6 +122,12 @@ RBAC_ROUTE_SCOPE_MAP: list[tuple[re.Pattern[str], dict[str, set[str]]]] = [
     (re.compile(r"^/personal/?.*$"), {
         "GET": {READ_RUNS},
         "POST": {WRITE_RUNS},
+        "DELETE": {WRITE_RUNS},
+    }),
+    # Investigations endpoints
+    (re.compile(r"^/investigations/?.*$"), {
+        "GET": {READ_RUNS},
+        "POST": {WRITE_RUNS},
     }),
 ]
 

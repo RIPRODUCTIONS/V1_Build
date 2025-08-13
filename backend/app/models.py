@@ -182,3 +182,16 @@ class SocialAuth(Base):
     refresh_token: Mapped[str | None] = mapped_column(Text, nullable=True)
     expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class InvestigationRun(Base):
+    __tablename__ = "investigation_runs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    task_id: Mapped[str | None] = mapped_column(String(128), index=True, nullable=True)
+    kind: Mapped[str] = mapped_column(String(64), index=True)  # osint|finance|surveillance
+    status: Mapped[str] = mapped_column(String(32), default="queued")
+    parameters_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    result_summary_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)

@@ -143,11 +143,35 @@ export default function PersonalDashboard() {
           <div className="font-medium mb-2">Connect Accounts</div>
           <div className="text-sm text-gray-700">Twitter: {oauthStatus.twitter ? 'connected' : 'not connected'}</div>
           {config?.oauth?.twitter && (
-            <a className="underline text-blue-600 text-sm" href="/api/personal/social/oauth/twitter/start">Connect Twitter</a>
+            <div className="flex items-center gap-3 mt-1">
+              <a className="underline text-blue-600 text-sm" href="/api/personal/social/oauth/twitter/start">Connect Twitter</a>
+              {oauthStatus.twitter && (
+                <button
+                  className="text-sm text-red-600 underline"
+                  onClick={async () => {
+                    await fetch(`/api/personal/social/oauth/twitter`, { method: 'DELETE' });
+                    const s = await fetch(`/api/personal/social/oauth/status`).then((x) => x.json());
+                    setOauthStatus(s);
+                  }}
+                >Disconnect</button>
+              )}
+            </div>
           )}
           <div className="text-sm text-gray-700 mt-2">LinkedIn: {oauthStatus.linkedin ? 'connected' : 'not connected'}</div>
           {config?.oauth?.linkedin && (
-            <a className="underline text-blue-600 text-sm" href="/api/personal/social/oauth/linkedin/start">Connect LinkedIn</a>
+            <div className="flex items-center gap-3 mt-1">
+              <a className="underline text-blue-600 text-sm" href="/api/personal/social/oauth/linkedin/start">Connect LinkedIn</a>
+              {oauthStatus.linkedin && (
+                <button
+                  className="text-sm text-red-600 underline"
+                  onClick={async () => {
+                    await fetch(`/api/personal/social/oauth/linkedin`, { method: 'DELETE' });
+                    const s = await fetch(`/api/personal/social/oauth/status`).then((x) => x.json());
+                    setOauthStatus(s);
+                  }}
+                >Disconnect</button>
+              )}
+            </div>
           )}
         </div>
         <div className="border rounded p-4 bg-white">
