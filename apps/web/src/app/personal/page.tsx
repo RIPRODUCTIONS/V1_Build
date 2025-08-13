@@ -30,6 +30,18 @@ export default function PersonalDashboard() {
       }).then((x) => x.json());
       // Best-effort: record immediate ack
       setLastResult((prev) => ({ ...prev, [templateId]: r }));
+      const taskId = r?.task_id;
+      if (taskId) {
+        // simple polling loop
+        for (let i = 0; i < 20; i++) {
+          await new Promise((res) => setTimeout(res, 1500));
+          const s = await fetch(`/api/personal/result/${taskId}`).then((x) => x.json());
+          if (s?.status === "completed" || s?.status === "error") {
+            setLastResult((prev) => ({ ...prev, [templateId]: s }));
+            break;
+          }
+        }
+      }
     } catch (e) {
       console.error(e);
     } finally {
