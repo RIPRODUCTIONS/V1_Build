@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  # AI Framework Backend (Test)
+  ai-framework-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.production
+    container_name: ai-framework-test
+    restart: unless-stopped
+    ports:
+      - "8001:8000"  # Different port to avoid conflicts
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=INFO
+      - PROMETHEUS_ENABLED=true
+    volumes:
+      - ./logs:/var/log/ai_framework
+      - ./cache:/var/cache/ai_framework
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Simple Redis for testing
+  redis-test:
+    image: redis:7-alpine
+    container_name: ai-framework-redis-test
+    restart: unless-stopped
+    ports:
+      - "6380:6379"  # Different port
+    volumes:
+      - redis_test_data:/data
+
+volumes:
+  redis_test_data:
+    driver: local

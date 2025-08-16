@@ -1,20 +1,18 @@
-from typing import Any, Dict
+from typing import Any
+from urllib.parse import urlparse
 
+from app.agent.celery_app import celery_app
+from app.core.config import get_settings
+from app.web_operator.mvp_web_executor import MVPWebExecutor
+from celery.result import AsyncResult
 from fastapi import APIRouter, Depends
 from fastapi.responses import HTMLResponse
-
-from app.core.config import get_settings
-from urllib.parse import urlparse
-from celery.result import AsyncResult
-from app.agent.celery_app import celery_app
-from app.operator.mvp_web_executor import MVPWebExecutor
-
 
 router = APIRouter(prefix="/operator/web", tags=["operator:web"])
 
 
 @router.post("/tasks")
-async def create_web_automation_task(task: Dict[str, Any], settings=Depends(get_settings)) -> Dict[str, Any]:
+async def create_web_automation_task(task: dict[str, Any], settings=Depends(get_settings)) -> dict[str, Any]:  # noqa: B008
     if not settings.OPERATOR_WEB_ENABLED:
         return {"status": "disabled", "message": "Web operator disabled"}
     try:
@@ -31,7 +29,7 @@ async def create_web_automation_task(task: Dict[str, Any], settings=Depends(get_
 
 
 @router.get("/tasks/{task_id}")
-async def get_web_task_status(task_id: str, settings=Depends(get_settings)) -> Dict[str, Any]:
+async def get_web_task_status(task_id: str, settings=Depends(get_settings)) -> dict[str, Any]:  # noqa: B008
     if not settings.OPERATOR_WEB_ENABLED:
         return {"status": "disabled", "task_id": task_id}
     try:
@@ -46,7 +44,7 @@ async def get_web_task_status(task_id: str, settings=Depends(get_settings)) -> D
 
 
 @router.post("/demo/contact_form")
-async def demo_contact_form(body: Dict[str, Any], settings=Depends(get_settings)) -> Dict[str, Any]:
+async def demo_contact_form(body: dict[str, Any], settings=Depends(get_settings)) -> dict[str, Any]:  # noqa: B008
     if not settings.OPERATOR_WEB_ENABLED:
         return {"status": "disabled"}
     url = body.get("url")

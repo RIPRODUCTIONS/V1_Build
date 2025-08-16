@@ -1,6 +1,8 @@
 import os
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 # Load .env for local/dev only. Never load .env in production.
 def _is_production() -> bool:

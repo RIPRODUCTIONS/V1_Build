@@ -9,11 +9,8 @@ import logging
 import os
 import tempfile
 import time
-from datetime import datetime, timezone
-from typing import Dict, Any, List, Optional, Tuple
-import hashlib
-import re
-import json
+from datetime import UTC, datetime
+from typing import Any
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -39,7 +36,7 @@ class ThreatDetectionError(NetworkAnalysisError):
     pass
 
 
-def capture_network_traffic(capture_params: Dict[str, Any]) -> Dict[str, Any]:
+def capture_network_traffic(capture_params: dict[str, Any]) -> dict[str, Any]:
     """
     Capture network traffic for analysis.
 
@@ -65,7 +62,7 @@ def capture_network_traffic(capture_params: Dict[str, Any]) -> Dict[str, Any]:
         output_dir = _create_capture_output_directory()
 
         # Generate capture filename
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
         capture_filename = f"network_capture_{timestamp}.pcap"
         capture_path = os.path.join(output_dir, capture_filename)
 
@@ -93,7 +90,7 @@ def capture_network_traffic(capture_params: Dict[str, Any]) -> Dict[str, Any]:
             "capture_result": capture_result,
             "traffic_analysis": traffic_analysis,
             "capture_summary": capture_summary,
-            "capture_timestamp": datetime.now(timezone.utc).isoformat()
+            "capture_timestamp": datetime.now(UTC).isoformat()
         }
 
         logger.info(f"Network traffic capture completed: {capture_path}")
@@ -101,10 +98,10 @@ def capture_network_traffic(capture_params: Dict[str, Any]) -> Dict[str, Any]:
 
     except Exception as e:
         logger.error(f"Network traffic capture failed: {e}")
-        raise CaptureError(f"Network capture failed: {e}")
+        raise CaptureError(f"Network capture failed: {e}") from e
 
 
-def analyze_network_protocols(pcap_file: str) -> Dict[str, Any]:
+def analyze_network_protocols(pcap_file: str) -> dict[str, Any]:
     """
     Analyze network protocols from captured traffic.
 
@@ -152,7 +149,7 @@ def analyze_network_protocols(pcap_file: str) -> Dict[str, Any]:
             "dns_analysis": dns_analysis,
             "other_protocols": other_protocols,
             "protocol_summary": protocol_summary,
-            "analysis_timestamp": datetime.now(timezone.utc).isoformat()
+            "analysis_timestamp": datetime.now(UTC).isoformat()
         }
 
         logger.info("Protocol analysis completed successfully")
@@ -160,10 +157,10 @@ def analyze_network_protocols(pcap_file: str) -> Dict[str, Any]:
 
     except Exception as e:
         logger.error(f"Protocol analysis failed: {e}")
-        raise ProtocolAnalysisError(f"Protocol analysis failed: {e}")
+        raise ProtocolAnalysisError(f"Protocol analysis failed: {e}") from e
 
 
-def detect_network_threats(pcap_file: str, threat_indicators: List[str]) -> Dict[str, Any]:
+def detect_network_threats(pcap_file: str, threat_indicators: list[str]) -> dict[str, Any]:
     """
     Detect network threats from captured traffic.
 
@@ -213,7 +210,7 @@ def detect_network_threats(pcap_file: str, threat_indicators: List[str]) -> Dict
             "c2_detection": c2_detection,
             "suspicious_patterns": suspicious_patterns,
             "threat_summary": threat_summary,
-            "detection_timestamp": datetime.now(timezone.utc).isoformat()
+            "detection_timestamp": datetime.now(UTC).isoformat()
         }
 
         logger.info("Threat detection completed successfully")
@@ -221,10 +218,10 @@ def detect_network_threats(pcap_file: str, threat_indicators: List[str]) -> Dict
 
     except Exception as e:
         logger.error(f"Threat detection failed: {e}")
-        raise ThreatDetectionError(f"Threat detection failed: {e}")
+        raise ThreatDetectionError(f"Threat detection failed: {e}") from e
 
 
-def extract_network_artifacts(pcap_file: str) -> Dict[str, Any]:
+def extract_network_artifacts(pcap_file: str) -> dict[str, Any]:
     """
     Extract network artifacts from captured traffic.
 
@@ -276,7 +273,7 @@ def extract_network_artifacts(pcap_file: str) -> Dict[str, Any]:
             "user_agents": user_agents,
             "certificates": certificates,
             "artifact_summary": artifact_summary,
-            "extraction_timestamp": datetime.now(timezone.utc).isoformat()
+            "extraction_timestamp": datetime.now(UTC).isoformat()
         }
 
         logger.info("Network artifact extraction completed successfully")
@@ -284,10 +281,10 @@ def extract_network_artifacts(pcap_file: str) -> Dict[str, Any]:
 
     except Exception as e:
         logger.error(f"Network artifact extraction failed: {e}")
-        raise NetworkAnalysisError(f"Artifact extraction failed: {e}")
+        raise NetworkAnalysisError(f"Artifact extraction failed: {e}") from e
 
 
-def analyze_network_behavior(pcap_file: str) -> Dict[str, Any]:
+def analyze_network_behavior(pcap_file: str) -> dict[str, Any]:
     """
     Analyze network behavior patterns from captured traffic.
 
@@ -336,7 +333,7 @@ def analyze_network_behavior(pcap_file: str) -> Dict[str, Any]:
             "geographic_patterns": geographic_patterns,
             "application_behavior": application_behavior,
             "behavior_summary": behavior_summary,
-            "analysis_timestamp": datetime.now(timezone.utc).isoformat()
+            "analysis_timestamp": datetime.now(UTC).isoformat()
         }
 
         logger.info("Network behavior analysis completed successfully")
@@ -344,7 +341,7 @@ def analyze_network_behavior(pcap_file: str) -> Dict[str, Any]:
 
     except Exception as e:
         logger.error(f"Network behavior analysis failed: {e}")
-        raise NetworkAnalysisError(f"Behavior analysis failed: {e}")
+        raise NetworkAnalysisError(f"Behavior analysis failed: {e}") from e
 
 
 # Helper functions for network capture
@@ -360,7 +357,7 @@ def _create_capture_output_directory() -> str:
 
 
 def _perform_packet_capture(interface: str, duration: int, filter_string: str,
-                           max_packets: int, capture_path: str) -> Dict[str, Any]:
+                           max_packets: int, capture_path: str) -> dict[str, Any]:
     """Perform actual packet capture."""
     try:
         # This is a simplified implementation
@@ -400,7 +397,7 @@ def _perform_packet_capture(interface: str, duration: int, filter_string: str,
         }
 
 
-def _analyze_captured_traffic(capture_path: str) -> Dict[str, Any]:
+def _analyze_captured_traffic(capture_path: str) -> dict[str, Any]:
     """Analyze captured network traffic."""
     try:
         # This is a simplified implementation
@@ -427,8 +424,8 @@ def _analyze_captured_traffic(capture_path: str) -> Dict[str, Any]:
         return {}
 
 
-def _generate_capture_summary(capture_params: Dict[str, Any], capture_result: Dict[str, Any],
-                            traffic_analysis: Dict[str, Any], capture_duration: float) -> Dict[str, Any]:
+def _generate_capture_summary(capture_params: dict[str, Any], capture_result: dict[str, Any],
+                            traffic_analysis: dict[str, Any], capture_duration: float) -> dict[str, Any]:
     """Generate network capture summary."""
     try:
         summary = {
@@ -460,7 +457,7 @@ def _validate_pcap_file(pcap_file: str) -> bool:
         return False
 
 
-def _analyze_tcp_traffic(pcap_file: str) -> Dict[str, Any]:
+def _analyze_tcp_traffic(pcap_file: str) -> dict[str, Any]:
     """Analyze TCP traffic from PCAP file."""
     try:
         # This is a simplified implementation
@@ -497,7 +494,7 @@ def _analyze_tcp_traffic(pcap_file: str) -> Dict[str, Any]:
         return {}
 
 
-def _analyze_udp_traffic(pcap_file: str) -> Dict[str, Any]:
+def _analyze_udp_traffic(pcap_file: str) -> dict[str, Any]:
     """Analyze UDP traffic from PCAP file."""
     try:
         # This is a simplified implementation
@@ -526,7 +523,7 @@ def _analyze_udp_traffic(pcap_file: str) -> Dict[str, Any]:
         return {}
 
 
-def _analyze_http_traffic(pcap_file: str) -> Dict[str, Any]:
+def _analyze_http_traffic(pcap_file: str) -> dict[str, Any]:
     """Analyze HTTP/HTTPS traffic from PCAP file."""
     try:
         # This is a simplified implementation
@@ -560,7 +557,7 @@ def _analyze_http_traffic(pcap_file: str) -> Dict[str, Any]:
         return {}
 
 
-def _analyze_dns_traffic(pcap_file: str) -> Dict[str, Any]:
+def _analyze_dns_traffic(pcap_file: str) -> dict[str, Any]:
     """Analyze DNS traffic from PCAP file."""
     try:
         # This is a simplified implementation
@@ -592,7 +589,7 @@ def _analyze_dns_traffic(pcap_file: str) -> Dict[str, Any]:
         return {}
 
 
-def _analyze_other_protocols(pcap_file: str) -> Dict[str, Any]:
+def _analyze_other_protocols(pcap_file: str) -> dict[str, Any]:
     """Analyze other network protocols from PCAP file."""
     try:
         # This is a simplified implementation
@@ -628,9 +625,9 @@ def _analyze_other_protocols(pcap_file: str) -> Dict[str, Any]:
         return {}
 
 
-def _generate_protocol_summary(tcp_analysis: Dict[str, Any], udp_analysis: Dict[str, Any],
-                              http_analysis: Dict[str, Any], dns_analysis: Dict[str, Any],
-                              other_protocols: Dict[str, Any]) -> Dict[str, Any]:
+def _generate_protocol_summary(tcp_analysis: dict[str, Any], udp_analysis: dict[str, Any],
+                              http_analysis: dict[str, Any], dns_analysis: dict[str, Any],
+                              other_protocols: dict[str, Any]) -> dict[str, Any]:
     """Generate protocol analysis summary."""
     try:
         summary = {
@@ -680,7 +677,7 @@ def _generate_protocol_summary(tcp_analysis: Dict[str, Any], udp_analysis: Dict[
 
 
 # Helper functions for threat detection
-def _detect_ddos_attacks(pcap_file: str) -> Dict[str, Any]:
+def _detect_ddos_attacks(pcap_file: str) -> dict[str, Any]:
     """Detect DDoS attacks from network traffic."""
     try:
         # This is a simplified implementation
@@ -704,7 +701,7 @@ def _detect_ddos_attacks(pcap_file: str) -> Dict[str, Any]:
         return {}
 
 
-def _detect_port_scanning(pcap_file: str) -> Dict[str, Any]:
+def _detect_port_scanning(pcap_file: str) -> dict[str, Any]:
     """Detect port scanning activities from network traffic."""
     try:
         # This is a simplified implementation
@@ -729,7 +726,7 @@ def _detect_port_scanning(pcap_file: str) -> Dict[str, Any]:
         return {}
 
 
-def _detect_data_exfiltration(pcap_file: str) -> Dict[str, Any]:
+def _detect_data_exfiltration(pcap_file: str) -> dict[str, Any]:
     """Detect data exfiltration attempts from network traffic."""
     try:
         # This is a simplified implementation
@@ -754,7 +751,7 @@ def _detect_data_exfiltration(pcap_file: str) -> Dict[str, Any]:
         return {}
 
 
-def _detect_command_and_control(pcap_file: str) -> Dict[str, Any]:
+def _detect_command_and_control(pcap_file: str) -> dict[str, Any]:
     """Detect command and control communication from network traffic."""
     try:
         # This is a simplified implementation
@@ -779,7 +776,7 @@ def _detect_command_and_control(pcap_file: str) -> Dict[str, Any]:
         return {}
 
 
-def _detect_suspicious_patterns(pcap_file: str, threat_indicators: List[str]) -> List[Dict[str, Any]]:
+def _detect_suspicious_patterns(pcap_file: str, threat_indicators: list[str]) -> list[dict[str, Any]]:
     """Detect suspicious patterns based on threat indicators."""
     try:
         suspicious_patterns = []
@@ -804,9 +801,9 @@ def _detect_suspicious_patterns(pcap_file: str, threat_indicators: List[str]) ->
         return []
 
 
-def _generate_threat_summary(ddos_detection: Dict[str, Any], port_scan_detection: Dict[str, Any],
-                            data_exfiltration_detection: Dict[str, Any], c2_detection: Dict[str, Any],
-                            suspicious_patterns: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _generate_threat_summary(ddos_detection: dict[str, Any], port_scan_detection: dict[str, Any],
+                            data_exfiltration_detection: dict[str, Any], c2_detection: dict[str, Any],
+                            suspicious_patterns: list[dict[str, Any]]) -> dict[str, Any]:
     """Generate threat detection summary."""
     try:
         summary = {
@@ -864,7 +861,7 @@ def _generate_threat_summary(ddos_detection: Dict[str, Any], port_scan_detection
 
 
 # Helper functions for artifact extraction
-def _extract_ip_addresses(pcap_file: str) -> List[Dict[str, Any]]:
+def _extract_ip_addresses(pcap_file: str) -> list[dict[str, Any]]:
     """Extract IP addresses from network traffic."""
     try:
         # This is a simplified implementation
@@ -894,7 +891,7 @@ def _extract_ip_addresses(pcap_file: str) -> List[Dict[str, Any]]:
         return []
 
 
-def _extract_domain_names(pcap_file: str) -> List[Dict[str, Any]]:
+def _extract_domain_names(pcap_file: str) -> list[dict[str, Any]]:
     """Extract domain names from network traffic."""
     try:
         # This is a simplified implementation
@@ -922,7 +919,7 @@ def _extract_domain_names(pcap_file: str) -> List[Dict[str, Any]]:
         return []
 
 
-def _extract_urls(pcap_file: str) -> List[Dict[str, Any]]:
+def _extract_urls(pcap_file: str) -> list[dict[str, Any]]:
     """Extract URLs from network traffic."""
     try:
         # This is a simplified implementation
@@ -950,7 +947,7 @@ def _extract_urls(pcap_file: str) -> List[Dict[str, Any]]:
         return []
 
 
-def _extract_file_transfers(pcap_file: str) -> List[Dict[str, Any]]:
+def _extract_file_transfers(pcap_file: str) -> list[dict[str, Any]]:
     """Extract file transfer information from network traffic."""
     try:
         # This is a simplified implementation
@@ -973,7 +970,7 @@ def _extract_file_transfers(pcap_file: str) -> List[Dict[str, Any]]:
         return []
 
 
-def _extract_user_agents(pcap_file: str) -> List[Dict[str, Any]]:
+def _extract_user_agents(pcap_file: str) -> list[dict[str, Any]]:
     """Extract user agent strings from network traffic."""
     try:
         # This is a simplified implementation
@@ -999,7 +996,7 @@ def _extract_user_agents(pcap_file: str) -> List[Dict[str, Any]]:
         return []
 
 
-def _extract_certificates(pcap_file: str) -> List[Dict[str, Any]]:
+def _extract_certificates(pcap_file: str) -> list[dict[str, Any]]:
     """Extract SSL/TLS certificates from network traffic."""
     try:
         # This is a simplified implementation
@@ -1021,9 +1018,9 @@ def _extract_certificates(pcap_file: str) -> List[Dict[str, Any]]:
         return []
 
 
-def _generate_artifact_summary(ip_addresses: List[Dict[str, Any]], domain_names: List[Dict[str, Any]],
-                              urls: List[Dict[str, Any]], file_transfers: List[Dict[str, Any]],
-                              user_agents: List[Dict[str, Any]], certificates: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _generate_artifact_summary(ip_addresses: list[dict[str, Any]], domain_names: list[dict[str, Any]],
+                              urls: list[dict[str, Any]], file_transfers: list[dict[str, Any]],
+                              user_agents: list[dict[str, Any]], certificates: list[dict[str, Any]]) -> dict[str, Any]:
     """Generate network artifact summary."""
     try:
         summary = {
@@ -1061,7 +1058,7 @@ def _generate_artifact_summary(ip_addresses: List[Dict[str, Any]], domain_names:
 
 
 # Helper functions for behavior analysis
-def _analyze_connection_patterns(pcap_file: str) -> Dict[str, Any]:
+def _analyze_connection_patterns(pcap_file: str) -> dict[str, Any]:
     """Analyze network connection patterns."""
     try:
         # This is a simplified implementation
@@ -1092,7 +1089,7 @@ def _analyze_connection_patterns(pcap_file: str) -> Dict[str, Any]:
         return {}
 
 
-def _analyze_traffic_volume_patterns(pcap_file: str) -> Dict[str, Any]:
+def _analyze_traffic_volume_patterns(pcap_file: str) -> dict[str, Any]:
     """Analyze traffic volume patterns."""
     try:
         # This is a simplified implementation
@@ -1123,7 +1120,7 @@ def _analyze_traffic_volume_patterns(pcap_file: str) -> Dict[str, Any]:
         return {}
 
 
-def _analyze_timing_patterns(pcap_file: str) -> Dict[str, Any]:
+def _analyze_timing_patterns(pcap_file: str) -> dict[str, Any]:
     """Analyze network timing patterns."""
     try:
         # This is a simplified implementation
@@ -1154,7 +1151,7 @@ def _analyze_timing_patterns(pcap_file: str) -> Dict[str, Any]:
         return {}
 
 
-def _analyze_geographic_patterns(pcap_file: str) -> Dict[str, Any]:
+def _analyze_geographic_patterns(pcap_file: str) -> dict[str, Any]:
     """Analyze geographic patterns in network traffic."""
     try:
         # This is a simplified implementation
@@ -1187,7 +1184,7 @@ def _analyze_geographic_patterns(pcap_file: str) -> Dict[str, Any]:
         return {}
 
 
-def _analyze_application_behavior(pcap_file: str) -> Dict[str, Any]:
+def _analyze_application_behavior(pcap_file: str) -> dict[str, Any]:
     """Analyze application behavior patterns."""
     try:
         # This is a simplified implementation
@@ -1218,9 +1215,9 @@ def _analyze_application_behavior(pcap_file: str) -> Dict[str, Any]:
         return {}
 
 
-def _generate_behavior_summary(connection_patterns: Dict[str, Any], volume_patterns: Dict[str, Any],
-                              timing_patterns: Dict[str, Any], geographic_patterns: Dict[str, Any],
-                              application_behavior: Dict[str, Any]) -> Dict[str, Any]:
+def _generate_behavior_summary(connection_patterns: dict[str, Any], volume_patterns: dict[str, Any],
+                              timing_patterns: dict[str, Any], geographic_patterns: dict[str, Any],
+                              application_behavior: dict[str, Any]) -> dict[str, Any]:
     """Generate network behavior summary."""
     try:
         summary = {

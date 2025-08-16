@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import os
 import urllib.request
 from collections.abc import Collection, Iterable
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.core.config import get_settings
 
@@ -226,9 +227,7 @@ except Exception:  # pragma: no cover
 def _record_heal_metric(component: str, strategy: str, success: bool) -> None:
     if SELF_HEAL_ATTEMPTS is None:
         return
-    try:
+    with contextlib.suppress(Exception):
         SELF_HEAL_ATTEMPTS.labels(component=component, strategy=strategy, success=str(success)).inc()
-    except Exception:
-        pass
 
 

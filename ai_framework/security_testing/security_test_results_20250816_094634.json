@@ -1,0 +1,208 @@
+{
+  "summary": {
+    "total_tests": 16,
+    "passed": 11,
+    "failed": 3,
+    "warnings": 2,
+    "critical_issues": 0,
+    "high_issues": 3,
+    "medium_issues": 0,
+    "low_issues": 0,
+    "overall_score": 68.75
+  },
+  "test_results": [
+    {
+      "test_name": "Authentication Required",
+      "category": "Authentication",
+      "severity": "LOW",
+      "status": "PASS",
+      "description": "Endpoint /metrics properly requires authentication",
+      "details": {
+        "endpoint": "/metrics",
+        "status_code": 401
+      },
+      "timestamp": "2025-08-16T09:46:34.309138"
+    },
+    {
+      "test_name": "Authentication Bypass",
+      "category": "Authentication",
+      "severity": "HIGH",
+      "status": "FAIL",
+      "description": "Endpoint /api/system/status accessible without authentication",
+      "details": {
+        "endpoint": "/api/system/status",
+        "status_code": 200
+      },
+      "timestamp": "2025-08-16T09:46:34.322747"
+    },
+    {
+      "test_name": "Authentication Bypass",
+      "category": "Authentication",
+      "severity": "HIGH",
+      "status": "FAIL",
+      "description": "Endpoint /api/dashboard/overview accessible without authentication",
+      "details": {
+        "endpoint": "/api/dashboard/overview",
+        "status_code": 200
+      },
+      "timestamp": "2025-08-16T09:46:34.332739"
+    },
+    {
+      "test_name": "Authorization Bypass",
+      "category": "Authorization",
+      "severity": "HIGH",
+      "status": "FAIL",
+      "description": "Endpoint /api/system/status accessible without proper authorization",
+      "details": {
+        "endpoint": "/api/system/status",
+        "status_code": 200
+      },
+      "timestamp": "2025-08-16T09:46:34.338138"
+    },
+    {
+      "test_name": "SQL Injection Prevention",
+      "category": "Input Validation",
+      "severity": "LOW",
+      "status": "PASS",
+      "description": "SQL injection payload properly rejected: ' OR 1=1 --...",
+      "details": {
+        "payload": "' OR 1=1 --",
+        "status_code": 400
+      },
+      "timestamp": "2025-08-16T09:46:34.348288"
+    },
+    {
+      "test_name": "SQL Injection Prevention",
+      "category": "Input Validation",
+      "severity": "LOW",
+      "status": "PASS",
+      "description": "SQL injection payload properly rejected: '; DROP TABLE users;...",
+      "details": {
+        "payload": "'; DROP TABLE users; --",
+        "status_code": 400
+      },
+      "timestamp": "2025-08-16T09:46:34.355314"
+    },
+    {
+      "test_name": "SQL Injection Prevention",
+      "category": "Input Validation",
+      "severity": "LOW",
+      "status": "PASS",
+      "description": "SQL injection payload properly rejected: ' UNION SELECT * FRO...",
+      "details": {
+        "payload": "' UNION SELECT * FROM users --",
+        "status_code": 400
+      },
+      "timestamp": "2025-08-16T09:46:34.366254"
+    },
+    {
+      "test_name": "Rate Limiting Missing",
+      "category": "Rate Limiting",
+      "severity": "MEDIUM",
+      "status": "WARNING",
+      "description": "No rate limiting detected for 100 rapid requests",
+      "details": {
+        "total_requests": 100,
+        "rate_limited": 0,
+        "successful": 100
+      },
+      "timestamp": "2025-08-16T09:46:34.546226"
+    },
+    {
+      "test_name": "HTTPS Not Enabled",
+      "category": "SSL/TLS",
+      "severity": "MEDIUM",
+      "status": "WARNING",
+      "description": "HTTPS not enabled for http://localhost:18000",
+      "details": {
+        "scheme": "http",
+        "hostname": "localhost",
+        "port": 18000
+      },
+      "timestamp": "2025-08-16T09:46:34.546422"
+    },
+    {
+      "test_name": "X-Content-Type-Options Header Present",
+      "category": "Security Headers",
+      "severity": "LOW",
+      "status": "PASS",
+      "description": "Security header X-Content-Type-Options is properly configured",
+      "details": {
+        "header": "X-Content-Type-Options",
+        "value": "nosniff"
+      },
+      "timestamp": "2025-08-16T09:46:34.558899"
+    },
+    {
+      "test_name": "X-Frame-Options Header Present",
+      "category": "Security Headers",
+      "severity": "LOW",
+      "status": "PASS",
+      "description": "Security header X-Frame-Options is properly configured",
+      "details": {
+        "header": "X-Frame-Options",
+        "value": "DENY"
+      },
+      "timestamp": "2025-08-16T09:46:34.559003"
+    },
+    {
+      "test_name": "X-XSS-Protection Header Present",
+      "category": "Security Headers",
+      "severity": "LOW",
+      "status": "PASS",
+      "description": "Security header X-XSS-Protection is properly configured",
+      "details": {
+        "header": "X-XSS-Protection",
+        "value": "1; mode=block"
+      },
+      "timestamp": "2025-08-16T09:46:34.559029"
+    },
+    {
+      "test_name": "Strict-Transport-Security Header Present",
+      "category": "Security Headers",
+      "severity": "LOW",
+      "status": "PASS",
+      "description": "Security header Strict-Transport-Security is properly configured",
+      "details": {
+        "header": "Strict-Transport-Security",
+        "value": "max-age=31536000; includeSubDomains"
+      },
+      "timestamp": "2025-08-16T09:46:34.559045"
+    },
+    {
+      "test_name": "Content-Security-Policy Header Present",
+      "category": "Security Headers",
+      "severity": "LOW",
+      "status": "PASS",
+      "description": "Security header Content-Security-Policy is properly configured",
+      "details": {
+        "header": "Content-Security-Policy",
+        "value": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+      },
+      "timestamp": "2025-08-16T09:46:34.559060"
+    },
+    {
+      "test_name": "Referrer-Policy Header Present",
+      "category": "Security Headers",
+      "severity": "LOW",
+      "status": "PASS",
+      "description": "Security header Referrer-Policy is properly configured",
+      "details": {
+        "header": "Referrer-Policy",
+        "value": "strict-origin-when-cross-origin"
+      },
+      "timestamp": "2025-08-16T09:46:34.559073"
+    },
+    {
+      "test_name": "CORS Properly Configured",
+      "category": "CORS Policy",
+      "severity": "LOW",
+      "status": "PASS",
+      "description": "CORS origin properly restricted to: https://malicious-site.com",
+      "details": {
+        "allowed_origin": "https://malicious-site.com"
+      },
+      "timestamp": "2025-08-16T09:46:34.561399"
+    }
+  ]
+}

@@ -3,7 +3,6 @@ from __future__ import annotations
 import os
 
 from celery import Celery
-from celery.schedules import crontab
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
 

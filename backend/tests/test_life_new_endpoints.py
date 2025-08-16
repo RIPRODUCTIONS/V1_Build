@@ -1,11 +1,17 @@
 from app.main import app
+from app.security.jwt_hs256 import HS256JWT
 from starlette.testclient import TestClient
 
 client = TestClient(app)
 
+# Create a test JWT token
+def _get_test_jwt():
+    jwt_handler = HS256JWT(secret="change-me")
+    return jwt_handler.mint(subject="test-user-123", ttl_override_seconds=3600)
 
 def _post(path: str):
-    r = client.post(path, json={})
+    headers = {"Authorization": f"Bearer {_get_test_jwt()}"}
+    r = client.post(path, json={}, headers=headers)
     assert r.status_code in (200, 202)
     data = r.json()
     assert "run_id" in data

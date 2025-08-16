@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 
 class DependencyAuditor:
-    async def audit_package_dependencies(self) -> Dict[str, Any]:
+    async def audit_package_dependencies(self) -> dict[str, Any]:
         return {"packages": {}, "status": "skipped"}
 
-    async def audit_runtime_dependencies(self) -> Dict[str, Any]:
+    async def audit_runtime_dependencies(self) -> dict[str, Any]:
         return {"runtime": {}, "status": "skipped"}
 
 

@@ -1,10 +1,16 @@
 from __future__ import annotations
 
-import asyncio
-from typing import Any, Dict
+import json
+import uuid
+from typing import Any
 
+import boto3
 from app.core.config import get_settings
 from app.core.event_bus import SystemEventBus
+from app.db import SessionLocal
+from app.models import AgentRun, Artifact, OperatorEvent, OperatorRun
+from botocore.client import Config as BotoConfig
+from sqlalchemy.orm import Session
 
 
 async def start_event_consumer() -> None:
@@ -13,9 +19,8 @@ async def start_event_consumer() -> None:
         return
     bus = SystemEventBus()
 
-    async def _on_operator_event(evt: Dict[str, Any]) -> None:
-        from app.db import SessionLocal
-        from app.models import OperatorEvent, OperatorRun
+    async def _on_operator_event(evt: dict[str, Any]) -> None:
+
 
         db = SessionLocal()
         try:
@@ -52,15 +57,6 @@ async def start_event_consumer() -> None:
     await bus.subscribe("operator.task.started", _on_operator_event)
     await bus.subscribe("operator.task.completed", _on_operator_event)
     await bus.consume(settings.EVENT_BUS_CONSUMER_GROUP, settings.EVENT_BUS_CONSUMER_NAME)
-
-import json
-import uuid
-
-import boto3
-from app.core.config import get_settings
-from app.models import AgentRun, Artifact
-from botocore.client import Config as BotoConfig
-from sqlalchemy.orm import Session
 
 
 def run_agent_pipeline(

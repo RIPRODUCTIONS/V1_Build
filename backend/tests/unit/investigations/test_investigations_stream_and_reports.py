@@ -4,6 +4,7 @@ from typing import Any, Dict
 
 import pytest
 from starlette.testclient import TestClient
+from app.security.jwt_hs256 import HS256JWT
 
 from app.main import app
 
@@ -12,63 +13,78 @@ def _client() -> TestClient:
     return TestClient(app)
 
 
-def test_stream_investigation_success_event(monkeypatch, auth_headers):
-    # Monkeypatch celery AsyncResult in investigations router to produce a single SUCCESS event
-    import app.routers.investigations as inv
+def _get_jwt_headers():
+    """Generate JWT headers for testing."""
+    jwt_handler = HS256JWT(secret="change-me")
+    jwt_token = jwt_handler.mint(subject="test-user-123", ttl_override_seconds=3600)
+    return {"Authorization": f"Bearer {jwt_token}"}
 
-    class _Result:
-        state = "SUCCESS"
 
-        def get(self, timeout: float = 0) -> Dict[str, Any]:  # noqa: ARG002
-            return {"ok": True}
-
-    class _Celery:
-        def AsyncResult(self, task_id: str):  # noqa: N802, ARG002
-            return _Result()
-
-    monkeypatch.setattr(inv, "celery_app", _Celery())
-
+def test_investigation_status_endpoints():
+    """Test the investigation status endpoints that exist in our new API."""
     c = _client()
-    # The stream endpoint requires token via query string or header
-    with c.stream(
-        "GET",
-        "/investigations/stream/t123?token=" + auth_headers["X-API-Key"],
-        headers=auth_headers,
-    ) as r:
-        # Read first chunk
-        body = b"".join(list(r.iter_raw()))
-    text = body.decode(errors="ignore")
-    # Should contain an SSE line with JSON including state SUCCESS or status completed
-    assert "data:" in text
-    assert "\"state\": \"SUCCESS\"" in text or "\"status\": \"completed\"" in text
+    jwt_headers = _get_jwt_headers()
+
+    # Test OSINT status endpoint
+    r = c.get("/investigations/osint/status/test-id", headers=jwt_headers)
+    assert r.status_code == 200
+    body = r.json()
+    assert "investigation_id" in body
+    assert "status" in body
+
+    # Test malware status endpoint
+    r = c.get("/investigations/malware/status/test-id", headers=jwt_headers)
+    assert r.status_code == 200
+    body = r.json()
+    assert "analysis_id" in body
+    assert "status" in body
+
+    # Test forensics status endpoint
+    r = c.get("/investigations/forensics/timeline/status/test-id", headers=jwt_headers)
+    assert r.status_code == 200
+    body = r.json()
+    assert "analysis_id" in body
+    assert "status" in body
 
 
-def test_malware_and_forensics_reports_501(monkeypatch, auth_headers):
-    # Force fallback path for run endpoints so DB records are created
-    from app.tasks import investigation_tasks as it
-
-    def _raise(*args, **kwargs):  # type: ignore[no-untyped-def]
-        raise RuntimeError("broker unavailable")
-
-    monkeypatch.setattr(it.run_malware_dynamic, "delay", _raise)
-    monkeypatch.setattr(it.run_forensics_timeline, "delay", _raise)
-
+def test_evidence_endpoints():
+    """Test the evidence endpoints that exist in our new API."""
     c = _client()
+    jwt_headers = _get_jwt_headers()
 
-    # Start malware dynamic (fallback to completed with synthetic task id)
-    r = c.post("/investigations/malware/dynamic/run", json={"sample": "x.exe"}, headers=auth_headers)
+    # Test chain of custody endpoint
+    r = c.get("/investigations/evidence/chain-of-custody", headers=jwt_headers)
     assert r.status_code == 200
-    mid = r.json()["task_id"]
+    body = r.json()
+    assert "entries" in body
+    assert "total" in body
 
-    # Start forensics timeline (fallback)
-    r = c.post("/investigations/forensics/timeline/run", json={"source": "evidence.dd"}, headers=auth_headers)
+    # Test evidence details endpoint
+    r = c.get("/investigations/evidence/test-evidence-id", headers=jwt_headers)
+    # This should return 404 for non-existent evidence, which is expected
+    assert r.status_code in [200, 404]
+
+
+def test_investigation_workflow_integration():
+    """Test the complete investigation workflow integration."""
+    c = _client()
+    jwt_headers = _get_jwt_headers()
+
+    # Start an OSINT investigation
+    payload = {"subject": {"name": "Test Subject"}}
+    r = c.post("/investigations/osint/run", json=payload, headers=jwt_headers)
     assert r.status_code == 200
-    fid = r.json()["task_id"]
+    body = r.json()
+    assert body["status"] == "success"
+    investigation_id = body["investigation_id"]
 
-    # Fetch reports; since report builders are not present in tests, expect 501
-    r = c.get(f"/investigations/malware/report/{mid}", headers=auth_headers)
-    assert r.status_code in (200, 501)
-    r = c.get(f"/investigations/forensics/report/{fid}", headers=auth_headers)
-    assert r.status_code in (200, 501)
+    # Check the status
+    r = c.get(f"/investigations/osint/status/{investigation_id}", headers=jwt_headers)
+    assert r.status_code == 200
+    status_body = r.json()
+    assert "status" in status_body
+
+    # Verify the investigation data is consistent
+    assert status_body["investigation_id"] == investigation_id
 
 

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Callable, Dict, Optional
+from collections.abc import Callable
+from typing import Any
 
 import httpx
 
@@ -10,13 +11,13 @@ async def google_request(
     method: str,
     url: str,
     *,
-    headers: Optional[Dict[str, str]] = None,
-    params: Optional[Dict[str, Any]] = None,
-    json: Optional[Dict[str, Any]] = None,
+    headers: dict[str, str] | None = None,
+    params: dict[str, Any] | None = None,
+    json: dict[str, Any] | None = None,
     data: Any = None,
     timeout: float = 20.0,
     retries: int = 2,
-    refresh: Optional[Callable[[], "asyncio.Future"]] = None,
+    refresh: Callable[[], asyncio.Future] | None = None,
 ) -> httpx.Response:
     """Make a resilient Google API request with basic backoff and optional token refresh.
 

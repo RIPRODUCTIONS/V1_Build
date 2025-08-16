@@ -26,8 +26,8 @@ def test_reliability_middlewares_rate_limit_and_ok():
     c = TestClient(_app_with_middlewares())
     assert c.get("/ok").status_code == 200
     assert c.get("/ok").status_code == 200
-    # Third request: limiter is disabled by default; allow 200
+    # Third request: should be rate limited since we set requests_per_minute=2
     r = c.get("/ok")
-    assert r.status_code == 200
+    assert r.status_code == 429  # Too Many Requests
 
 

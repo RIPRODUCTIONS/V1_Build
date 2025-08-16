@@ -1,23 +1,21 @@
 from __future__ import annotations
 
-from typing import Annotated, List, AsyncGenerator
-
-from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import StreamingResponse
 import asyncio
-import json
-from sqlalchemy.orm import Session
+from collections.abc import AsyncGenerator
+from typing import Annotated
 
 from app.db import get_db
 from app.models import OperatorEvent, OperatorRun
-
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/operator/runs", tags=["operator:runs"])
 
 
 @router.get("/")
 def list_runs(db: Annotated[Session, Depends(get_db)], limit: int = Query(50, ge=1, le=200)) -> list[dict]:
-    rows: List[OperatorRun] = (
+    rows: list[OperatorRun] = (
         db.query(OperatorRun).order_by(OperatorRun.created_at.desc()).limit(limit).all()
     )
     return [

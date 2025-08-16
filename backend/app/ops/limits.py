@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import time
 from collections import defaultdict, deque
-from typing import Callable, Deque, Dict, Iterable
+from collections.abc import Callable, Iterable
 
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -30,7 +30,8 @@ class BodySizeLimitMiddleware(BaseHTTPMiddleware):
         except Exception:
             # If header is malformed, reject as bad request
             return JSONResponse({"detail": "invalid content-length"}, status_code=400)
-        return await call_next(request)
+        response = await call_next(request)
+        return response
 
 
 class RequestTimeoutMiddleware(BaseHTTPMiddleware):
@@ -42,8 +43,9 @@ class RequestTimeoutMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         try:
-            return await asyncio.wait_for(call_next(request), timeout=self.timeout_seconds)
-        except asyncio.TimeoutError:
+            response = await asyncio.wait_for(call_next(request), timeout=self.timeout_seconds)
+            return response
+        except TimeoutError:
             return JSONResponse({"detail": "request timeout"}, status_code=504)
 
 
@@ -64,7 +66,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self.max_requests = max_requests
         self.window_seconds = window_seconds
         self.path_prefixes = tuple(path_prefixes or ("/personal", "/assistant", "/investigations"))
-        self._ip_to_hits: Dict[str, Deque[float]] = defaultdict(deque)
+        self._ip_to_hits: dict[str, deque[float]] = defaultdict(deque)
+
+
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         path = str(request.url.path)
@@ -75,10 +79,12 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             # prune
             while hits and now - hits[0] > self.window_seconds:
                 hits.popleft()
+
             if len(hits) >= self.max_requests:
                 return JSONResponse({"detail": "rate limit exceeded"}, status_code=429)
             hits.append(now)
-        return await call_next(request)
+        response = await call_next(request)
+        return response
 
     @staticmethod
     def _ip(request: Request) -> str:

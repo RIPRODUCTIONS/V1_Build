@@ -1,21 +1,21 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List
-
-from app.personal.personal_config import get_personal_config
-from app.db import SessionLocal
 import asyncio
 import json
+from typing import Any
 from urllib import request as _req
 from urllib.error import HTTPError, URLError
+
+from app.db import SessionLocal
+from app.personal.personal_config import get_personal_config
 
 
 class SocialIntegration:
     def __init__(self) -> None:
         self.cfg = get_personal_config()
 
-    async def post(self, text: str, platforms: List[str], *, user_id: int | None = None) -> Dict[str, Any]:
-        results: Dict[str, Any] = {}
+    async def post(self, text: str, platforms: list[str], *, user_id: int | None = None) -> dict[str, Any]:
+        results: dict[str, Any] = {}
         for p in platforms:
             if p.lower() == "twitter":
                 results[p] = await self._post_twitter(text)
@@ -25,7 +25,7 @@ class SocialIntegration:
                 results[p] = {"status": "unsupported"}
         return results
 
-    async def _post_twitter(self, text: str, *, user_id: int | None = None) -> Dict[str, Any]:
+    async def _post_twitter(self, text: str, *, user_id: int | None = None) -> dict[str, Any]:
         # Prefer stored token if available
         token_db: str | None = None
         try:
@@ -52,7 +52,7 @@ class SocialIntegration:
         url = f"{api_base}/2/tweets"
         payload = json.dumps({"text": text}).encode("utf-8")
 
-        def _do() -> Dict[str, Any]:
+        def _do() -> dict[str, Any]:
             req = _req.Request(url, data=payload, method="POST")
             req.add_header("Content-Type", "application/json")
             req.add_header("Authorization", f"Bearer {token}")
@@ -71,7 +71,7 @@ class SocialIntegration:
 
         return await asyncio.to_thread(_do)
 
-    async def _post_linkedin(self, text: str, *, user_id: int | None = None) -> Dict[str, Any]:
+    async def _post_linkedin(self, text: str, *, user_id: int | None = None) -> dict[str, Any]:
         # Prefer stored token if available
         token_db: str | None = None
         try:
@@ -107,7 +107,7 @@ class SocialIntegration:
         }
         payload = json.dumps(payload_obj).encode("utf-8")
 
-        def _do() -> Dict[str, Any]:
+        def _do() -> dict[str, Any]:
             req = _req.Request(url, data=payload, method="POST")
             req.add_header("Content-Type", "application/json")
             req.add_header("X-Restli-Protocol-Version", "2.0.0")

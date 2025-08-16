@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Annotated
-
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
+from typing import Annotated, Any
 
 from app.db import get_db
 from app.onboarding.new_user_flow import NewUserOnboarding
-
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/onboarding", tags=["onboarding"])
 
@@ -18,7 +16,7 @@ def get_current_user_id() -> int:
 
 
 @router.post("/start")
-def start_onboarding(db: Annotated[Session, Depends(get_db)]) -> Dict[str, Any]:
+def start_onboarding(db: Annotated[Session, Depends(get_db)]) -> dict[str, Any]:
     user_id = get_current_user_id()
     flow = NewUserOnboarding(db)
     result = flow.welcome_new_user(user_id)
@@ -31,7 +29,7 @@ def start_onboarding(db: Annotated[Session, Depends(get_db)]) -> Dict[str, Any]:
 
 
 @router.get("/status")
-def get_onboarding_status(db: Annotated[Session, Depends(get_db)]) -> Dict[str, Any]:
+def get_onboarding_status(db: Annotated[Session, Depends(get_db)]) -> dict[str, Any]:
     user_id = get_current_user_id()
     flow = NewUserOnboarding(db)
     return flow.status(user_id)

@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 
 class PersonalDataIntegration:
     """Integrate and analyze personal data across platforms (scaffold)."""
 
-    async def integrate_personal_accounts(self) -> Dict[str, Any]:
+    async def integrate_personal_accounts(self) -> dict[str, Any]:
         return {
             "connected": [
                 {"kind": "email", "provider": "gmail", "status": "pending"},
@@ -14,7 +14,7 @@ class PersonalDataIntegration:
             ]
         }
 
-    async def personal_analytics_dashboard(self) -> Dict[str, Any]:
+    async def personal_analytics_dashboard(self) -> dict[str, Any]:
         return {
             "email": {"unread": 0, "action_required": 0},
             "finance": {"month_spend": 0.0, "alerts": 0},

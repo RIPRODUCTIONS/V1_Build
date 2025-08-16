@@ -1,0 +1,164 @@
+# M3 Max Optimized Dockerfile for AI Framework
+# Optimized for MacBook Pro M3 Max with 48GB RAM
+
+# Use Python 3.11 slim image as base
+FROM python:3.11-slim as base
+
+# Set environment variables for M3 Max optimization
+ENV PYTHONOPTIMIZE=1
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONHASHSEED=random
+ENV PIP_NO_CACHE_DIR=1
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Install system dependencies optimized for M3 Max
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    libffi-dev \
+    libssl-dev \
+    libpq-dev \
+    curl \
+    wget \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create app directory
+WORKDIR /app
+
+# Copy requirements files
+COPY requirements.txt requirements-m3max.txt ./
+
+# Install Python dependencies with M3 Max optimizations
+RUN pip install --upgrade pip setuptools wheel && \
+    pip install -r requirements-m3max.txt
+
+# Copy application code
+COPY . .
+
+# Create necessary directories
+RUN mkdir -p /app/data /app/logs /app/models /app/cache
+
+# Set permissions
+RUN chmod +x /app/scripts/*.py
+
+# Development stage
+FROM base as development
+
+# Install development dependencies
+RUN pip install \
+    pytest \
+    pytest-asyncio \
+    pytest-cov \
+    black \
+    isort \
+    flake8 \
+    mypy \
+    pre-commit
+
+# Set development environment
+ENV ENVIRONMENT=development
+ENV DEBUG=true
+ENV LOG_LEVEL=DEBUG
+
+# Expose ports
+EXPOSE 8000 8001
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Development command
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--workers", "4"]
+
+# Production stage
+FROM base as production
+
+# Set production environment
+ENV ENVIRONMENT=production
+ENV DEBUG=false
+ENV LOG_LEVEL=INFO
+
+# Create non-root user
+RUN useradd --create-home --shell /bin/bash app && \
+    chown -R app:app /app
+
+USER app
+
+# Expose ports
+EXPOSE 8000 8001
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Production command
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "8"]
+
+# Celery worker stage
+FROM base as celery
+
+# Set Celery environment
+ENV ENVIRONMENT=production
+ENV DEBUG=false
+ENV LOG_LEVEL=INFO
+
+# Create non-root user
+RUN useradd --create-home --shell /bin/bash app && \
+    chown -R app:app /app
+
+USER app
+
+# Expose Celery ports
+EXPOSE 5555
+
+# Health check for Celery
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD celery -A app.celery_app inspect ping || exit 1
+
+# Celery command (will be overridden in docker-compose)
+CMD ["celery", "-A", "app.celery_app", "worker", "--loglevel=info", "--concurrency=8"]
+
+# Testing stage
+FROM base as testing
+
+# Install testing dependencies
+RUN pip install \
+    pytest \
+    pytest-asyncio \
+    pytest-cov \
+    pytest-benchmark \
+    pytest-mock \
+    pytest-xdist \
+    coverage
+
+# Set testing environment
+ENV ENVIRONMENT=testing
+ENV TESTING=true
+
+# Copy test files
+COPY tests/ /app/tests/
+
+# Run tests
+CMD ["pytest", "tests/", "-v", "--cov=app", "--cov-report=html", "--cov-report=term-missing"]
+
+# Performance testing stage
+FROM base as performance
+
+# Install performance testing dependencies
+RUN pip install \
+    locust \
+    k6 \
+    artillery \
+    wrk
+
+# Set performance testing environment
+ENV ENVIRONMENT=performance
+ENV PERFORMANCE_TESTING=true
+
+# Copy performance test files
+COPY performance_tests/ /app/performance_tests/
+
+# Run performance tests
+CMD ["locust", "-f", "performance_tests/locustfile.py", "--host=http://localhost:8000"]

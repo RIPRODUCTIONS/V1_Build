@@ -419,7 +419,15 @@ class MasterDashboard:
         departments: dict[str, dict[str, Any]] = {}
 
         for agent in self.agent_registry.values():
-            dept_name = agent.config.department.value
+            # Safely get department name with fallback
+            try:
+                if hasattr(agent, 'config') and hasattr(agent.config, 'department'):
+                    dept_name = agent.config.department.value if hasattr(agent.config.department, 'value') else str(agent.config.department)
+                else:
+                    dept_name = "unknown"
+            except Exception:
+                dept_name = "unknown"
+
             if dept_name not in departments:
                 departments[dept_name] = {
                     "agent_count": 0,
@@ -431,7 +439,11 @@ class MasterDashboard:
                 }
 
             departments[dept_name]["agent_count"] += 1
-            if agent.status.value != "offline":
+            if hasattr(agent, 'status') and hasattr(agent.status, 'value'):
+                if agent.status.value != "offline":
+                    departments[dept_name]["active_agents"] += 1
+            else:
+                # Default to active if status is not properly set
                 departments[dept_name]["active_agents"] += 1
 
             if hasattr(agent, 'performance_metrics'):

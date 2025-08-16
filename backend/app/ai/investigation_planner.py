@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any
 
 
-def plan_osint(subject: Dict[str, Any]) -> List[Dict[str, Any]]:
+def plan_osint(subject: dict[str, Any]) -> list[dict[str, Any]]:
     """Heuristic OSINT planner (stub ready for LLM prompt integration).
 
     Returns a list of steps with 'platform' and 'query' fields.
@@ -16,7 +16,7 @@ def plan_osint(subject: Dict[str, Any]) -> List[Dict[str, Any]]:
     base_query = " ".join(t for t in terms if t).strip()
     if not base_query:
         base_query = "person of interest"
-    steps: List[Dict[str, Any]] = [
+    steps: list[dict[str, Any]] = [
         {"platform": "linkedin", "query": base_query},
         {"platform": "twitter", "query": base_query},
         {"platform": "facebook", "query": base_query},

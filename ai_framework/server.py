@@ -28,7 +28,7 @@ try:
 except Exception:
     pass
 
-from typing import Any
+from typing import Any, Dict
 
 from diagnostics.system_diagnostics import report_to_markdown, run_diagnostics
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, WebSocket
@@ -54,6 +54,8 @@ from core.db import (
 from core.master_dashboard import MasterDashboard
 from core.scheduler import Scheduler
 from monitoring.metrics_collector import MetricsCollector
+from core.security_middleware import security_middleware, require_auth, require_role, require_permission
+from core.auth import auth_router
 
 # Optional integrations and seeds are imported at top-level (to avoid in-function imports)
 try:
@@ -315,6 +317,12 @@ class AIFrameworkServer:
         app.add_middleware(HealthCheckMiddleware)
         app.add_middleware(CorrelationIDMiddleware)
 
+        # Add security middleware
+        app.middleware("http")(security_middleware.add_security_headers_middleware)
+
+        # Add rate limiting middleware
+        app.middleware("http")(security_middleware.check_rate_limit_middleware)
+
         # CORS configuration (hardened via env)
         allowed_origins_env = os.environ.get("ALLOWED_ORIGINS", "*")
         allowed_origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
@@ -343,31 +351,53 @@ class AIFrameworkServer:
         # Add routes
         self._add_routes(app)
 
+        # Add authentication routes
+        app.include_router(auth_router)
+
         return app
 
     def _require_auth(self, request: Request, api_key: str | None = Header(default=None, alias="X-API-Key")):
-        """Dependency to enforce API key or JWT if configured.
-        - If API_KEY is set, accept matching X-API-Key
+        """Enhanced authentication with input validation and security middleware.
+        - If API key is set, accept matching X-API-Key
         - If JWT_SECRET is set, accept valid Authorization: Bearer <jwt>
-        If neither is set, allow (dev mode).
+        - If neither is set, allow (dev mode).
         """
-        # If neither configured → allow
-        if not API_KEY_ENV and not JWT_SECRET:
-            return
-        # API key path
-        if API_KEY_ENV and api_key == API_KEY_ENV:
-            return
-        # JWT path
-        if JWT_SECRET:
-            auth_header = request.headers.get("authorization") or request.headers.get("Authorization")
-            if auth_header and auth_header.lower().startswith("bearer "):
-                token = auth_header.split(" ", 1)[1].strip()
-                try:
-                    jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALG])
-                    return
-                except JWTError:
-                    pass
-        raise HTTPException(status_code=401, detail="Unauthorized")
+        try:
+            # Input validation for API key
+            if api_key and not security_middleware.validate_input(api_key, "api_key"):
+                raise HTTPException(status_code=400, detail="Invalid API key format")
+
+            # If neither configured → allow (dev mode)
+            if not API_KEY_ENV and not JWT_SECRET:
+                return
+
+            # API key path
+            if API_KEY_ENV and api_key == API_KEY_ENV:
+                return
+
+            # JWT path
+            if JWT_SECRET:
+                auth_header = request.headers.get("authorization") or request.headers.get("Authorization")
+                if auth_header and auth_header.lower().startswith("bearer "):
+                    token = auth_header.split(" ", 1)[1].strip()
+
+                    # Validate token input
+                    if not security_middleware.validate_input(token, "jwt_token"):
+                        raise HTTPException(status_code=400, detail="Invalid token format")
+
+                    try:
+                        jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALG])
+                        return
+                    except JWTError:
+                        pass
+
+            raise HTTPException(status_code=401, detail="Unauthorized")
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Authentication error: {e}")
+            raise HTTPException(status_code=500, detail="Authentication failed")
 
     def _add_routes(self, app: FastAPI):
         """Add all API routes to the FastAPI app."""
@@ -381,8 +411,16 @@ class AIFrameworkServer:
     def _add_basic_routes(self, app: FastAPI):
         """Add basic routes like root, health, and ready."""
         @app.get("/")
-        async def root():
-            """Root endpoint."""
+        async def root(request: Request):
+            """Root endpoint with input validation."""
+            # Get query parameters for validation
+            query_params = dict(request.query_params)
+
+            # Validate all query parameters
+            for key, value in query_params.items():
+                if not security_middleware.validate_input(value, f"query_param.{key}"):
+                    raise HTTPException(status_code=400, detail=f"Invalid input in parameter: {key}")
+
             return {"message": "AI Framework Backend", "status": "running"}
 
         @app.get("/health")
@@ -468,6 +506,101 @@ class AIFrameworkServer:
             except Exception as e:
                 raise HTTPException(status_code=500, detail=str(e)) from e
 
+    def _add_agent_routes(self, app: FastAPI):
+        """Add agent-related API routes."""
+        @app.get("/api/agents", dependencies=[Depends(self._require_auth)])
+        async def get_agents():
+            """Get all agents status."""
+            try:
+                if self.dashboard:
+                    overview = await self.dashboard.get_dashboard_overview()
+                    return {
+                        "agents": overview.get('overview', {}).get('total_agents', 0),
+                        "departments": overview.get('departments', []),
+                        "status": "success"
+                    }
+                else:
+                    return {"agents": 0, "departments": [], "status": "dashboard_not_ready"}
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=str(e)) from e
+
+        @app.get("/api/agents/{agent_type}", dependencies=[Depends(self._require_auth)])
+        async def get_agent_by_type(agent_type: str):
+            """Get agents by type."""
+            try:
+                if self.dashboard:
+                    # This would need to be implemented in the dashboard
+                    return {"agent_type": agent_type, "count": 0, "status": "not_implemented"}
+                else:
+                    return {"agent_type": agent_type, "count": 0, "status": "dashboard_not_ready"}
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=str(e)) from e
+
+        @app.post("/api/agents/{agent_type}/tasks", dependencies=[Depends(self._require_auth)])
+        async def assign_task_to_agent(agent_type: str, task_data: dict):
+            """Assign a task to an agent of specific type."""
+            try:
+                # This would need to be implemented in the orchestrator
+                return {
+                    "agent_type": agent_type,
+                    "task_assigned": False,
+                    "status": "not_implemented",
+                    "message": "Task assignment not yet implemented"
+                }
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=str(e)) from e
+
+    def _add_system_routes(self, app: FastAPI):
+        """Add system-related API routes."""
+        @app.get("/api/system/status", dependencies=[Depends(self._require_auth)])
+        async def get_system_status():
+            """Get overall system status."""
+            try:
+                return {
+                    "status": "operational",
+                    "components": {
+                        "dashboard": "ready" if self.dashboard else "not_ready",
+                        "orchestrator": "ready" if self.orchestrator else "not_ready",
+                        "scale_manager": "enabled" if self.scale_enabled else "disabled"
+                    },
+                    "timestamp": datetime.now(UTC).isoformat()
+                }
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=str(e)) from e
+
+        @app.get("/api/system/version", dependencies=[Depends(self._require_auth)])
+        async def get_system_version():
+            """Get system version information."""
+            return {
+                "version": "1.0.0",
+                "build_date": "2024-08-16",
+                "python_version": sys.version,
+                "status": "stable"
+            }
+
+        @app.get("/api/dashboard/overview", dependencies=[Depends(self._require_auth)])
+        async def get_dashboard_overview():
+            """Get dashboard overview."""
+            try:
+                if self.dashboard:
+                    return await self.dashboard.get_dashboard_overview()
+                else:
+                    return {"error": "Dashboard not initialized"}
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=str(e)) from e
+
+        @app.get("/api/dashboard/departments", dependencies=[Depends(self._require_auth)])
+        async def get_dashboard_departments():
+            """Get dashboard departments."""
+            try:
+                if self.dashboard:
+                    overview = await self.dashboard.get_dashboard_overview()
+                    return overview.get('departments', {})
+                else:
+                    return {"error": "Dashboard not initialized"}
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=str(e)) from e
+
     def _add_prometheus_metrics_route(self, app: FastAPI):
         """Add Prometheus metrics route."""
         @app.get("/metrics/prometheus")
@@ -490,7 +623,7 @@ class AIFrameworkServer:
                     if 'agents' in base:
                         lines.append(f"ai_framework_agents_active {base['agents'].get('active', 0)}")
                         lines.append(f"ai_framework_departments_total {base['agents'].get('departments', 0)}")
-                
+
                 # Scale-700 queue depths
                 if self.scale_enabled and self.scale_queue_manager is not None:
                     try:
@@ -509,7 +642,7 @@ class AIFrameworkServer:
                                 continue
                     except Exception:
                         pass
-                
+
                 # Services health
                 lines.append(f"ai_framework_services_healthy {1 if (self.enterprise_alert_task or self.enterprise_metrics_task) else 0}")
                 return Response(content="\n".join(lines) + "\n", media_type="text/plain")
@@ -519,7 +652,7 @@ class AIFrameworkServer:
     def _add_metrics_routes(self, app: FastAPI):
         """Add metrics-related routes."""
         @app.get("/metrics")
-        async def metrics():
+        async def metrics(user: Dict[str, Any] = Depends(require_auth)):
             data = generate_latest()
             return Response(content=data, media_type=CONTENT_TYPE_LATEST)
 
@@ -547,6 +680,20 @@ class AIFrameworkServer:
                 raise HTTPException(status_code=500, detail=str(e)) from e
         return True
 
+
+# Create the FastAPI app instance for uvicorn
+app = None
+
+def create_app():
+    """Create and return the FastAPI application instance."""
+    global app
+    if app is None:
+        server = AIFrameworkServer()
+        app = server._create_fastapi_app()
+    return app
+
+# Initialize the app
+app = create_app()
 
 if __name__ == "__main__":
     import asyncio

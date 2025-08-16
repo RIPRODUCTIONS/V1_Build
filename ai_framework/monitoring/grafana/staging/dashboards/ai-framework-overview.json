@@ -1,0 +1,17 @@
+{
+  "dashboard": {
+    "title": "AI Framework Overview",
+    "panels": [
+      {
+        "title": "System Health",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "ai_framework_system_health",
+            "legendFormat": "Health Score"
+          }
+        ]
+      }
+    ]
+  }
+}

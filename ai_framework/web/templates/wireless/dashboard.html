@@ -1,0 +1,158 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wireless Security Dashboard</title>
+    <style>
+        .dashboard-container { padding: 20px; }
+        .status-card { background: #f5f5f5; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .alert-high { border-left: 4px solid #dc3545; }
+        .alert-medium { border-left: 4px solid #ffc107; }
+        .alert-low { border-left: 4px solid #28a745; }
+        .device-list { max-height: 300px; overflow-y: auto; }
+        .monitoring-active { color: #28a745; }
+        .monitoring-inactive { color: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <h1>🔒 Wireless Security Dashboard</h1>
+        
+        {% if agent_available %}
+            <div class="status-card">
+                <h3>Monitoring Status: 
+                    <span class="{% if monitoring_active %}monitoring-active{% else %}monitoring-inactive{% endif %}">
+                        {{ "Active" if monitoring_active else "Inactive" }}
+                    </span>
+                </h3>
+                
+                <div id="wireless-data">
+                    <p>Loading wireless data...</p>
+                </div>
+            </div>
+            
+            <div class="status-card">
+                <h3>Controls</h3>
+                <button onclick="startMonitoring()">Start Monitoring</button>
+                <button onclick="stopMonitoring()">Stop Monitoring</button>
+                <button onclick="scanNetworks()">Scan Networks</button>
+                <button onclick="detectThreats()">Detect Threats</button>
+                <button onclick="generateReport()">Generate Report</button>
+            </div>
+            
+            <div class="status-card">
+                <h3>Recent Devices</h3>
+                <div id="device-list" class="device-list">
+                    <p>No devices detected</p>
+                </div>
+            </div>
+            
+            <div class="status-card">
+                <h3>Security Alerts</h3>
+                <div id="alert-list">
+                    <p>No alerts</p>
+                </div>
+            </div>
+            
+        {% else %}
+            <div class="status-card">
+                <h3>❌ Wireless Security Agent Not Available</h3>
+                <p>The wireless security agent is not initialized. Please check the installation.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // Auto-refresh dashboard data
+        async function refreshData() {
+            try {
+                const response = await fetch('/api/wireless/dashboard-data');
+                const data = await response.json();
+                
+                if (data.error) {
+                    document.getElementById('wireless-data').innerHTML = `<p>Error: ${data.error}</p>`;
+                    return;
+                }
+                
+                // Update summary
+                const summary = data.summary || {};
+                document.getElementById('wireless-data').innerHTML = `
+                    <p><strong>Total Devices:</strong> ${summary.total_devices || 0}</p>
+                    <p><strong>Access Points:</strong> ${summary.access_points || 0}</p>
+                    <p><strong>Clients:</strong> ${summary.clients || 0}</p>
+                    <p><strong>Total Alerts:</strong> ${summary.total_alerts || 0}</p>
+                    <p><strong>High Severity Alerts:</strong> ${summary.high_severity_alerts || 0}</p>
+                `;
+                
+                // Update device list
+                const devices = data.devices || [];
+                const deviceHtml = devices.map(device => `
+                    <div>
+                        <strong>${device.ssid || 'Unknown'}</strong> (${device.mac_address})<br>
+                        Type: ${device.device_type}, Manufacturer: ${device.manufacturer}<br>
+                        Signal: ${device.signal_strength} dBm, Encryption: ${device.encryption}
+                    </div>
+                `).join('<hr>');
+                
+                document.getElementById('device-list').innerHTML = deviceHtml || '<p>No devices detected</p>';
+                
+                // Update alerts
+                const alerts = data.alerts || [];
+                const alertHtml = alerts.map(alert => `
+                    <div class="alert-${alert.severity.toLowerCase()}">
+                        <strong>${alert.alert_type}</strong>: ${alert.description}<br>
+                        <small>${new Date(alert.timestamp).toLocaleString()}</small>
+                    </div>
+                `).join('');
+                
+                document.getElementById('alert-list').innerHTML = alertHtml || '<p>No alerts</p>';
+                
+            } catch (error) {
+                console.error('Error refreshing data:', error);
+            }
+        }
+        
+        // Control functions
+        async function startMonitoring() {
+            const response = await fetch('/api/wireless/start-monitoring', { method: 'POST' });
+            const result = await response.json();
+            alert(result.success ? 'Monitoring started' : `Error: ${result.error}`);
+            refreshData();
+        }
+        
+        async function stopMonitoring() {
+            const response = await fetch('/api/wireless/stop-monitoring', { method: 'POST' });
+            const result = await response.json();
+            alert(result.success ? 'Monitoring stopped' : `Error: ${result.error}`);
+            refreshData();
+        }
+        
+        async function scanNetworks() {
+            const response = await fetch('/api/wireless/scan');
+            const result = await response.json();
+            alert(`Scan completed. Found ${result.data?.devices_found || 0} devices`);
+            refreshData();
+        }
+        
+        async function detectThreats() {
+            const response = await fetch('/api/wireless/threats');
+            const result = await response.json();
+            const threatCount = (result.data?.high_threats?.length || 0) + (result.data?.critical_threats?.length || 0);
+            alert(`Threat detection completed. Found ${threatCount} high/critical threats`);
+            refreshData();
+        }
+        
+        async function generateReport() {
+            const response = await fetch('/api/wireless/report/summary');
+            const result = await response.json();
+            alert(result.success ? 'Report generated successfully' : `Error: ${result.error}`);
+        }
+        
+        // Initial load and auto-refresh
+        refreshData();
+        setInterval(refreshData, 30000); // Refresh every 30 seconds
+    </script>
+</body>
+</html>

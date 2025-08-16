@@ -1,15 +1,13 @@
-from typing import Any, Dict
-
-from fastapi import APIRouter, Depends
+from typing import Any
 
 from app.core.config import get_settings
-
+from fastapi import APIRouter, Depends
 
 router = APIRouter(prefix="/operator", tags=["operator:gateway"])
 
 
 @router.post("/execute")
-async def execute_automation_task(request: Dict[str, Any], settings=Depends(get_settings)) -> Dict[str, Any]:
+async def execute_automation_task(request: dict[str, Any], settings=Depends(get_settings)) -> dict[str, Any]:  # noqa: B008
     # Queue minimal web task into Celery if operator is enabled
     if settings.OPERATOR_WEB_ENABLED:
         try:
@@ -26,7 +24,7 @@ async def execute_automation_task(request: Dict[str, Any], settings=Depends(get_
 
 
 @router.get("/status")
-async def get_operator_status(settings=Depends(get_settings)) -> Dict[str, Any]:
+async def get_operator_status(settings=Depends(get_settings)) -> dict[str, Any]:  # noqa: B008
     return {
         "web_enabled": settings.OPERATOR_WEB_ENABLED,
         "desktop_enabled": settings.OPERATOR_DESKTOP_ENABLED,
@@ -36,7 +34,7 @@ async def get_operator_status(settings=Depends(get_settings)) -> Dict[str, Any]:
 
 # Placeholder for future websocket route (FastAPI websockets). HTTP stub for now
 @router.get("/tasks/{task_id}/stream")
-async def stream_task_progress(task_id: str) -> Dict[str, Any]:
+async def stream_task_progress(task_id: str) -> dict[str, Any]:
     return {"task_id": task_id, "stream": "disabled"}
 
 

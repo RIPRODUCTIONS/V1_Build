@@ -1,0 +1,11 @@
+{
+  "": {
+    "swift-dependencies": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/M3MaxDashboard/.build/arm64-apple-macosx/debug/M3MaxDashboard.build/master.swiftdeps"
+  },
+  "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/M3MaxDashboard/Sources/M3MaxDashboard/M3MaxDashboard.swift": {
+    "dependencies": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/M3MaxDashboard/.build/arm64-apple-macosx/debug/M3MaxDashboard.build/M3MaxDashboard.d",
+    "object": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/M3MaxDashboard/.build/arm64-apple-macosx/debug/M3MaxDashboard.build/M3MaxDashboard.swift.o",
+    "swiftmodule": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/M3MaxDashboard/.build/arm64-apple-macosx/debug/M3MaxDashboard.build/M3MaxDashboard~partial.swiftmodule",
+    "swift-dependencies": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/M3MaxDashboard/.build/arm64-apple-macosx/debug/M3MaxDashboard.build/M3MaxDashboard.swiftdeps"
+  }
+}

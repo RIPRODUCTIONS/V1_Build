@@ -152,7 +152,7 @@ def hash_evidence(evidence_data: str | bytes | dict[str, Any], algorithm: str = 
 
         # Add timestamp for chain of custody
         timestamp = datetime.now(UTC).isoformat()
-        custody_data = {
+        {
             'hash': hash_value,
             'algorithm': algorithm,
             'timestamp': timestamp,

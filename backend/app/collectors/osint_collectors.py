@@ -8,10 +8,9 @@ threat actor profiling, timeline reconstruction, and geolocation analysis.
 
 import json
 import logging
-import time
 from datetime import datetime, timezone
-from typing import Dict, Any, List, Optional
-from urllib.parse import urlparse
+from typing import Any, Dict, List, Optional
+
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -71,6 +70,7 @@ def _handle_api_response(response: requests.Response) -> Dict[str, Any]:
             raise AuthenticationError(f"Authentication failed: {response.text}")
         else:
             response.raise_for_status()
+            return {"status_code": response.status_code}
     except json.JSONDecodeError:
         logger.warning(f"Failed to parse JSON response: {response.text[:200]}")
         return {"raw_response": response.text, "status_code": response.status_code}
@@ -155,7 +155,7 @@ def collect_social_media_profiles(target_data: Dict[str, Any]) -> Dict[str, Any]
 
     except Exception as e:
         logger.error(f"Social media profile collection failed: {e}")
-        raise OSINTCollectorError(f"Profile collection failed: {e}")
+        raise OSINTCollectorError(f"Profile collection failed: {e}") from e
 
 
 def analyze_digital_footprint(profile_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -172,7 +172,7 @@ def analyze_digital_footprint(profile_data: Dict[str, Any]) -> Dict[str, Any]:
         OSINTCollectorError: If analysis fails
     """
     try:
-    logger.info("Starting digital footprint analysis")
+        logger.info("Starting digital footprint analysis")
 
         analysis = {
             "risk_score": 0.0,
@@ -218,7 +218,7 @@ def analyze_digital_footprint(profile_data: Dict[str, Any]) -> Dict[str, Any]:
 
     except Exception as e:
         logger.error(f"Digital footprint analysis failed: {e}")
-        raise OSINTCollectorError(f"Footprint analysis failed: {e}")
+        raise OSINTCollectorError(f"Footprint analysis failed: {e}") from e
 
 
 def identify_threat_indicators(actor_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -279,7 +279,7 @@ def identify_threat_indicators(actor_data: Dict[str, Any]) -> Dict[str, Any]:
 
     except Exception as e:
         logger.error(f"Threat indicator identification failed: {e}")
-        raise OSINTCollectorError(f"Threat analysis failed: {e}")
+        raise OSINTCollectorError(f"Threat analysis failed: {e}") from e
 
 
 def analyze_attack_patterns(indicators: Dict[str, Any]) -> Dict[str, Any]:
@@ -296,7 +296,7 @@ def analyze_attack_patterns(indicators: Dict[str, Any]) -> Dict[str, Any]:
         OSINTCollectorError: If analysis fails
     """
     try:
-    logger.info("Starting attack pattern analysis")
+        logger.info("Starting attack pattern analysis")
 
         patterns = {
             "attack_categories": [],
@@ -324,7 +324,7 @@ def analyze_attack_patterns(indicators: Dict[str, Any]) -> Dict[str, Any]:
 
     except Exception as e:
         logger.error(f"Attack pattern analysis failed: {e}")
-        raise OSINTCollectorError(f"Pattern analysis failed: {e}")
+        raise OSINTCollectorError(f"Pattern analysis failed: {e}") from e
 
 
 def reconstruct_timeline(investigation_data: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -341,7 +341,7 @@ def reconstruct_timeline(investigation_data: Dict[str, Any]) -> List[Dict[str, A
         OSINTCollectorError: If reconstruction fails
     """
     try:
-    logger.info("Starting timeline reconstruction")
+        logger.info("Starting timeline reconstruction")
 
         timeline = []
         sources = investigation_data.get("data_sources", [])
@@ -364,7 +364,7 @@ def reconstruct_timeline(investigation_data: Dict[str, Any]) -> List[Dict[str, A
 
     except Exception as e:
         logger.error(f"Timeline reconstruction failed: {e}")
-        raise OSINTCollectorError(f"Timeline reconstruction failed: {e}")
+        raise OSINTCollectorError(f"Timeline reconstruction failed: {e}") from e
 
 
 def correlate_events(timeline_data: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -381,7 +381,7 @@ def correlate_events(timeline_data: List[Dict[str, Any]]) -> Dict[str, Any]:
         OSINTCollectorError: If correlation fails
     """
     try:
-    logger.info("Starting event correlation analysis")
+        logger.info("Starting event correlation analysis")
 
         correlations = {
             "correlated_events": [],
@@ -417,7 +417,7 @@ def correlate_events(timeline_data: List[Dict[str, Any]]) -> Dict[str, Any]:
 
     except Exception as e:
         logger.error(f"Event correlation failed: {e}")
-        raise OSINTCollectorError(f"Event correlation failed: {e}")
+        raise OSINTCollectorError(f"Event correlation failed: {e}") from e
 
 
 def geolocate_data_points(geo_data: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -434,7 +434,7 @@ def geolocate_data_points(geo_data: Dict[str, Any]) -> List[Dict[str, Any]]:
         OSINTCollectorError: If geolocation fails
     """
     try:
-    logger.info("Starting geolocation analysis")
+        logger.info("Starting geolocation analysis")
 
         locations = []
         data_points = geo_data.get("data_points", [])
@@ -472,7 +472,7 @@ def analyze_movement_patterns(locations: List[Dict[str, Any]]) -> Dict[str, Any]
         OSINTCollectorError: If analysis fails
     """
     try:
-    logger.info("Starting movement pattern analysis")
+        logger.info("Starting movement pattern analysis")
 
         patterns = {
             "travel_patterns": [],
@@ -834,13 +834,13 @@ def _extract_events_from_source(source: Dict[str, Any]) -> List[Dict[str, Any]]:
     events = []
 
     # Mock event extraction
-                events.append({
+    events.append({
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "event_type": "profile_activity",
         "source": source.get("type", "unknown"),
         "description": "Activity detected",
-                    "confidence": 0.8
-                })
+        "confidence": 0.8
+    })
 
     return events
 
@@ -929,12 +929,12 @@ def _geolocate_single_point(point: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """Geolocate a single data point."""
     try:
         # Mock geolocation
-    return {
+        return {
             "id": point.get("id", "unknown"),
             "latitude": 40.7128,
             "longitude": -74.0060,
             "city": "New York",
-        "country": "United States",
+            "country": "United States",
             "confidence": 0.8
         }
     except Exception as e:

@@ -1,12 +1,6 @@
 import logging
-import os
-import tempfile
-import time
-from datetime import datetime, timezone, timedelta
-from typing import Dict, Any, List, Optional, Tuple
-import hashlib
-import json
-import re
+from datetime import UTC, datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +20,7 @@ class SummaryGenerationError(TimelineCorrelationError):
     """Exception raised when summary generation fails."""
     pass
 
-def merge_multiple_sources(timeline_sources: List[Dict[str, Any]], merge_params: Dict[str, Any]) -> Dict[str, Any]:
+def merge_multiple_sources(timeline_sources: list[dict[str, Any]], merge_params: dict[str, Any]) -> dict[str, Any]:
     """
     Merge multiple timeline sources into a unified timeline.
     Args:
@@ -60,7 +54,7 @@ def merge_multiple_sources(timeline_sources: List[Dict[str, Any]], merge_params:
             "merged_events": deduplicated_events,
             "total_events": len(deduplicated_events),
             "correlation_matrix": correlation_matrix,
-            "merge_timestamp": datetime.now(timezone.utc).isoformat()
+            "merge_timestamp": datetime.now(UTC).isoformat()
         }
 
         logger.info(f"Successfully merged {len(deduplicated_events)} timeline events")
@@ -68,9 +62,9 @@ def merge_multiple_sources(timeline_sources: List[Dict[str, Any]], merge_params:
 
     except Exception as e:
         logger.error(f"Timeline source merging failed: {e}")
-        raise SourceMergeError(f"Source merging failed: {e}")
+        raise SourceMergeError(f"Source merging failed: {e}") from e
 
-def detect_temporal_anomalies(timeline_data: Dict[str, Any], detection_params: Dict[str, Any]) -> Dict[str, Any]:
+def detect_temporal_anomalies(timeline_data: dict[str, Any], detection_params: dict[str, Any]) -> dict[str, Any]:
     """
     Detect temporal anomalies in timeline data.
     Args:
@@ -106,7 +100,7 @@ def detect_temporal_anomalies(timeline_data: Dict[str, Any], detection_params: D
             "sequence_anomalies": sequence_anomalies,
             "correlated_anomalies": correlated_anomalies,
             "total_anomalies": len(correlated_anomalies),
-            "detection_timestamp": datetime.now(timezone.utc).isoformat()
+            "detection_timestamp": datetime.now(UTC).isoformat()
         }
 
         logger.info(f"Temporal anomaly detection completed: {len(correlated_anomalies)} anomalies found")
@@ -114,9 +108,9 @@ def detect_temporal_anomalies(timeline_data: Dict[str, Any], detection_params: D
 
     except Exception as e:
         logger.error(f"Temporal anomaly detection failed: {e}")
-        raise AnomalyDetectionError(f"Anomaly detection failed: {e}")
+        raise AnomalyDetectionError(f"Anomaly detection failed: {e}") from e
 
-def generate_activity_summary(timeline_data: Dict[str, Any], summary_params: Dict[str, Any]) -> Dict[str, Any]:
+def generate_activity_summary(timeline_data: dict[str, Any], summary_params: dict[str, Any]) -> dict[str, Any]:
     """
     Generate comprehensive activity summary from timeline data.
     Args:
@@ -151,7 +145,7 @@ def generate_activity_summary(timeline_data: Dict[str, Any], summary_params: Dic
             "source_summary": source_summary,
             "pattern_summary": pattern_summary,
             "comprehensive_summary": comprehensive_summary,
-            "summary_timestamp": datetime.now(timezone.utc).isoformat()
+            "summary_timestamp": datetime.now(UTC).isoformat()
         }
 
         logger.info("Activity summary generation completed successfully")
@@ -159,9 +153,9 @@ def generate_activity_summary(timeline_data: Dict[str, Any], summary_params: Dic
 
     except Exception as e:
         logger.error(f"Activity summary generation failed: {e}")
-        raise SummaryGenerationError(f"Summary generation failed: {e}")
+        raise SummaryGenerationError(f"Summary generation failed: {e}") from e
 
-def _normalize_timeline_sources(timeline_sources: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def _normalize_timeline_sources(timeline_sources: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Normalize timeline sources to common format."""
     normalized_sources = []
 
@@ -180,7 +174,7 @@ def _normalize_timeline_sources(timeline_sources: List[Dict[str, Any]]) -> List[
 
     return normalized_sources
 
-def _normalize_events(events: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def _normalize_events(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Normalize events to common format."""
     normalized_events = []
 
@@ -202,7 +196,7 @@ def _normalize_events(events: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
     return normalized_events
 
-def _merge_timeline_events(normalized_sources: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def _merge_timeline_events(normalized_sources: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Merge events from all sources."""
     all_events = []
 
@@ -214,11 +208,11 @@ def _merge_timeline_events(normalized_sources: List[Dict[str, Any]]) -> List[Dic
 
     return all_events
 
-def _sort_events_chronologically(events: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def _sort_events_chronologically(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Sort events chronologically by timestamp."""
-    return sorted(events, key=lambda x: x.get('timestamp', datetime.min.replace(tzinfo=timezone.utc)))
+    return sorted(events, key=lambda x: x.get('timestamp', datetime.min.replace(tzinfo=UTC)))
 
-def _remove_duplicate_events(events: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def _remove_duplicate_events(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Remove duplicate events based on timestamp and description."""
     seen_events = set()
     unique_events = []
@@ -235,7 +229,7 @@ def _remove_duplicate_events(events: List[Dict[str, Any]]) -> List[Dict[str, Any
 
     return unique_events
 
-def _generate_correlation_matrix(events: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _generate_correlation_matrix(events: list[dict[str, Any]]) -> dict[str, Any]:
     """Generate correlation matrix between different event sources."""
     source_correlations = {}
 
@@ -244,7 +238,7 @@ def _generate_correlation_matrix(events: List[Dict[str, Any]]) -> Dict[str, Any]
         if source1 not in source_correlations:
             source_correlations[source1] = {}
 
-        for j, event2 in enumerate(events[i+1:], i+1):
+        for _j, event2 in enumerate(events[i+1:], i+1):
             source2 = event2.get('source_id', 'unknown')
             if source2 not in source_correlations[source1]:
                 source_correlations[source1][source2] = 0
@@ -256,7 +250,7 @@ def _generate_correlation_matrix(events: List[Dict[str, Any]]) -> Dict[str, Any]
 
     return source_correlations
 
-def _detect_time_gap_anomalies(events: List[Dict[str, Any]], detection_params: Dict[str, Any]) -> List[Dict[str, Any]]:
+def _detect_time_gap_anomalies(events: list[dict[str, Any]], detection_params: dict[str, Any]) -> list[dict[str, Any]]:
     """Detect anomalies based on time gaps between events."""
     anomalies = []
     max_gap_threshold = detection_params.get('max_gap_threshold', 3600)  # 1 hour
@@ -285,7 +279,7 @@ def _detect_time_gap_anomalies(events: List[Dict[str, Any]], detection_params: D
 
     return anomalies
 
-def _detect_frequency_anomalies(events: List[Dict[str, Any]], detection_params: Dict[str, Any]) -> List[Dict[str, Any]]:
+def _detect_frequency_anomalies(events: list[dict[str, Any]], detection_params: dict[str, Any]) -> list[dict[str, Any]]:
     """Detect anomalies based on event frequency patterns."""
     anomalies = []
     high_frequency_threshold = detection_params.get('high_frequency_threshold', 10)  # events per hour
@@ -320,7 +314,7 @@ def _detect_frequency_anomalies(events: List[Dict[str, Any]], detection_params: 
 
     return anomalies
 
-def _detect_pattern_anomalies(events: List[Dict[str, Any]], detection_params: Dict[str, Any]) -> List[Dict[str, Any]]:
+def _detect_pattern_anomalies(events: list[dict[str, Any]], detection_params: dict[str, Any]) -> list[dict[str, Any]]:
     """Detect anomalies based on event patterns."""
     anomalies = []
 
@@ -349,7 +343,7 @@ def _detect_pattern_anomalies(events: List[Dict[str, Any]], detection_params: Di
 
     return anomalies
 
-def _detect_sequence_anomalies(events: List[Dict[str, Any]], detection_params: Dict[str, Any]) -> List[Dict[str, Any]]:
+def _detect_sequence_anomalies(events: list[dict[str, Any]], detection_params: dict[str, Any]) -> list[dict[str, Any]]:
     """Detect anomalies based on event sequence violations."""
     anomalies = []
 
@@ -387,10 +381,10 @@ def _detect_sequence_anomalies(events: List[Dict[str, Any]], detection_params: D
 
     return anomalies
 
-def _correlate_anomalies(time_gap_anomalies: List[Dict[str, Any]],
-                         frequency_anomalies: List[Dict[str, Any]],
-                         pattern_anomalies: List[Dict[str, Any]],
-                         sequence_anomalies: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def _correlate_anomalies(time_gap_anomalies: list[dict[str, Any]],
+                         frequency_anomalies: list[dict[str, Any]],
+                         pattern_anomalies: list[dict[str, Any]],
+                         sequence_anomalies: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Correlate different types of anomalies."""
     correlated_anomalies = []
 
@@ -437,7 +431,7 @@ def _correlate_anomalies(time_gap_anomalies: List[Dict[str, Any]],
 
     return correlated_anomalies
 
-def _generate_time_summary(events: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _generate_time_summary(events: list[dict[str, Any]]) -> dict[str, Any]:
     """Generate time-based summary of events."""
     if not events:
         return {"error": "No events to summarize"}
@@ -482,7 +476,7 @@ def _generate_time_summary(events: List[Dict[str, Any]]) -> Dict[str, Any]:
         }
     }
 
-def _generate_activity_breakdown(events: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _generate_activity_breakdown(events: list[dict[str, Any]]) -> dict[str, Any]:
     """Generate breakdown of activities by type."""
     if not events:
         return {"error": "No events to analyze"}
@@ -511,7 +505,7 @@ def _generate_activity_breakdown(events: List[Dict[str, Any]]) -> Dict[str, Any]
         }
     }
 
-def _generate_source_summary(events: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _generate_source_summary(events: list[dict[str, Any]]) -> dict[str, Any]:
     """Generate summary of event sources."""
     if not events:
         return {"error": "No events to analyze"}
@@ -542,7 +536,7 @@ def _generate_source_summary(events: List[Dict[str, Any]]) -> Dict[str, Any]:
         "source_details": source_summary
     }
 
-def _generate_pattern_summary(events: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _generate_pattern_summary(events: list[dict[str, Any]]) -> dict[str, Any]:
     """Generate summary of event patterns."""
     if not events:
         return {"error": "No events to analyze"}
@@ -574,10 +568,10 @@ def _generate_pattern_summary(events: List[Dict[str, Any]]) -> Dict[str, Any]:
         }
     }
 
-def _create_comprehensive_summary(time_summary: Dict[str, Any],
-                                activity_summary: Dict[str, Any],
-                                source_summary: Dict[str, Any],
-                                pattern_summary: Dict[str, Any]) -> Dict[str, Any]:
+def _create_comprehensive_summary(time_summary: dict[str, Any],
+                                activity_summary: dict[str, Any],
+                                source_summary: dict[str, Any],
+                                pattern_summary: dict[str, Any]) -> dict[str, Any]:
     """Create comprehensive summary from all components."""
     return {
         "overview": {
@@ -594,7 +588,7 @@ def _create_comprehensive_summary(time_summary: Dict[str, Any],
         }
     }
 
-def _normalize_timestamp(timestamp) -> Optional[datetime]:
+def _normalize_timestamp(timestamp) -> datetime | None:
     """Normalize various timestamp formats to datetime object."""
     if not timestamp:
         return None
@@ -604,13 +598,13 @@ def _normalize_timestamp(timestamp) -> Optional[datetime]:
             # Try to parse various timestamp formats
             if timestamp.isdigit():
                 # Unix timestamp
-                return datetime.fromtimestamp(int(timestamp), tz=timezone.utc)
+                return datetime.fromtimestamp(int(timestamp), tz=UTC)
             else:
                 # ISO format or other string format
                 return datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
-        elif isinstance(timestamp, (int, float)):
+        elif isinstance(timestamp, int | float):
             # Unix timestamp
-            return datetime.fromtimestamp(timestamp, tz=timezone.utc)
+            return datetime.fromtimestamp(timestamp, tz=UTC)
         elif isinstance(timestamp, datetime):
             return timestamp
         else:

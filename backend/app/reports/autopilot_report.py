@@ -1,22 +1,22 @@
 from __future__ import annotations
 
-from io import BytesIO
-from typing import Any, Dict, List
 from datetime import datetime
+from io import BytesIO
+from typing import Any
 
 from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import inch
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table
 
 
-def build_autopilot_report(summary: Dict[str, Any]) -> bytes:
+def build_autopilot_report(summary: dict[str, Any]) -> bytes:
     buf = BytesIO()
     doc = SimpleDocTemplate(
         buf, pagesize=letter, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=36
     )
     styles = getSampleStyleSheet()
-    story: List[Any] = []
+    story: list[Any] = []
 
     story.append(Paragraph("Investigations Autopilot Report", styles["Title"]))
     story.append(Paragraph(datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC"), styles["Normal"]))
@@ -50,9 +50,9 @@ def build_autopilot_report(summary: Dict[str, Any]) -> bytes:
 
     story.append(Paragraph("Extracted Entities", styles["Heading2"]))
     if entities:
-        rows: List[List[str]] = []
-        row: List[str] = []
-        for i, e in enumerate(entities[:60], start=1):
+        rows: list[list[str]] = []
+        row: list[str] = []
+        for _i, e in enumerate(entities[:60], start=1):
             row.append(e)
             if len(row) == 3:
                 rows.append(row)

@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-from typing import Optional
-
-from sqlalchemy.orm import Session
-
 from app.db import SessionLocal
 from app.models import User
+from sqlalchemy.orm import Session
 
 
-def get_or_create_single_user(db: Optional[Session] = None) -> int:
+def get_or_create_single_user(db: Session | None = None) -> int:
     must_close = False
     if db is None:
         db = SessionLocal()

@@ -3,10 +3,8 @@ from __future__ import annotations
 import asyncio
 import os
 
-from celery import shared_task
-
 from app.automations.consumer import StreamConsumer
-from app.automations.metrics import automation_rule_executions, automation_rule_latency
+from celery import shared_task
 
 
 @shared_task(bind=True, name="automations.consume_event_stream", max_retries=0)
@@ -21,8 +19,8 @@ def consume_event_stream(self):
 
 @shared_task(name="automations.evaluate_rules_for_event")
 def evaluate_rules_for_event(event_data: dict):
-    from app.db import SessionLocal
     from app.automations.rules_engine import RuleEngine
+    from app.db import SessionLocal
 
     db = SessionLocal()
     try:

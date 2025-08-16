@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from celery import shared_task
-
-from app.integrations.hub import IntegrationHub
 from app.integrations.google_workspace import (
-    GoogleCalendarIntegration,
     GmailIntegration,
+    GoogleCalendarIntegration,
     GoogleDriveIntegration,
 )
+from app.integrations.hub import IntegrationHub
+from celery import shared_task
 
 hub = IntegrationHub()
 hub.register("google_calendar", GoogleCalendarIntegration())

@@ -1,18 +1,17 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
+from app.core.config import get_settings
 from fastapi import APIRouter
 from prometheus_client import REGISTRY
-from app.core.config import get_settings
-
 
 router = APIRouter(prefix="/operator/metrics", tags=["operator:metrics"])
 
 
 @router.get("/summary")
-def metrics_summary() -> Dict[str, Any]:
-    summary: Dict[str, Any] = {
+def metrics_summary() -> dict[str, Any]:
+    summary: dict[str, Any] = {
         "tasks_started": 0,
         "tasks_completed": {},
         "actions": {},
@@ -30,20 +29,20 @@ def metrics_summary() -> Dict[str, Any]:
                 summary["tasks_started"] = int(total)
             elif name == "web_automation_tasks_completed":
                 # Counter with label status
-                completed_buckets: Dict[str, int] = {}
+                completed_buckets: dict[str, int] = {}
                 for s in metric.samples:
                     status: str = (s.labels.get("status") or "unknown") if s.labels else "unknown"
                     completed_buckets[status] = completed_buckets.get(status, 0) + int(s.value or 0)
                 summary["tasks_completed"] = completed_buckets
             elif name == "web_automation_actions_total":
                 # Counter with label action
-                actions_buckets: Dict[str, int] = {}
+                actions_buckets: dict[str, int] = {}
                 for s in metric.samples:
                     action_label = (s.labels.get("action") or "unknown") if s.labels else "unknown"
                     actions_buckets[action_label] = actions_buckets.get(action_label, 0) + int(s.value or 0)
                 summary["actions"] = actions_buckets
             elif name == "web_automation_action_errors_total":
-                error_buckets: Dict[str, int] = {}
+                error_buckets: dict[str, int] = {}
                 for s in metric.samples:
                     err_action_label = (s.labels.get("action") or "unknown") if s.labels else "unknown"
                     error_buckets[err_action_label] = error_buckets.get(err_action_label, 0) + int(s.value or 0)
@@ -51,7 +50,7 @@ def metrics_summary() -> Dict[str, Any]:
             elif name == "web_automation_task_duration_seconds":
                 # Histogram without labels -> compute p95
                 # Prometheus client exposes samples with _bucket, _sum, _count
-                duration_buckets: List[Tuple[float, float]] = []  # (le, count)
+                duration_buckets: list[tuple[float, float]] = []  # (le, count)
                 total_count = 0.0
                 for s in metric.samples:
                     if s.name.endswith("_bucket"):

@@ -1,27 +1,26 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+import logging
+import os
 import random
 import time
+from dataclasses import dataclass, field
 
 from .base import IntegrationBase
-import os
-import logging
 
 
 @dataclass(slots=True)
 class IntegrationHub:
-    integrations: Dict[str, IntegrationBase] = field(default_factory=dict)
-    last_sync: Dict[str, float] = field(default_factory=dict)
-    error_rate: Dict[str, float] = field(default_factory=dict)
+    integrations: dict[str, IntegrationBase] = field(default_factory=dict)
+    last_sync: dict[str, float] = field(default_factory=dict)
+    error_rate: dict[str, float] = field(default_factory=dict)
 
     def register(self, key: str, integration: IntegrationBase) -> None:
         self.integrations[key] = integration
 
-    async def auto_discover(self, user_id: str) -> List[str]:
-        found: List[str] = []
+    async def auto_discover(self, user_id: str) -> list[str]:
+        found: list[str] = []
         for key, integ in self.integrations.items():
             try:
                 if await integ.discover(user_id):
@@ -30,14 +29,14 @@ class IntegrationHub:
                 continue
         return found
 
-    async def sync_all(self, user_id: str) -> Dict[str, dict]:
-        results: Dict[str, dict] = {}
+    async def sync_all(self, user_id: str) -> dict[str, dict]:
+        results: dict[str, dict] = {}
         async def _run(key: str, integ: IntegrationBase) -> None:
             try:
                 start = time.perf_counter()
                 results[key] = await integ.sync(user_id)
                 self.last_sync[key] = time.time()
-                dur = time.perf_counter() - start
+                time.perf_counter() - start
                 # naive rolling error metric demo
                 self.error_rate[key] = max(0.0, self.error_rate.get(key, 0.0) * 0.9)
             except Exception:
@@ -57,7 +56,7 @@ class IntegrationHub:
         await asyncio.gather(*[_run(k, v) for k, v in list(self.integrations.items())])
         return results
 
-    async def poll_with_backoff(self, user_id: str, key: str, base_delay: float = 30.0, max_delay: float = 300.0) -> Optional[dict]:
+    async def poll_with_backoff(self, user_id: str, key: str, base_delay: float = 30.0, max_delay: float = 300.0) -> dict | None:
         integ = self.integrations.get(key)
         if not integ:
             return None

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
 import random
-from typing import Any, Dict
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from .base import IntegrationBase
 
@@ -13,8 +13,8 @@ class MockCalendarIntegration(IntegrationBase):
     async def discover(self, user_id: str) -> bool:
         return True
 
-    async def sync(self, user_id: str) -> Dict[str, Any]:
-        now = datetime.now(timezone.utc)
+    async def sync(self, user_id: str) -> dict[str, Any]:
+        now = datetime.now(UTC)
         titles = [
             "Team Standup",
             "1:1 with Manager",

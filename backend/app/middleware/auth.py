@@ -2,15 +2,13 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Optional
 
 from fastapi import Header, HTTPException
-
 
 logger = logging.getLogger(__name__)
 
 
-async def validate_api_key(x_api_key: Optional[str] = Header(None)) -> str:
+async def validate_api_key(x_api_key: str | None = Header(None)) -> str:
     """Central API key validator for Builder automation endpoints.
 
     - When SECURE_MODE is true, INTERNAL_API_KEY must be set and header must match.
@@ -37,10 +35,9 @@ async def validate_api_key(x_api_key: Optional[str] = Header(None)) -> str:
         if not x_api_key or x_api_key != expected:
             logger.warning("Request blocked: INTERNAL_API_KEY is set; header missing or invalid")
             raise HTTPException(status_code=401, detail="invalid or missing api key")
-    else:
-        if not x_api_key:
-            logger.debug("Allowing request without X-API-Key (non-secure mode, no expected key)")
-            return ""
+    elif not x_api_key:
+        logger.debug("Allowing request without X-API-Key (non-secure mode, no expected key)")
+        return ""
     return x_api_key or ""
 
 

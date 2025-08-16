@@ -9,8 +9,6 @@ on:
 jobs:
   auto-build-deploy:
     runs-on: ubuntu-latest
-    env:
-      IMAGE_NAME: ${{ secrets.DOCKER_IMAGE }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -47,32 +45,33 @@ jobs:
           bandit -r .
 
       - name: Build Docker image
+        env:
+          IMAGE_NAME: "atomic/backend:latest"
         run: |
-          docker build -t ${IMAGE_NAME:-atomic/backend:latest} -f backend/Dockerfile .
+          docker build -t ${IMAGE_NAME} -f backend/Dockerfile .
 
       - name: Push Docker image
-        if: ${{ secrets.DOCKER_REGISTRY_LOGIN != '' && secrets.DOCKER_REGISTRY_PASS != '' }}
+        if: false
         env:
-          REGISTRY_LOGIN: ${{ secrets.DOCKER_REGISTRY_LOGIN }}
-          REGISTRY_PASS: ${{ secrets.DOCKER_REGISTRY_PASS }}
+          REGISTRY_LOGIN: "default-login"
+          REGISTRY_PASS: "default-pass"
         run: |
-          echo "$REGISTRY_PASS" | docker login -u "$REGISTRY_LOGIN" --password-stdin
-          docker push ${IMAGE_NAME:-atomic/backend:latest}
+          echo "Docker push disabled for now"
 
       - name: Deploy (SSH)
-        if: ${{ secrets.DEPLOY_HOST != '' && secrets.DEPLOY_KEY != '' }}
+        if: false
         uses: appleboy/ssh-action@v0.1.10
         env:
-          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
-          IMAGE_NAME: ${{ secrets.DOCKER_IMAGE }}
-          API_KEY: ${{ secrets.API_KEY }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          REDIS_URL: ${{ secrets.REDIS_URL }}
-          DB_URL: ${{ secrets.DB_URL }}
+          DEPLOY_USER: "ubuntu"
+          IMAGE_NAME: "atomic/backend:latest"
+          API_KEY: "default-api-key"
+          JWT_SECRET: "default-jwt-secret"
+          REDIS_URL: "redis://localhost:6379/0"
+          DB_URL: "postgresql://localhost:5432/ai_framework"
         with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ env.DEPLOY_USER || 'ubuntu' }}
-          key: ${{ secrets.DEPLOY_KEY }}
+          host: "localhost"
+          username: "ubuntu"
+          key: "default-key"
           script: |
             set -euo pipefail
             IMAGE_NAME="${IMAGE_NAME:-atomic/backend:latest}"

@@ -3,13 +3,11 @@ from __future__ import annotations
 import base64
 import os
 from dataclasses import dataclass
-from typing import Optional
-
-from cryptography.fernet import Fernet
-from sqlalchemy import Column, Integer, String, LargeBinary
-from sqlalchemy.orm import Session
 
 from app.db import Base, SessionLocal
+from cryptography.fernet import Fernet
+from sqlalchemy import Column, Integer, LargeBinary, String
+from sqlalchemy.orm import Session
 
 
 class StoredCredential(Base):
@@ -27,7 +25,7 @@ class CredentialVault:
     secret_key: bytes
 
     @staticmethod
-    def from_env() -> "CredentialVault":
+    def from_env() -> CredentialVault:
         raw = os.getenv("INTEGRATION_VAULT_KEY")
         if not raw:
             # Generate ephemeral key in dev; in prod must be provided
@@ -37,7 +35,7 @@ class CredentialVault:
     def _fernet(self) -> Fernet:
         return Fernet(self.secret_key)
 
-    def put(self, user_id: str, integration: str, key: str, value: str, db: Optional[Session] = None) -> None:
+    def put(self, user_id: str, integration: str, key: str, value: str, db: Session | None = None) -> None:
         close = False
         if db is None:
             db = SessionLocal()
@@ -62,7 +60,7 @@ class CredentialVault:
             if close:
                 db.close()
 
-    def get(self, user_id: str, integration: str, key: str, db: Optional[Session] = None) -> Optional[str]:
+    def get(self, user_id: str, integration: str, key: str, db: Session | None = None) -> str | None:
         close = False
         if db is None:
             db = SessionLocal()

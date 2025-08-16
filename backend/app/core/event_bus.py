@@ -1,13 +1,14 @@
 from __future__ import annotations
 
+import contextlib
 import json
 import os
-from datetime import datetime, timezone
-from typing import Any, Awaitable, Callable, Dict, List, Optional, cast
+from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime
+from typing import Any, cast
 
 import redis.asyncio as redis
 from app.core.config import get_settings
-
 
 STREAM_KEY = os.getenv("SYSTEM_EVENT_STREAM", "system:events")
 DLQ_LIST = os.getenv("SYSTEM_EVENT_DLQ", "dlq:system_events")
@@ -21,15 +22,15 @@ async def _client() -> redis.Redis:
 
 class SystemEventBus:
     def __init__(self) -> None:
-        self._handlers: Dict[str, List[Callable[[dict[str, Any]], Awaitable[None]]]] = {}
+        self._handlers: dict[str, list[Callable[[dict[str, Any]], Awaitable[None]]]] = {}
 
-    async def publish(self, event_type: str, data: Dict[str, Any], source: str) -> str:
+    async def publish(self, event_type: str, data: dict[str, Any], source: str) -> str:
         r = await _client()
         try:
             payload = {
                 "type": event_type,
                 "source": source,
-                "ts": datetime.now(timezone.utc).isoformat(),
+                "ts": datetime.now(UTC).isoformat(),
                 "data": data,
             }
             # xadd returns bytes | int depending on client; coerce to str for typing
@@ -87,7 +88,7 @@ class SystemEventBus:
                             await cast(Awaitable[Any], r.xack(STREAM_KEY, group, entry_id))
                         except Exception:
                             # Push to DLQ with original fields and entry id
-                            try:
+                            with contextlib.suppress(Exception):
                                 await cast(
                                     Awaitable[Any],
                                     r.lpush(
@@ -100,8 +101,6 @@ class SystemEventBus:
                                         }),
                                     ),
                                 )
-                            except Exception:
-                                pass
                             # Leave unacked for retry
         finally:
             await r.aclose()

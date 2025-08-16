@@ -20,17 +20,17 @@ def test_reliability_metrics_collection():
     before_keys = set(REGISTRY._names_to_collectors.keys())
 
     # Import and use reliability metrics
-    from app.reliability.metrics import SimpleTimingMetrics
+    from app.reliability.metrics import StandaloneTimingMetrics
 
     # Create a simple timing metric
-    timing = SimpleTimingMetrics()
+    timing = StandaloneTimingMetrics()
 
     # Check that metrics are registered
     after_keys = set(REGISTRY._names_to_collectors.keys())
-    new_metrics = after_keys - before_keys
 
-    # Should have added some metrics
-    assert len(new_metrics) > 0
+    # Should have the expected metrics
+    assert "http_requests_total" in after_keys
+    assert "http_request_duration_seconds" in after_keys
 
 
 def test_reliability_circuit_breaker_metrics():
@@ -38,7 +38,7 @@ def test_reliability_circuit_breaker_metrics():
     from app.reliability.circuit_breaker import SimpleCircuitBreaker
 
     # Create circuit breaker
-    cb = SimpleCircuitBreaker(fail_threshold=2, reset_timeout=0.1)
+    cb = SimpleCircuitBreaker(None, fail_threshold=2, reset_timeout=0.1)
 
     # Record some operations
     cb.record_success()
@@ -52,10 +52,10 @@ def test_reliability_circuit_breaker_metrics():
 
 def test_reliability_rate_limiter_metrics():
     """Test rate limiter metrics and behavior."""
-    from app.reliability.rate_limiter import SlidingWindowRateLimiter
+    from app.reliability.rate_limiter import StandaloneRateLimiter
 
     # Create rate limiter
-    rl = SlidingWindowRateLimiter(requests_per_minute=5)
+    rl = StandaloneRateLimiter(requests_per_minute=5)
 
     # Test rate limiting
     assert rl.is_allowed() is True
@@ -82,6 +82,14 @@ def test_reliability_metrics_middleware_integration():
     app.add_middleware(SimpleCircuitBreaker, fail_threshold=5, reset_timeout=1.0)
     app.add_middleware(SlidingWindowRateLimiter, requests_per_minute=10)
 
+    # Add metrics endpoint
+    from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+    from starlette.responses import Response
+
+    @app.get("/metrics")
+    async def metrics():
+        return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
     @app.get("/test")
     async def test_endpoint():
         return {"status": "ok"}
@@ -107,6 +115,14 @@ def test_reliability_metrics_persistence():
 
     app = FastAPI()
     app.add_middleware(SimpleTimingMetrics)
+
+    # Add metrics endpoint
+    from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+    from starlette.responses import Response
+
+    @app.get("/metrics")
+    async def metrics():
+        return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
     @app.get("/test1")
     async def test1():
@@ -139,7 +155,7 @@ def test_reliability_circuit_breaker_state_transitions():
     from app.reliability.circuit_breaker import SimpleCircuitBreaker
 
     # Create circuit breaker with short timeout
-    cb = SimpleCircuitBreaker(fail_threshold=2, reset_timeout=0.1)
+    cb = SimpleCircuitBreaker(None, fail_threshold=2, reset_timeout=0.1)
 
     # Initial state should be closed
     assert cb.is_open is False
@@ -170,10 +186,10 @@ def test_reliability_rate_limiter_window_sliding():
     """Test rate limiter sliding window behavior."""
     import time
 
-    from app.reliability.rate_limiter import SlidingWindowRateLimiter
+    from app.reliability.rate_limiter import StandaloneRateLimiter
 
     # Create rate limiter with 2 requests per minute
-    rl = SlidingWindowRateLimiter(requests_per_minute=2)
+    rl = StandaloneRateLimiter(requests_per_minute=2)
 
     # First two requests should be allowed
     assert rl.is_allowed() is True
@@ -194,10 +210,10 @@ def test_reliability_metrics_thread_safety():
     import threading
     import time
 
-    from app.reliability.metrics import SimpleTimingMetrics
+    from app.reliability.metrics import StandaloneTimingMetrics
 
     # Create timing metrics
-    timing = SimpleTimingMetrics()
+    timing = StandaloneTimingMetrics()
 
     # Shared counter
     request_count = 0
@@ -234,6 +250,14 @@ def test_reliability_metrics_error_handling():
 
     app = FastAPI()
     app.add_middleware(SimpleTimingMetrics)
+
+    # Add metrics endpoint
+    from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+    from starlette.responses import Response
+
+    @app.get("/metrics")
+    async def metrics():
+        return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
     @app.get("/error")
     async def error_endpoint():

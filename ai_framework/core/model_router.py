@@ -382,10 +382,10 @@ class ModelRouter:
                      last_updated, metadata)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
-                    capability.provider.value,
+                    capability.provider.value if hasattr(capability.provider, 'value') else str(capability.provider),
                     capability.model_name,
-                    json.dumps([t.value for t in capability.task_types]),
-                    capability.max_complexity.value,
+                    json.dumps([t.value if hasattr(t, 'value') else str(t) for t in capability.task_types]),
+                    capability.max_complexity.value if hasattr(capability.max_complexity, 'value') else str(capability.max_complexity),
                     capability.function_calling,
                     capability.streaming,
                     capability.max_tokens,

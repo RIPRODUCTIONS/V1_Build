@@ -5,15 +5,12 @@ This module provides comprehensive memory forensics capabilities including memor
 process enumeration, network connections analysis, and artifact extraction from memory.
 """
 
+import hashlib
 import logging
 import os
-import struct
-import tempfile
 import time
-from datetime import datetime, timezone
-from typing import Dict, Any, List, Optional, Tuple
-import hashlib
-import re
+from datetime import UTC, datetime
+from typing import Any
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -39,7 +36,7 @@ class NetworkAnalysisError(MemoryAnalysisError):
     pass
 
 
-def analyze_memory_dump(dump_file: str, analysis_params: Dict[str, Any]) -> Dict[str, Any]:
+def analyze_memory_dump(dump_file: str, analysis_params: dict[str, Any]) -> dict[str, Any]:
     """
     Analyze memory dump file.
 
@@ -102,7 +99,7 @@ def analyze_memory_dump(dump_file: str, analysis_params: Dict[str, Any]) -> Dict
             "artifact_extraction": artifact_results,
             "string_extraction": string_results,
             "analysis_summary": analysis_summary,
-            "analysis_timestamp": datetime.now(timezone.utc).isoformat()
+            "analysis_timestamp": datetime.now(UTC).isoformat()
         }
 
         logger.info("Memory dump analysis completed successfully")
@@ -110,10 +107,10 @@ def analyze_memory_dump(dump_file: str, analysis_params: Dict[str, Any]) -> Dict
 
     except Exception as e:
         logger.error(f"Memory dump analysis failed: {e}")
-        raise DumpError(f"Memory analysis failed: {e}")
+        raise DumpError(f"Memory analysis failed: {e}") from e
 
 
-def enumerate_processes(dump_file: str) -> List[Dict[str, Any]]:
+def enumerate_processes(dump_file: str) -> list[dict[str, Any]]:
     """
     Enumerate processes from memory dump.
 
@@ -154,10 +151,10 @@ def enumerate_processes(dump_file: str) -> List[Dict[str, Any]]:
 
     except Exception as e:
         logger.error(f"Process enumeration failed: {e}")
-        raise ProcessAnalysisError(f"Process enumeration failed: {e}")
+        raise ProcessAnalysisError(f"Process enumeration failed: {e}") from e
 
 
-def analyze_network_connections(dump_file: str) -> Dict[str, Any]:
+def analyze_network_connections(dump_file: str) -> dict[str, Any]:
     """
     Analyze network connections from memory dump.
 
@@ -206,7 +203,7 @@ def analyze_network_connections(dump_file: str) -> Dict[str, Any]:
             "connection_patterns": connection_patterns,
             "suspicious_connections": suspicious_connections,
             "network_summary": network_summary,
-            "analysis_timestamp": datetime.now(timezone.utc).isoformat()
+            "analysis_timestamp": datetime.now(UTC).isoformat()
         }
 
         logger.info("Network connection analysis completed successfully")
@@ -214,10 +211,10 @@ def analyze_network_connections(dump_file: str) -> Dict[str, Any]:
 
     except Exception as e:
         logger.error(f"Network connection analysis failed: {e}")
-        raise NetworkAnalysisError(f"Network analysis failed: {e}")
+        raise NetworkAnalysisError(f"Network analysis failed: {e}") from e
 
 
-def extract_memory_artifacts(dump_file: str, artifact_types: List[str]) -> Dict[str, Any]:
+def extract_memory_artifacts(dump_file: str, artifact_types: list[str]) -> dict[str, Any]:
     """
     Extract specific artifacts from memory dump.
 
@@ -271,7 +268,7 @@ def extract_memory_artifacts(dump_file: str, artifact_types: List[str]) -> Dict[
             "requested_artifacts": artifact_types,
             "extracted_artifacts": extracted_artifacts,
             "extraction_summary": extraction_summary,
-            "extraction_timestamp": datetime.now(timezone.utc).isoformat()
+            "extraction_timestamp": datetime.now(UTC).isoformat()
         }
 
         logger.info("Artifact extraction completed successfully")
@@ -279,10 +276,10 @@ def extract_memory_artifacts(dump_file: str, artifact_types: List[str]) -> Dict[
 
     except Exception as e:
         logger.error(f"Artifact extraction failed: {e}")
-        raise MemoryAnalysisError(f"Artifact extraction failed: {e}")
+        raise MemoryAnalysisError(f"Artifact extraction failed: {e}") from e
 
 
-def search_memory_patterns(dump_file: str, patterns: List[str]) -> List[Dict[str, Any]]:
+def search_memory_patterns(dump_file: str, patterns: list[str]) -> list[dict[str, Any]]:
     """
     Search for specific patterns in memory dump.
 
@@ -318,14 +315,14 @@ def search_memory_patterns(dump_file: str, patterns: List[str]) -> List[Dict[str
         enriched_matches = _enrich_pattern_matches(pattern_matches, dump_file)
 
         # Generate search summary
-        search_summary = _generate_pattern_search_summary(enriched_matches, patterns)
+        _generate_pattern_search_summary(enriched_matches, patterns)
 
         logger.info(f"Pattern search completed. Found {len(enriched_matches)} matches")
         return enriched_matches
 
     except Exception as e:
         logger.error(f"Pattern search failed: {e}")
-        raise MemoryAnalysisError(f"Pattern search failed: {e}")
+        raise MemoryAnalysisError(f"Pattern search failed: {e}") from e
 
 
 # Helper functions for memory dump analysis
@@ -337,7 +334,7 @@ def _validate_dump_file(dump_file: str) -> bool:
         return False
 
 
-def _get_dump_information(dump_file: str) -> Dict[str, Any]:
+def _get_dump_information(dump_file: str) -> dict[str, Any]:
     """Get basic information about memory dump."""
     try:
         dump_info = {
@@ -355,7 +352,7 @@ def _get_dump_information(dump_file: str) -> Dict[str, Any]:
         return {}
 
 
-def _calculate_file_hash(file_path: str) -> Optional[str]:
+def _calculate_file_hash(file_path: str) -> str | None:
     """Calculate SHA256 hash of file."""
     try:
         with open(file_path, 'rb') as f:
@@ -391,7 +388,7 @@ def _detect_operating_system(dump_file: str) -> str:
         return "unknown"
 
 
-def _analyze_processes(dump_file: str) -> Dict[str, Any]:
+def _analyze_processes(dump_file: str) -> dict[str, Any]:
     """Analyze processes from memory dump."""
     try:
         # Enumerate processes
@@ -431,7 +428,7 @@ def _analyze_processes(dump_file: str) -> Dict[str, Any]:
         return {}
 
 
-def _enumerate_windows_processes(dump_file: str) -> List[Dict[str, Any]]:
+def _enumerate_windows_processes(dump_file: str) -> list[dict[str, Any]]:
     """Enumerate Windows processes from memory dump."""
     try:
         processes = []
@@ -459,7 +456,7 @@ def _enumerate_windows_processes(dump_file: str) -> List[Dict[str, Any]]:
         return []
 
 
-def _enumerate_linux_processes(dump_file: str) -> List[Dict[str, Any]]:
+def _enumerate_linux_processes(dump_file: str) -> list[dict[str, Any]]:
     """Enumerate Linux processes from memory dump."""
     try:
         processes = []
@@ -487,7 +484,7 @@ def _enumerate_linux_processes(dump_file: str) -> List[Dict[str, Any]]:
         return []
 
 
-def _enumerate_macos_processes(dump_file: str) -> List[Dict[str, Any]]:
+def _enumerate_macos_processes(dump_file: str) -> list[dict[str, Any]]:
     """Enumerate macOS processes from memory dump."""
     try:
         processes = []
@@ -515,7 +512,7 @@ def _enumerate_macos_processes(dump_file: str) -> List[Dict[str, Any]]:
         return []
 
 
-def _enumerate_generic_processes(dump_file: str) -> List[Dict[str, Any]]:
+def _enumerate_generic_processes(dump_file: str) -> list[dict[str, Any]]:
     """Enumerate processes using generic method."""
     try:
         processes = []
@@ -543,7 +540,7 @@ def _enumerate_generic_processes(dump_file: str) -> List[Dict[str, Any]]:
         return []
 
 
-def _enrich_process_information(processes: List[Dict[str, Any]], dump_file: str) -> List[Dict[str, Any]]:
+def _enrich_process_information(processes: list[dict[str, Any]], dump_file: str) -> list[dict[str, Any]]:
     """Enrich process information with additional details."""
     try:
         enriched_processes = []
@@ -551,7 +548,7 @@ def _enrich_process_information(processes: List[Dict[str, Any]], dump_file: str)
         for process in processes:
             try:
                 # Add enrichment timestamp
-                process["enrichment_timestamp"] = datetime.now(timezone.utc).isoformat()
+                process["enrichment_timestamp"] = datetime.now(UTC).isoformat()
 
                 # Add memory dump source
                 process["dump_source"] = dump_file
@@ -578,7 +575,7 @@ def _enrich_process_information(processes: List[Dict[str, Any]], dump_file: str)
         return processes
 
 
-def _is_suspicious_process(process: Dict[str, Any]) -> bool:
+def _is_suspicious_process(process: dict[str, Any]) -> bool:
     """Check if process is suspicious."""
     try:
         suspicious_indicators = [
@@ -596,17 +593,14 @@ def _is_suspicious_process(process: Dict[str, Any]) -> bool:
 
         # Check for unusual memory usage
         memory_usage = process.get("memory_usage", 0)
-        if memory_usage > 100 * 1024 * 1024:  # > 100MB
-            return True
-
-        return False
+        return memory_usage > 100 * 1024 * 1024  # > 100MB
 
     except Exception:
         return False
 
 
 # Helper functions for network analysis
-def _analyze_windows_network(dump_file: str) -> Dict[str, Any]:
+def _analyze_windows_network(dump_file: str) -> dict[str, Any]:
     """Analyze Windows network connections from memory dump."""
     try:
         network_data = {
@@ -635,7 +629,7 @@ def _analyze_windows_network(dump_file: str) -> Dict[str, Any]:
         return {}
 
 
-def _analyze_linux_network(dump_file: str) -> Dict[str, Any]:
+def _analyze_linux_network(dump_file: str) -> dict[str, Any]:
     """Analyze Linux network connections from memory dump."""
     try:
         network_data = {
@@ -664,7 +658,7 @@ def _analyze_linux_network(dump_file: str) -> Dict[str, Any]:
         return {}
 
 
-def _analyze_macos_network(dump_file: str) -> Dict[str, Any]:
+def _analyze_macos_network(dump_file: str) -> dict[str, Any]:
     """Analyze macOS network connections from memory dump."""
     try:
         network_data = {
@@ -693,7 +687,7 @@ def _analyze_macos_network(dump_file: str) -> Dict[str, Any]:
         return {}
 
 
-def _analyze_generic_network(dump_file: str) -> Dict[str, Any]:
+def _analyze_generic_network(dump_file: str) -> dict[str, Any]:
     """Analyze network using generic method."""
     try:
         network_data = {
@@ -712,7 +706,7 @@ def _analyze_generic_network(dump_file: str) -> Dict[str, Any]:
         return {}
 
 
-def _extract_connection_patterns(network_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+def _extract_connection_patterns(network_data: dict[str, Any]) -> list[dict[str, Any]]:
     """Extract patterns from network connections."""
     try:
         patterns = []
@@ -758,7 +752,7 @@ def _extract_connection_patterns(network_data: Dict[str, Any]) -> List[Dict[str,
         return []
 
 
-def _identify_suspicious_connections(network_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+def _identify_suspicious_connections(network_data: dict[str, Any]) -> list[dict[str, Any]]:
     """Identify suspicious network connections."""
     try:
         suspicious = []
@@ -795,7 +789,7 @@ def _identify_suspicious_connections(network_data: Dict[str, Any]) -> List[Dict[
         return []
 
 
-def _generate_network_summary(network_data: Dict[str, Any], suspicious_connections: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _generate_network_summary(network_data: dict[str, Any], suspicious_connections: list[dict[str, Any]]) -> dict[str, Any]:
     """Generate network analysis summary."""
     try:
         connections = network_data.get("connections", [])
@@ -835,7 +829,7 @@ def _generate_network_summary(network_data: Dict[str, Any], suspicious_connectio
 
 
 # Helper functions for artifact extraction
-def _extract_process_artifacts(dump_file: str) -> List[Dict[str, Any]]:
+def _extract_process_artifacts(dump_file: str) -> list[dict[str, Any]]:
     """Extract process artifacts from memory dump."""
     try:
         artifacts = []
@@ -850,7 +844,7 @@ def _extract_process_artifacts(dump_file: str) -> List[Dict[str, Any]]:
         return []
 
 
-def _extract_file_artifacts(dump_file: str) -> List[Dict[str, Any]]:
+def _extract_file_artifacts(dump_file: str) -> list[dict[str, Any]]:
     """Extract file artifacts from memory dump."""
     try:
         artifacts = []
@@ -865,7 +859,7 @@ def _extract_file_artifacts(dump_file: str) -> List[Dict[str, Any]]:
         return []
 
 
-def _extract_registry_artifacts(dump_file: str) -> List[Dict[str, Any]]:
+def _extract_registry_artifacts(dump_file: str) -> list[dict[str, Any]]:
     """Extract registry artifacts from memory dump."""
     try:
         artifacts = []
@@ -880,7 +874,7 @@ def _extract_registry_artifacts(dump_file: str) -> List[Dict[str, Any]]:
         return []
 
 
-def _extract_network_artifacts(dump_file: str) -> List[Dict[str, Any]]:
+def _extract_network_artifacts(dump_file: str) -> list[dict[str, Any]]:
     """Extract network artifacts from memory dump."""
     try:
         artifacts = []
@@ -895,7 +889,7 @@ def _extract_network_artifacts(dump_file: str) -> List[Dict[str, Any]]:
         return []
 
 
-def _extract_string_artifacts(dump_file: str) -> List[Dict[str, Any]]:
+def _extract_string_artifacts(dump_file: str) -> list[dict[str, Any]]:
     """Extract string artifacts from memory dump."""
     try:
         artifacts = []
@@ -910,7 +904,7 @@ def _extract_string_artifacts(dump_file: str) -> List[Dict[str, Any]]:
         return []
 
 
-def _extract_handle_artifacts(dump_file: str) -> List[Dict[str, Any]]:
+def _extract_handle_artifacts(dump_file: str) -> list[dict[str, Any]]:
     """Extract handle artifacts from memory dump."""
     try:
         artifacts = []
@@ -925,7 +919,7 @@ def _extract_handle_artifacts(dump_file: str) -> List[Dict[str, Any]]:
         return []
 
 
-def _extract_memory_artifacts(dump_file: str) -> Dict[str, Any]:
+def _extract_memory_artifacts(dump_file: str) -> dict[str, Any]:
     """Extract memory artifacts."""
     try:
         artifacts = {
@@ -944,7 +938,7 @@ def _extract_memory_artifacts(dump_file: str) -> Dict[str, Any]:
         return {}
 
 
-def _extract_memory_strings(dump_file: str) -> Dict[str, Any]:
+def _extract_memory_strings(dump_file: str) -> dict[str, Any]:
     """Extract strings from memory dump."""
     try:
         strings = {
@@ -966,7 +960,7 @@ def _extract_memory_strings(dump_file: str) -> Dict[str, Any]:
         return {}
 
 
-def _generate_extraction_summary(extracted_artifacts: Dict[str, Any]) -> Dict[str, Any]:
+def _generate_extraction_summary(extracted_artifacts: dict[str, Any]) -> dict[str, Any]:
     """Generate artifact extraction summary."""
     try:
         summary = {
@@ -996,7 +990,7 @@ def _generate_extraction_summary(extracted_artifacts: Dict[str, Any]) -> Dict[st
 
 
 # Helper functions for pattern searching
-def _search_single_pattern(dump_file: str, pattern: str) -> List[Dict[str, Any]]:
+def _search_single_pattern(dump_file: str, pattern: str) -> list[dict[str, Any]]:
     """Search for a single pattern in memory dump."""
     try:
         matches = []
@@ -1019,7 +1013,7 @@ def _search_single_pattern(dump_file: str, pattern: str) -> List[Dict[str, Any]]
         return []
 
 
-def _enrich_pattern_matches(matches: List[Dict[str, Any]], dump_file: str) -> List[Dict[str, Any]]:
+def _enrich_pattern_matches(matches: list[dict[str, Any]], dump_file: str) -> list[dict[str, Any]]:
     """Enrich pattern matches with additional context."""
     try:
         enriched_matches = []
@@ -1027,7 +1021,7 @@ def _enrich_pattern_matches(matches: List[Dict[str, Any]], dump_file: str) -> Li
         for match in matches:
             try:
                 # Add enrichment timestamp
-                match["enrichment_timestamp"] = datetime.now(timezone.utc).isoformat()
+                match["enrichment_timestamp"] = datetime.now(UTC).isoformat()
 
                 # Add dump file source
                 match["dump_source"] = dump_file
@@ -1048,7 +1042,7 @@ def _enrich_pattern_matches(matches: List[Dict[str, Any]], dump_file: str) -> Li
         return matches
 
 
-def _generate_pattern_search_summary(matches: List[Dict[str, Any]], patterns: List[str]) -> Dict[str, Any]:
+def _generate_pattern_search_summary(matches: list[dict[str, Any]], patterns: list[str]) -> dict[str, Any]:
     """Generate pattern search summary."""
     try:
         summary = {
@@ -1071,9 +1065,9 @@ def _generate_pattern_search_summary(matches: List[Dict[str, Any]], patterns: Li
 
 
 # Helper functions for summary generation
-def _generate_memory_analysis_summary(dump_info: Dict[str, Any], process_results: Dict[str, Any],
-                                    network_results: Dict[str, Any], artifact_results: Dict[str, Any],
-                                    string_results: Dict[str, Any]) -> Dict[str, Any]:
+def _generate_memory_analysis_summary(dump_info: dict[str, Any], process_results: dict[str, Any],
+                                    network_results: dict[str, Any], artifact_results: dict[str, Any],
+                                    string_results: dict[str, Any]) -> dict[str, Any]:
     """Generate comprehensive memory analysis summary."""
     try:
         summary = {
@@ -1089,29 +1083,8 @@ def _generate_memory_analysis_summary(dump_info: Dict[str, Any], process_results
         }
 
         # Determine overall risk level
-        risk_score = 0
-
-        if summary["suspicious_processes"] > 5:
-            risk_score += 3
-        elif summary["suspicious_processes"] > 2:
-            risk_score += 2
-        elif summary["suspicious_processes"] > 0:
-            risk_score += 1
-
-        if summary["suspicious_connections"] > 3:
-            risk_score += 3
-        elif summary["suspicious_connections"] > 1:
-            risk_score += 2
-        elif summary["suspicious_connections"] > 0:
-            risk_score += 1
-
-        # Set risk level based on score
-        if risk_score >= 5:
-            summary["overall_risk_assessment"] = "high"
-        elif risk_score >= 3:
-            summary["overall_risk_assessment"] = "medium"
-        else:
-            summary["overall_risk_assessment"] = "low"
+        risk_score = _calculate_risk_score(summary["suspicious_processes"], summary["suspicious_connections"])
+        summary["overall_risk_assessment"] = _determine_risk_level(risk_score)
 
         # Generate recommendations
         if summary["overall_risk_assessment"] == "high":
@@ -1131,3 +1104,34 @@ def _generate_memory_analysis_summary(dump_info: Dict[str, Any], process_results
     except Exception as e:
         logger.warning(f"Failed to generate memory analysis summary: {e}")
         return {}
+
+
+def _calculate_risk_score(suspicious_processes: int, suspicious_connections: int) -> int:
+    """Calculate risk score based on suspicious activities."""
+    risk_score = 0
+
+    if suspicious_processes > 5:
+        risk_score += 3
+    elif suspicious_processes > 2:
+        risk_score += 2
+    elif suspicious_processes > 0:
+        risk_score += 1
+
+    if suspicious_connections > 3:
+        risk_score += 3
+    elif suspicious_connections > 1:
+        risk_score += 2
+    elif suspicious_connections > 0:
+        risk_score += 1
+
+    return risk_score
+
+
+def _determine_risk_level(risk_score: int) -> str:
+    """Determine risk level based on risk score."""
+    if risk_score >= 5:
+        return "high"
+    elif risk_score >= 3:
+        return "medium"
+    else:
+        return "low"

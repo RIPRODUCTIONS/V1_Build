@@ -1,18 +1,19 @@
 from __future__ import annotations
 
 import abc
-from dataclasses import dataclass
-from typing import Any, Dict, Optional, Callable
 import asyncio
 import time
+from collections.abc import Callable
+from dataclasses import dataclass
 from functools import wraps
+from typing import Any
 
 
 @dataclass(slots=True)
 class OAuth2Credentials:
     access_token: str
-    refresh_token: Optional[str] = None
-    expires_at_ts: Optional[int] = None
+    refresh_token: str | None = None
+    expires_at_ts: int | None = None
 
 
 class IntegrationError(Exception):
@@ -31,7 +32,7 @@ class IntegrationBase(abc.ABC):
         """Return True if this integration is available for the user (credentials present)."""
 
     @abc.abstractmethod
-    async def sync(self, user_id: str) -> Dict[str, Any]:
+    async def sync(self, user_id: str) -> dict[str, Any]:
         """Perform a sync; return summary metrics for Prometheus."""
 
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 import httpx
 import jinja2
@@ -32,7 +32,7 @@ class ActionExecutor:
     async def create_task(self, params: dict, context: dict, db: Session) -> dict:
         raw_user = context.get("user_id")
         try:
-            owner_id = int(raw_user) if isinstance(raw_user, (str, int)) and str(raw_user).isdigit() else 1
+            owner_id = int(raw_user) if isinstance(raw_user, str | int) and str(raw_user).isdigit() else 1
         except Exception:
             owner_id = 1
         event = context.get("event", {})
@@ -49,7 +49,7 @@ class ActionExecutor:
     # Removed earlier duplicate send_notification to avoid redefinition; unified below
 
     async def aggregate_and_notify(self, params: dict, context: dict, db: Session) -> dict:
-        user_id = context.get("user_id")
+        context.get("user_id")
         # Placeholder aggregation — extend with real sources
         message = "No events or tasks for today"
         return await self.send_notification({"message": message, "channel": params.get("channel", "email"), "subject": "Daily Summary"}, context, db)

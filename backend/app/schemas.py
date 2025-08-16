@@ -19,8 +19,7 @@ class UserOut(BaseModel):
     id: int
     email: EmailStr
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class LeadCreate(BaseModel):
@@ -54,8 +53,7 @@ class LeadOut(BaseModel):
     notes: str | None = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class TaskOut(BaseModel):
@@ -66,8 +64,7 @@ class TaskOut(BaseModel):
     status: str
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class AgentRunRequest(BaseModel):

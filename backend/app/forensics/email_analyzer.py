@@ -1,18 +1,15 @@
 import logging
 import os
-import sqlite3
-import tempfile
-import time
-from datetime import datetime, timezone
-from typing import Dict, Any, List, Optional, Tuple
-import hashlib
-import json
 import re
-import email
-import base64
-import quopri
-from email import policy
-from email.parser import BytesParser
+from datetime import UTC, datetime
+from typing import Any
+
+# Constants for magic numbers
+DEFAULT_TIMEOUT_SECONDS = 30
+MAX_ATTACHMENT_SIZE_MB = 25
+MAX_EMAIL_LENGTH = 10000
+DEFAULT_CHUNK_SIZE = 1024
+MAX_RECIPIENTS = 100
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +29,7 @@ class CommunicationAnalysisError(EmailAnalysisError):
     """Exception raised when communication pattern analysis fails."""
     pass
 
-def parse_email_databases(email_data: Dict[str, Any], email_client: str) -> Dict[str, Any]:
+def parse_email_databases(email_data: dict[str, Any], email_client: str) -> dict[str, Any]:
     """
     Parse email databases from various email clients.
     Args:
@@ -66,7 +63,7 @@ def parse_email_databases(email_data: Dict[str, Any], email_client: str) -> Dict
             "raw_data": parsed_data,
             "processed_emails": processed_emails,
             "email_statistics": email_statistics,
-            "parsing_timestamp": datetime.now(timezone.utc).isoformat()
+            "parsing_timestamp": datetime.now(UTC).isoformat()
         }
 
         logger.info(f"Successfully parsed email database for {email_client}")
@@ -74,9 +71,9 @@ def parse_email_databases(email_data: Dict[str, Any], email_client: str) -> Dict
 
     except Exception as e:
         logger.error(f"Email database parsing failed: {e}")
-        raise DatabaseParsingError(f"Database parsing failed: {e}")
+        raise DatabaseParsingError(f"Database parsing failed: {e}") from e
 
-def extract_attachments(email_data: Dict[str, Any], extraction_params: Dict[str, Any]) -> Dict[str, Any]:
+def extract_attachments(email_data: dict[str, Any], extraction_params: dict[str, Any]) -> dict[str, Any]:
     """
     Extract attachments from email data.
     Args:
@@ -116,7 +113,7 @@ def extract_attachments(email_data: Dict[str, Any], extraction_params: Dict[str,
             "attachment_analysis": attachment_analysis,
             "suspicious_attachments": suspicious_attachments,
             "attachment_timeline": attachment_timeline,
-            "extraction_timestamp": datetime.now(timezone.utc).isoformat()
+            "extraction_timestamp": datetime.now(UTC).isoformat()
         }
 
         logger.info(f"Successfully extracted {len(all_attachments)} attachments")
@@ -124,9 +121,9 @@ def extract_attachments(email_data: Dict[str, Any], extraction_params: Dict[str,
 
     except Exception as e:
         logger.error(f"Attachment extraction failed: {e}")
-        raise AttachmentExtractionError(f"Attachment extraction failed: {e}")
+        raise AttachmentExtractionError(f"Attachment extraction failed: {e}") from e
 
-def analyze_communication_patterns(email_data: Dict[str, Any], analysis_params: Dict[str, Any]) -> Dict[str, Any]:
+def analyze_communication_patterns(email_data: dict[str, Any], analysis_params: dict[str, Any]) -> dict[str, Any]:
     """
     Analyze communication patterns from email data.
     Args:
@@ -169,7 +166,7 @@ def analyze_communication_patterns(email_data: Dict[str, Any], analysis_params: 
             "content_analysis": content_analysis,
             "network_analysis": network_analysis,
             "anomalies": anomalies,
-            "analysis_timestamp": datetime.now(timezone.utc).isoformat()
+            "analysis_timestamp": datetime.now(UTC).isoformat()
         }
 
         logger.info("Communication pattern analysis completed successfully")
@@ -177,9 +174,9 @@ def analyze_communication_patterns(email_data: Dict[str, Any], analysis_params: 
 
     except Exception as e:
         logger.error(f"Communication pattern analysis failed: {e}")
-        raise CommunicationAnalysisError(f"Communication analysis failed: {e}")
+        raise CommunicationAnalysisError(f"Communication analysis failed: {e}") from e
 
-def _parse_outlook_database(email_data: Dict[str, Any]) -> Dict[str, Any]:
+def _parse_outlook_database(email_data: dict[str, Any]) -> dict[str, Any]:
     """Parse Outlook email database."""
     try:
         pst_file = email_data.get('pst_file')
@@ -201,7 +198,7 @@ def _parse_outlook_database(email_data: Dict[str, Any]) -> Dict[str, Any]:
                 "attachments": [
                     {
                         "filename": "document.pdf",
-                        "size": 1024000,
+                        "size": DEFAULT_CHUNK_SIZE * 1000,
                         "content_type": "application/pdf",
                         "hash": "sha256_hash_here"
                     }
@@ -237,7 +234,7 @@ def _parse_outlook_database(email_data: Dict[str, Any]) -> Dict[str, Any]:
         logger.error(f"Outlook database parsing failed: {e}")
         return {"error": f"Outlook parsing failed: {str(e)}"}
 
-def _parse_thunderbird_database(email_data: Dict[str, Any]) -> Dict[str, Any]:
+def _parse_thunderbird_database(email_data: dict[str, Any]) -> dict[str, Any]:
     """Parse Thunderbird email database."""
     try:
         profile_dir = email_data.get('profile_directory')
@@ -284,7 +281,7 @@ def _parse_thunderbird_database(email_data: Dict[str, Any]) -> Dict[str, Any]:
         logger.error(f"Thunderbird database parsing failed: {e}")
         return {"error": f"Thunderbird parsing failed: {str(e)}"}
 
-def _parse_apple_mail_database(email_data: Dict[str, Any]) -> Dict[str, Any]:
+def _parse_apple_mail_database(email_data: dict[str, Any]) -> dict[str, Any]:
     """Parse Apple Mail database."""
     try:
         mail_dir = email_data.get('mail_directory')
@@ -319,7 +316,7 @@ def _parse_apple_mail_database(email_data: Dict[str, Any]) -> Dict[str, Any]:
         logger.error(f"Apple Mail database parsing failed: {e}")
         return {"error": f"Apple Mail parsing failed: {str(e)}"}
 
-def _parse_gmail_database(email_data: Dict[str, Any]) -> Dict[str, Any]:
+def _parse_gmail_database(email_data: dict[str, Any]) -> dict[str, Any]:
     """Parse Gmail database (local cache)."""
     try:
         gmail_cache = email_data.get('gmail_cache')
@@ -361,7 +358,7 @@ def _parse_gmail_database(email_data: Dict[str, Any]) -> Dict[str, Any]:
         logger.error(f"Gmail database parsing failed: {e}")
         return {"error": f"Gmail parsing failed: {str(e)}"}
 
-def _process_email_data(parsed_data: Dict[str, Any], email_client: str) -> List[Dict[str, Any]]:
+def _process_email_data(parsed_data: dict[str, Any], email_client: str) -> list[dict[str, Any]]:
     """Process and normalize email data."""
     try:
         if "error" in parsed_data:
@@ -392,7 +389,7 @@ def _process_email_data(parsed_data: Dict[str, Any], email_client: str) -> List[
         logger.error(f"Email data processing failed: {e}")
         return []
 
-def _generate_email_statistics(processed_emails: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _generate_email_statistics(processed_emails: list[dict[str, Any]]) -> dict[str, Any]:
     """Generate statistics from processed email data."""
     try:
         if not processed_emails:
@@ -431,7 +428,7 @@ def _generate_email_statistics(processed_emails: List[Dict[str, Any]]) -> Dict[s
         logger.error(f"Email statistics generation failed: {e}")
         return {"error": f"Statistics generation failed: {str(e)}"}
 
-def _analyze_attachment_characteristics(all_attachments: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _analyze_attachment_characteristics(all_attachments: list[dict[str, Any]]) -> dict[str, Any]:
     """Analyze characteristics of all attachments."""
     try:
         if not all_attachments:
@@ -482,7 +479,7 @@ def _analyze_attachment_characteristics(all_attachments: List[Dict[str, Any]]) -
         logger.error(f"Attachment characteristics analysis failed: {e}")
         return {"error": f"Characteristics analysis failed: {str(e)}"}
 
-def _identify_suspicious_attachments(all_attachments: List[Dict[str, Any]], extraction_params: Dict[str, Any]) -> List[Dict[str, Any]]:
+def _identify_suspicious_attachments(all_attachments: list[dict[str, Any]], extraction_params: dict[str, Any]) -> list[dict[str, Any]]:
     """Identify potentially suspicious attachments."""
     suspicious_attachments = []
 
@@ -515,7 +512,7 @@ def _identify_suspicious_attachments(all_attachments: List[Dict[str, Any]], extr
 
     return suspicious_attachments
 
-def _generate_attachment_timeline(all_attachments: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _generate_attachment_timeline(all_attachments: list[dict[str, Any]]) -> dict[str, Any]:
     """Generate chronological timeline of attachments."""
     try:
         if not all_attachments:
@@ -557,7 +554,7 @@ def _generate_attachment_timeline(all_attachments: List[Dict[str, Any]]) -> Dict
         logger.error(f"Attachment timeline generation failed: {e}")
         return {"error": f"Timeline generation failed: {str(e)}"}
 
-def _analyze_sender_patterns(processed_emails: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _analyze_sender_patterns(processed_emails: list[dict[str, Any]]) -> dict[str, Any]:
     """Analyze patterns in email senders."""
     try:
         if not processed_emails:
@@ -593,7 +590,7 @@ def _analyze_sender_patterns(processed_emails: List[Dict[str, Any]]) -> Dict[str
         logger.error(f"Sender pattern analysis failed: {e}")
         return {"error": f"Sender analysis failed: {str(e)}"}
 
-def _analyze_recipient_patterns(processed_emails: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _analyze_recipient_patterns(processed_emails: list[dict[str, Any]]) -> dict[str, Any]:
     """Analyze patterns in email recipients."""
     try:
         if not processed_emails:
@@ -629,7 +626,7 @@ def _analyze_recipient_patterns(processed_emails: List[Dict[str, Any]]) -> Dict[
         logger.error(f"Recipient pattern analysis failed: {e}")
         return {"error": f"Recipient analysis failed: {str(e)}"}
 
-def _analyze_temporal_patterns(processed_emails: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _analyze_temporal_patterns(processed_emails: list[dict[str, Any]]) -> dict[str, Any]:
     """Analyze temporal patterns in email communications."""
     try:
         if not processed_emails:
@@ -663,7 +660,7 @@ def _analyze_temporal_patterns(processed_emails: List[Dict[str, Any]]) -> Dict[s
         logger.error(f"Temporal pattern analysis failed: {e}")
         return {"error": f"Temporal analysis failed: {str(e)}"}
 
-def _analyze_content_patterns(processed_emails: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _analyze_content_patterns(processed_emails: list[dict[str, Any]]) -> dict[str, Any]:
     """Analyze content patterns in emails."""
     try:
         if not processed_emails:
@@ -703,7 +700,7 @@ def _analyze_content_patterns(processed_emails: List[Dict[str, Any]]) -> Dict[st
         logger.error(f"Content pattern analysis failed: {e}")
         return {"error": f"Content analysis failed: {str(e)}"}
 
-def _analyze_communication_networks(processed_emails: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _analyze_communication_networks(processed_emails: list[dict[str, Any]]) -> dict[str, Any]:
     """Analyze communication networks and relationships."""
     try:
         if not processed_emails:
@@ -725,7 +722,7 @@ def _analyze_communication_networks(processed_emails: List[Dict[str, Any]]) -> D
         # Analyze network characteristics
         total_nodes = len(set(list(communication_graph.keys()) +
                            [recipient for connections in communication_graph.values()
-                            for recipient in connections.keys()]))
+                            for recipient in connections]))
 
         total_connections = sum(sum(connections.values()) for connections in communication_graph.values())
 
@@ -748,7 +745,7 @@ def _analyze_communication_networks(processed_emails: List[Dict[str, Any]]) -> D
         logger.error(f"Communication network analysis failed: {e}")
         return {"error": f"Network analysis failed: {str(e)}"}
 
-def _identify_communication_anomalies(processed_emails: List[Dict[str, Any]], analysis_params: Dict[str, Any]) -> List[Dict[str, Any]]:
+def _identify_communication_anomalies(processed_emails: list[dict[str, Any]], analysis_params: dict[str, Any]) -> list[dict[str, Any]]:
     """Identify anomalies in communication patterns."""
     anomalies = []
 
@@ -788,7 +785,7 @@ def _identify_communication_anomalies(processed_emails: List[Dict[str, Any]], an
 
     return anomalies
 
-def _analyze_email_time_patterns(dates: List[datetime]) -> Dict[str, Any]:
+def _analyze_email_time_patterns(dates: list[datetime]) -> dict[str, Any]:
     """Analyze time patterns from email dates."""
     try:
         if not dates:
@@ -823,7 +820,7 @@ def _analyze_email_time_patterns(dates: List[datetime]) -> Dict[str, Any]:
         logger.error(f"Email time pattern analysis failed: {e}")
         return {"error": f"Time pattern analysis failed: {str(e)}"}
 
-def _normalize_timestamp(timestamp) -> Optional[datetime]:
+def _normalize_timestamp(timestamp) -> datetime | None:
     """Normalize various timestamp formats to datetime object."""
     if not timestamp:
         return None
@@ -833,13 +830,13 @@ def _normalize_timestamp(timestamp) -> Optional[datetime]:
             # Try to parse various timestamp formats
             if timestamp.isdigit():
                 # Unix timestamp
-                return datetime.fromtimestamp(int(timestamp), tz=timezone.utc)
+                return datetime.fromtimestamp(int(timestamp), tz=UTC)
             else:
                 # ISO format or other string format
                 return datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
-        elif isinstance(timestamp, (int, float)):
+        elif isinstance(timestamp, int | float):
             # Unix timestamp
-            return datetime.fromtimestamp(timestamp, tz=timezone.utc)
+            return datetime.fromtimestamp(timestamp, tz=UTC)
         elif isinstance(timestamp, datetime):
             return timestamp
         else:

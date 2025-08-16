@@ -1,6 +1,6 @@
 import pytest
 
-from app.operator.template_library import AutomationTemplateLibrary
+from app.web_operator.template_library import AutomationTemplateLibrary
 
 
 @pytest.mark.asyncio

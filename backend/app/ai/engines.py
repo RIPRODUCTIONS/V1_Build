@@ -1,10 +1,15 @@
 from __future__ import annotations
 
-import asyncio
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable
+from typing import Any
 
-from .models import HistoricalInsights, BehavioralInsights, PredictionBundle, PredictiveAutomationPlan
+from .models import (
+    BehavioralInsights,
+    HistoricalInsights,
+    PredictionBundle,
+    PredictiveAutomationPlan,
+)
 
 
 @dataclass(slots=True)
@@ -35,7 +40,7 @@ class BehaviorAnalysisEngine:
 
 @dataclass(slots=True)
 class PredictiveAutomationEngine:
-    async def predict_and_plan(self, user_id: str, pre_execute: bool = True, options: Dict[str, Any] | None = None) -> PredictiveAutomationPlan:
+    async def predict_and_plan(self, user_id: str, pre_execute: bool = True, options: dict[str, Any] | None = None) -> PredictiveAutomationPlan:
         bundle = PredictionBundle(cash_flow={}, expenses={}, investments={}, productivity={})
         return PredictiveAutomationPlan(predictions=bundle, pre_executed=[], confidence_scores={})
 

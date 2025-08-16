@@ -5,16 +5,14 @@ This module provides comprehensive disk forensics capabilities including disk im
 filesystem analysis, unallocated space scanning, and deleted file recovery.
 """
 
+import hashlib
 import logging
 import os
 import subprocess
 import tempfile
 import time
-from datetime import datetime, timezone
-from pathlib import Path
-from typing import Dict, Any, List, Optional, Tuple
-import hashlib
-import shutil
+from datetime import UTC, datetime
+from typing import Any
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -40,7 +38,7 @@ class AnalysisError(DiskAnalysisError):
     pass
 
 
-def create_disk_image(source_device: str, params: Dict[str, Any]) -> Dict[str, Any]:
+def create_disk_image(source_device: str, params: dict[str, Any]) -> dict[str, Any]:
     """
     Create forensic disk image.
 
@@ -70,7 +68,7 @@ def create_disk_image(source_device: str, params: Dict[str, Any]) -> Dict[str, A
         output_dir = _create_output_directory()
 
         # Generate image filename
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
         image_filename = f"disk_image_{timestamp}.img"
         image_path = os.path.join(output_dir, image_filename)
 
@@ -79,9 +77,9 @@ def create_disk_image(source_device: str, params: Dict[str, Any]) -> Dict[str, A
 
         # Create the image using appropriate tool
         if compression == "gzip":
-            image_result = _create_gzipped_image(source_device, image_path, block_size)
+            _create_gzipped_image(source_device, image_path, block_size)
         elif compression == "none":
-            image_result = _create_raw_image(source_device, image_path, block_size)
+            _create_raw_image(source_device, image_path, block_size)
         else:
             raise ImagingError(f"Unsupported compression type: {compression}")
 
@@ -105,7 +103,7 @@ def create_disk_image(source_device: str, params: Dict[str, Any]) -> Dict[str, A
             "imaging_duration": imaging_duration,
             "integrity_verification": integrity_result,
             "image_statistics": image_stats,
-            "imaging_timestamp": datetime.now(timezone.utc).isoformat(),
+            "imaging_timestamp": datetime.now(UTC).isoformat(),
             "status": "completed"
         }
 
@@ -114,10 +112,10 @@ def create_disk_image(source_device: str, params: Dict[str, Any]) -> Dict[str, A
 
     except Exception as e:
         logger.error(f"Disk imaging failed: {e}")
-        raise ImagingError(f"Disk imaging failed: {e}")
+        raise ImagingError(f"Disk imaging failed: {e}") from e
 
 
-def mount_image(image_path: str) -> Dict[str, Any]:
+def mount_image(image_path: str) -> dict[str, Any]:
     """
     Mount disk image for analysis.
 
@@ -164,7 +162,7 @@ def mount_image(image_path: str) -> Dict[str, Any]:
             "image_format": image_format,
             "mount_result": mount_result,
             "mount_info": mount_info,
-            "mount_timestamp": datetime.now(timezone.utc).isoformat(),
+            "mount_timestamp": datetime.now(UTC).isoformat(),
             "status": "mounted"
         }
 
@@ -173,10 +171,10 @@ def mount_image(image_path: str) -> Dict[str, Any]:
 
     except Exception as e:
         logger.error(f"Disk image mounting failed: {e}")
-        raise MountingError(f"Image mounting failed: {e}")
+        raise MountingError(f"Image mounting failed: {e}") from e
 
 
-def analyze_filesystem(mount_point: str) -> Dict[str, Any]:
+def analyze_filesystem(mount_point: str) -> dict[str, Any]:
     """
     Analyze filesystem structure and artifacts.
 
@@ -233,7 +231,7 @@ def analyze_filesystem(mount_point: str) -> Dict[str, Any]:
             "hidden_files": hidden_files,
             "deleted_files": deleted_files,
             "analysis_summary": analysis_summary,
-            "analysis_timestamp": datetime.now(timezone.utc).isoformat()
+            "analysis_timestamp": datetime.now(UTC).isoformat()
         }
 
         logger.info("Filesystem analysis completed successfully")
@@ -241,10 +239,10 @@ def analyze_filesystem(mount_point: str) -> Dict[str, Any]:
 
     except Exception as e:
         logger.error(f"Filesystem analysis failed: {e}")
-        raise AnalysisError(f"Filesystem analysis failed: {e}")
+        raise AnalysisError(f"Filesystem analysis failed: {e}") from e
 
 
-def scan_unallocated_space(image_path: str) -> Dict[str, Any]:
+def scan_unallocated_space(image_path: str) -> dict[str, Any]:
     """
     Scan unallocated disk space.
 
@@ -294,7 +292,7 @@ def scan_unallocated_space(image_path: str) -> Dict[str, Any]:
             "slack_space": slack_space,
             "unallocated_patterns": unallocated_patterns,
             "scan_statistics": scan_statistics,
-            "scan_timestamp": datetime.now(timezone.utc).isoformat()
+            "scan_timestamp": datetime.now(UTC).isoformat()
         }
 
         logger.info("Unallocated space scan completed successfully")
@@ -302,10 +300,10 @@ def scan_unallocated_space(image_path: str) -> Dict[str, Any]:
 
     except Exception as e:
         logger.error(f"Unallocated space scanning failed: {e}")
-        raise AnalysisError(f"Unallocated space scanning failed: {e}")
+        raise AnalysisError(f"Unallocated space scanning failed: {e}") from e
 
 
-def recover_deleted_files(scan_results: Dict[str, Any]) -> List[Dict[str, Any]]:
+def recover_deleted_files(scan_results: dict[str, Any]) -> list[dict[str, Any]]:
     """
     Recover deleted files from unallocated space.
 
@@ -359,14 +357,14 @@ def recover_deleted_files(scan_results: Dict[str, Any]) -> List[Dict[str, Any]]:
         validated_files = _validate_recovered_files(recovered_files)
 
         # Generate recovery summary
-        recovery_summary = _generate_recovery_summary(validated_files)
+        _generate_recovery_summary(validated_files)
 
         logger.info(f"File recovery completed. Recovered {len(validated_files)} files")
         return validated_files
 
     except Exception as e:
         logger.error(f"File recovery failed: {e}")
-        raise AnalysisError(f"File recovery failed: {e}")
+        raise AnalysisError(f"File recovery failed: {e}") from e
 
 
 # Helper functions for disk imaging
@@ -378,10 +376,7 @@ def _validate_source_device(source_device: str) -> bool:
             return False
 
         # Check if it's a block device or regular file
-        if os.path.isblock(source_device) or os.path.isfile(source_device):
-            return True
-
-        return False
+        return bool(os.path.isblock(source_device) or os.path.isfile(source_device))
     except Exception:
         return False
 
@@ -397,7 +392,7 @@ def _create_output_directory() -> str:
         return tempfile.gettempdir()
 
 
-def _create_gzipped_image(source_device: str, image_path: str, block_size: int) -> Dict[str, Any]:
+def _create_gzipped_image(source_device: str, image_path: str, block_size: int) -> dict[str, Any]:
     """Create gzipped disk image."""
     try:
         # Use dd and gzip to create compressed image
@@ -435,7 +430,7 @@ def _create_gzipped_image(source_device: str, image_path: str, block_size: int) 
         }
 
 
-def _create_raw_image(source_device: str, image_path: str, block_size: int) -> Dict[str, Any]:
+def _create_raw_image(source_device: str, image_path: str, block_size: int) -> dict[str, Any]:
     """Create raw disk image."""
     try:
         # Use dd to create raw image
@@ -446,7 +441,7 @@ def _create_raw_image(source_device: str, image_path: str, block_size: int) -> D
             "conv=noerror,sync"
         ]
 
-        result = subprocess.run(dd_cmd, capture_output=True, text=True)
+        result = subprocess.run(dd_cmd, check=False, capture_output=True, text=True)
 
         if result.returncode == 0:
             return {
@@ -472,7 +467,7 @@ def _create_raw_image(source_device: str, image_path: str, block_size: int) -> D
         }
 
 
-def _verify_image_integrity(source_device: str, image_path: str) -> Dict[str, Any]:
+def _verify_image_integrity(source_device: str, image_path: str) -> dict[str, Any]:
     """Verify image integrity."""
     try:
         # Calculate source hash
@@ -506,12 +501,12 @@ def _verify_image_integrity(source_device: str, image_path: str) -> Dict[str, An
         }
 
 
-def _calculate_device_hash(device_path: str) -> Optional[str]:
+def _calculate_device_hash(device_path: str) -> str | None:
     """Calculate hash of device."""
     try:
         # Use dd to read device and calculate hash
         dd_cmd = ["dd", "if=" + device_path, "bs=1M", "count=100"]
-        result = subprocess.run(dd_cmd, capture_output=True)
+        result = subprocess.run(dd_cmd, check=False, capture_output=True)
 
         if result.returncode == 0:
             return hashlib.sha256(result.stdout).hexdigest()
@@ -521,7 +516,7 @@ def _calculate_device_hash(device_path: str) -> Optional[str]:
         return None
 
 
-def _calculate_file_hash(file_path: str) -> Optional[str]:
+def _calculate_file_hash(file_path: str) -> str | None:
     """Calculate hash of file."""
     try:
         with open(file_path, 'rb') as f:
@@ -530,7 +525,7 @@ def _calculate_file_hash(file_path: str) -> Optional[str]:
         return None
 
 
-def _calculate_image_statistics(image_path: str, source_device: str) -> Dict[str, Any]:
+def _calculate_image_statistics(image_path: str, source_device: str) -> dict[str, Any]:
     """Calculate image statistics."""
     try:
         stats = {}
@@ -601,21 +596,21 @@ def _detect_image_format(image_path: str) -> str:
         return "unknown"
 
 
-def _mount_raw_image(image_path: str, mount_point: str) -> Dict[str, Any]:
+def _mount_raw_image(image_path: str, mount_point: str) -> dict[str, Any]:
     """Mount raw disk image."""
     try:
         # Use losetup and mount for Linux
         if os.name == 'posix':
             # Create loop device
             losetup_cmd = ["losetup", "--find", "--show", image_path]
-            result = subprocess.run(losetup_cmd, capture_output=True, text=True)
+            result = subprocess.run(losetup_cmd, check=False, capture_output=True, text=True)
 
             if result.returncode == 0:
                 loop_device = result.stdout.strip()
 
                 # Mount the loop device
                 mount_cmd = ["mount", loop_device, mount_point]
-                mount_result = subprocess.run(mount_cmd, capture_output=True, text=True)
+                mount_result = subprocess.run(mount_cmd, check=False, capture_output=True, text=True)
 
                 if mount_result.returncode == 0:
                     return {
@@ -652,7 +647,7 @@ def _mount_raw_image(image_path: str, mount_point: str) -> Dict[str, Any]:
         }
 
 
-def _mount_compressed_image(image_path: str, mount_point: str) -> Dict[str, Any]:
+def _mount_compressed_image(image_path: str, mount_point: str) -> dict[str, Any]:
     """Mount compressed disk image."""
     try:
         # Decompress and mount
@@ -678,7 +673,7 @@ def _mount_compressed_image(image_path: str, mount_point: str) -> Dict[str, Any]
         }
 
 
-def _decompress_image(image_path: str) -> Optional[str]:
+def _decompress_image(image_path: str) -> str | None:
     """Decompress image file."""
     try:
         # Create temporary file for decompressed image
@@ -688,7 +683,7 @@ def _decompress_image(image_path: str) -> Optional[str]:
         # Decompress using gunzip
         gunzip_cmd = ["gunzip", "-c", image_path]
         with open(temp_image.name, 'wb') as output_file:
-            result = subprocess.run(gunzip_cmd, stdout=output_file, stderr=subprocess.PIPE)
+            result = subprocess.run(gunzip_cmd, check=False, stdout=output_file, stderr=subprocess.PIPE)
 
         if result.returncode == 0:
             return temp_image.name
@@ -719,20 +714,20 @@ def _verify_mount_success(mount_point: str) -> bool:
         return False
 
 
-def _get_mount_information(mount_point: str, image_path: str) -> Dict[str, Any]:
+def _get_mount_information(mount_point: str, image_path: str) -> dict[str, Any]:
     """Get mount information."""
     try:
         mount_info = {
             "mount_point": mount_point,
             "image_path": image_path,
-            "mount_time": datetime.now(timezone.utc).isoformat()
+            "mount_time": datetime.now(UTC).isoformat()
         }
 
         # Get filesystem information
         if os.name == 'posix':
             try:
                 df_cmd = ["df", mount_point]
-                result = subprocess.run(df_cmd, capture_output=True, text=True)
+                result = subprocess.run(df_cmd, check=False, capture_output=True, text=True)
 
                 if result.returncode == 0:
                     lines = result.stdout.strip().split('\n')
@@ -761,7 +756,7 @@ def _validate_mount_point(mount_point: str) -> bool:
         return False
 
 
-def _analyze_filesystem_structure(mount_point: str) -> Dict[str, Any]:
+def _analyze_filesystem_structure(mount_point: str) -> dict[str, Any]:
     """Analyze filesystem structure."""
     try:
         structure = {
@@ -773,7 +768,7 @@ def _analyze_filesystem_structure(mount_point: str) -> Dict[str, Any]:
         }
 
         # Count directories and files
-        for root, dirs, files in os.walk(mount_point):
+        for _root, dirs, files in os.walk(mount_point):
             structure["total_directories"] += len(dirs)
             structure["total_files"] += len(files)
 
@@ -781,7 +776,7 @@ def _analyze_filesystem_structure(mount_point: str) -> Dict[str, Any]:
         if os.name == 'posix':
             try:
                 stat_cmd = ["stat", "-f", mount_point]
-                result = subprocess.run(stat_cmd, capture_output=True, text=True)
+                result = subprocess.run(stat_cmd, check=False, capture_output=True, text=True)
 
                 if result.returncode == 0:
                     lines = result.stdout.strip().split('\n')
@@ -802,7 +797,7 @@ def _analyze_filesystem_structure(mount_point: str) -> Dict[str, Any]:
         return {}
 
 
-def _analyze_file_metadata(mount_point: str) -> Dict[str, Any]:
+def _analyze_file_metadata(mount_point: str) -> dict[str, Any]:
     """Analyze file metadata."""
     try:
         metadata = {
@@ -812,7 +807,7 @@ def _analyze_file_metadata(mount_point: str) -> Dict[str, Any]:
             "total_size": 0
         }
 
-        for root, dirs, files in os.walk(mount_point):
+        for root, _dirs, files in os.walk(mount_point):
             for file in files:
                 try:
                     file_path = os.path.join(root, file)
@@ -852,7 +847,7 @@ def _analyze_file_metadata(mount_point: str) -> Dict[str, Any]:
         return {}
 
 
-def _analyze_directory_structure(mount_point: str) -> Dict[str, Any]:
+def _analyze_directory_structure(mount_point: str) -> dict[str, Any]:
     """Analyze directory structure."""
     try:
         structure = {
@@ -863,7 +858,7 @@ def _analyze_directory_structure(mount_point: str) -> Dict[str, Any]:
             "max_depth": 0
         }
 
-        for root, dirs, files in os.walk(mount_point):
+        for root, _dirs, files in os.walk(mount_point):
             try:
                 # Calculate directory depth
                 depth = root.count(os.sep) - mount_point.count(os.sep)
@@ -882,7 +877,7 @@ def _analyze_directory_structure(mount_point: str) -> Dict[str, Any]:
 
         # Find common paths
         path_counts = {}
-        for root in structure["directory_sizes"].keys():
+        for root in structure["directory_sizes"]:
             path_parts = root.split(os.sep)
             for i in range(1, len(path_parts)):
                 partial_path = os.sep.join(path_parts[:i+1])
@@ -902,7 +897,7 @@ def _analyze_directory_structure(mount_point: str) -> Dict[str, Any]:
         return {}
 
 
-def _analyze_file_timestamps(mount_point: str) -> Dict[str, Any]:
+def _analyze_file_timestamps(mount_point: str) -> dict[str, Any]:
     """Analyze file timestamps."""
     try:
         timestamps = {
@@ -915,7 +910,7 @@ def _analyze_file_timestamps(mount_point: str) -> Dict[str, Any]:
 
         current_time = time.time()
 
-        for root, dirs, files in os.walk(mount_point):
+        for root, _dirs, files in os.walk(mount_point):
             for file in files:
                 try:
                     file_path = os.path.join(root, file)
@@ -966,7 +961,7 @@ def _analyze_file_timestamps(mount_point: str) -> Dict[str, Any]:
         return {}
 
 
-def _analyze_file_permissions(mount_point: str) -> Dict[str, Any]:
+def _analyze_file_permissions(mount_point: str) -> dict[str, Any]:
     """Analyze file permissions."""
     try:
         permissions = {
@@ -977,7 +972,7 @@ def _analyze_file_permissions(mount_point: str) -> Dict[str, Any]:
             "permission_errors": 0
         }
 
-        for root, dirs, files in os.walk(mount_point):
+        for root, _dirs, files in os.walk(mount_point):
             for file in files:
                 try:
                     file_path = os.path.join(root, file)
@@ -1007,12 +1002,12 @@ def _analyze_file_permissions(mount_point: str) -> Dict[str, Any]:
         return {}
 
 
-def _analyze_hidden_files(mount_point: str) -> List[Dict[str, Any]]:
+def _analyze_hidden_files(mount_point: str) -> list[dict[str, Any]]:
     """Analyze hidden files."""
     try:
         hidden_files = []
 
-        for root, dirs, files in os.walk(mount_point):
+        for root, _dirs, files in os.walk(mount_point):
             for file in files:
                 if file.startswith('.'):
                     try:
@@ -1036,7 +1031,7 @@ def _analyze_hidden_files(mount_point: str) -> List[Dict[str, Any]]:
         return []
 
 
-def _analyze_deleted_files(mount_point: str) -> List[Dict[str, Any]]:
+def _analyze_deleted_files(mount_point: str) -> list[dict[str, Any]]:
     """Analyze deleted files."""
     try:
         deleted_files = []
@@ -1052,12 +1047,17 @@ def _analyze_deleted_files(mount_point: str) -> List[Dict[str, Any]]:
         return []
 
 
-def _generate_filesystem_summary(fs_structure: Dict[str, Any], file_metadata: Dict[str, Any],
-                                directory_structure: Dict[str, Any], timestamp_analysis: Dict[str, Any],
-                                permission_analysis: Dict[str, Any], hidden_files: List[Dict[str, Any]],
-                                deleted_files: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _generate_filesystem_summary(analysis_data: dict[str, Any]) -> dict[str, Any]:
     """Generate filesystem analysis summary."""
     try:
+        fs_structure = analysis_data.get("fs_structure", {})
+        file_metadata = analysis_data.get("file_metadata", {})
+        directory_structure = analysis_data.get("directory_structure", {})
+        timestamp_analysis = analysis_data.get("timestamp_analysis", {})
+        permission_analysis = analysis_data.get("permission_analysis", {})
+        hidden_files = analysis_data.get("hidden_files", [])
+        deleted_files = analysis_data.get("deleted_files", [])
+
         summary = {
             "total_files": fs_structure.get("total_files", 0),
             "total_directories": fs_structure.get("total_directories", 0),
@@ -1079,7 +1079,7 @@ def _generate_filesystem_summary(fs_structure: Dict[str, Any], file_metadata: Di
 
 
 # Helper functions for unallocated space scanning
-def _get_image_information(image_path: str) -> Dict[str, Any]:
+def _get_image_information(image_path: str) -> dict[str, Any]:
     """Get image information."""
     try:
         info = {
@@ -1095,7 +1095,7 @@ def _get_image_information(image_path: str) -> Dict[str, Any]:
         return {}
 
 
-def _scan_file_signatures(image_path: str) -> List[Dict[str, Any]]:
+def _scan_file_signatures(image_path: str) -> list[dict[str, Any]]:
     """Scan for file signatures."""
     try:
         signatures = []
@@ -1141,7 +1141,7 @@ def _scan_file_signatures(image_path: str) -> List[Dict[str, Any]]:
         return []
 
 
-def _scan_deleted_files(image_path: str) -> List[Dict[str, Any]]:
+def _scan_deleted_files(image_path: str) -> list[dict[str, Any]]:
     """Scan for deleted files."""
     try:
         deleted_files = []
@@ -1156,7 +1156,7 @@ def _scan_deleted_files(image_path: str) -> List[Dict[str, Any]]:
         return []
 
 
-def _scan_slack_space(image_path: str) -> List[Dict[str, Any]]:
+def _scan_slack_space(image_path: str) -> list[dict[str, Any]]:
     """Scan for slack space."""
     try:
         slack_space = []
@@ -1171,9 +1171,9 @@ def _scan_slack_space(image_path: str) -> List[Dict[str, Any]]:
         return []
 
 
-def _analyze_unallocated_patterns(file_signatures: List[Dict[str, Any]],
-                                 deleted_files: List[Dict[str, Any]],
-                                 slack_space: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _analyze_unallocated_patterns(file_signatures: list[dict[str, Any]],
+                                 deleted_files: list[dict[str, Any]],
+                                 slack_space: list[dict[str, Any]]) -> dict[str, Any]:
     """Analyze unallocated space patterns."""
     try:
         patterns = {
@@ -1207,8 +1207,8 @@ def _analyze_unallocated_patterns(file_signatures: List[Dict[str, Any]],
         return {}
 
 
-def _calculate_scan_statistics(image_info: Dict[str, Any], file_signatures: List[Dict[str, Any]],
-                              deleted_files: List[Dict[str, Any]], slack_space: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _calculate_scan_statistics(image_info: dict[str, Any], file_signatures: list[dict[str, Any]],
+                              deleted_files: list[dict[str, Any]], slack_space: list[dict[str, Any]]) -> dict[str, Any]:
     """Calculate scan statistics."""
     try:
         stats = {
@@ -1244,7 +1244,7 @@ def _calculate_scan_statistics(image_info: Dict[str, Any], file_signatures: List
 
 
 # Helper functions for file recovery
-def _recover_file_from_signature(signature: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def _recover_file_from_signature(signature: dict[str, Any]) -> dict[str, Any] | None:
     """Recover file from signature."""
     try:
         # This is a simplified implementation
@@ -1265,7 +1265,7 @@ def _recover_file_from_signature(signature: Dict[str, Any]) -> Optional[Dict[str
         return None
 
 
-def _recover_deleted_file_entry(deleted_file: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def _recover_deleted_file_entry(deleted_file: dict[str, Any]) -> dict[str, Any] | None:
     """Recover deleted file entry."""
     try:
         # This is a simplified implementation
@@ -1286,7 +1286,7 @@ def _recover_deleted_file_entry(deleted_file: Dict[str, Any]) -> Optional[Dict[s
         return None
 
 
-def _recover_file_from_slack(slack: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def _recover_file_from_slack(slack: dict[str, Any]) -> dict[str, Any] | None:
     """Recover file from slack space."""
     try:
         # This is a simplified implementation
@@ -1307,7 +1307,7 @@ def _recover_file_from_slack(slack: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         return None
 
 
-def _validate_recovered_files(recovered_files: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def _validate_recovered_files(recovered_files: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Validate recovered files."""
     try:
         validated_files = []
@@ -1320,7 +1320,7 @@ def _validate_recovered_files(recovered_files: List[Dict[str, Any]]) -> List[Dic
                     file.get("confidence")):
 
                     # Add validation timestamp
-                    file["validation_timestamp"] = datetime.now(timezone.utc).isoformat()
+                    file["validation_timestamp"] = datetime.now(UTC).isoformat()
                     file["validation_status"] = "validated"
 
                     validated_files.append(file)
@@ -1335,7 +1335,7 @@ def _validate_recovered_files(recovered_files: List[Dict[str, Any]]) -> List[Dic
         return []
 
 
-def _generate_recovery_summary(recovered_files: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _generate_recovery_summary(recovered_files: list[dict[str, Any]]) -> dict[str, Any]:
     """Generate recovery summary."""
     try:
         summary = {

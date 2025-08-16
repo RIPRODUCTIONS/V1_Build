@@ -1,0 +1,30 @@
+
+# Wireless Security Configuration
+wireless_security:
+  enabled: true
+  default_interface: "wlan0"
+  
+  kismet:
+    host: "localhost"
+    port: 2501
+    api_port: 2501
+    
+  monitoring:
+    auto_start: false
+    channel_hop: true
+    channel_hop_speed: 3
+    
+  alerts:
+    enable_notifications: true
+    alert_threshold: "MEDIUM"
+    email_alerts: false
+    
+  security:
+    rogue_ap_detection: true
+    weak_encryption_alerts: true
+    baseline_monitoring: true
+    
+  reporting:
+    auto_generate: true
+    report_interval: 3600  # 1 hour
+    keep_reports: 168      # 1 week

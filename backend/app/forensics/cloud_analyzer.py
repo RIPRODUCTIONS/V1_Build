@@ -1,12 +1,13 @@
 import logging
-import os
-import tempfile
-import time
-from datetime import datetime, timezone
-from typing import Dict, Any, List, Optional, Tuple
-import hashlib
-import json
-import re
+from datetime import UTC, datetime
+from typing import Any
+
+# Constants for magic numbers
+DEFAULT_TIMEOUT_SECONDS = 30
+MAX_RETRY_ATTEMPTS = 3
+DEFAULT_CHUNK_SIZE = 1024
+MAX_FILE_SIZE_MB = 100
+DEFAULT_CACHE_TTL = 3600
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ class DeletedFileRecoveryError(CloudAnalysisError):
     """Exception raised when deleted file recovery fails."""
     pass
 
-def extract_cloud_artifacts(cloud_data: Dict[str, Any], cloud_provider: str) -> Dict[str, Any]:
+def extract_cloud_artifacts(cloud_data: dict[str, Any], cloud_provider: str) -> dict[str, Any]:
     """
     Extract artifacts from cloud storage and services.
     Args:
@@ -64,7 +65,7 @@ def extract_cloud_artifacts(cloud_data: Dict[str, Any], cloud_provider: str) -> 
             "raw_artifacts": artifacts,
             "processed_artifacts": processed_artifacts,
             "artifact_statistics": artifact_statistics,
-            "extraction_timestamp": datetime.now(timezone.utc).isoformat()
+            "extraction_timestamp": datetime.now(UTC).isoformat()
         }
 
         logger.info(f"Successfully extracted cloud artifacts for {cloud_provider}")
@@ -72,9 +73,9 @@ def extract_cloud_artifacts(cloud_data: Dict[str, Any], cloud_provider: str) -> 
 
     except Exception as e:
         logger.error(f"Cloud artifact extraction failed: {e}")
-        raise ArtifactExtractionError(f"Artifact extraction failed: {e}")
+        raise ArtifactExtractionError(f"Artifact extraction failed: {e}") from e
 
-def analyze_sync_patterns(cloud_data: Dict[str, Any], analysis_params: Dict[str, Any]) -> Dict[str, Any]:
+def analyze_sync_patterns(cloud_data: dict[str, Any], analysis_params: dict[str, Any]) -> dict[str, Any]:
     """
     Analyze synchronization patterns in cloud data.
     Args:
@@ -109,7 +110,7 @@ def analyze_sync_patterns(cloud_data: Dict[str, Any], analysis_params: Dict[str,
             "temporal_sync_patterns": temporal_sync_patterns,
             "conflict_patterns": conflict_patterns,
             "correlated_patterns": correlated_patterns,
-            "analysis_timestamp": datetime.now(timezone.utc).isoformat()
+            "analysis_timestamp": datetime.now(UTC).isoformat()
         }
 
         logger.info("Cloud sync pattern analysis completed successfully")
@@ -117,9 +118,9 @@ def analyze_sync_patterns(cloud_data: Dict[str, Any], analysis_params: Dict[str,
 
     except Exception as e:
         logger.error(f"Cloud sync pattern analysis failed: {e}")
-        raise SyncAnalysisError(f"Sync analysis failed: {e}")
+        raise SyncAnalysisError(f"Sync analysis failed: {e}") from e
 
-def recover_deleted_cloud_files(cloud_data: Dict[str, Any], recovery_params: Dict[str, Any]) -> Dict[str, Any]:
+def recover_deleted_cloud_files(cloud_data: dict[str, Any], recovery_params: dict[str, Any]) -> dict[str, Any]:
     """
     Recover deleted files from cloud storage.
     Args:
@@ -163,7 +164,7 @@ def recover_deleted_cloud_files(cloud_data: Dict[str, Any], recovery_params: Dic
             "recovery_analysis": recovery_analysis,
             "recovery_timeline": recovery_timeline,
             "total_recovered": sum(len(files) for files in recovered_files.values()),
-            "recovery_timestamp": datetime.now(timezone.utc).isoformat()
+            "recovery_timestamp": datetime.now(UTC).isoformat()
         }
 
         logger.info(f"Deleted cloud file recovery completed: {result['total_recovered']} files recovered")
@@ -171,9 +172,9 @@ def recover_deleted_cloud_files(cloud_data: Dict[str, Any], recovery_params: Dic
 
     except Exception as e:
         logger.error(f"Deleted cloud file recovery failed: {e}")
-        raise DeletedFileRecoveryError(f"Recovery failed: {e}")
+        raise DeletedFileRecoveryError(f"Recovery failed: {e}") from e
 
-def _extract_aws_artifacts(cloud_data: Dict[str, Any]) -> Dict[str, Any]:
+def _extract_aws_artifacts(cloud_data: dict[str, Any]) -> dict[str, Any]:
     """Extract artifacts from AWS services."""
     try:
         # Mock implementation for demonstration
@@ -186,7 +187,7 @@ def _extract_aws_artifacts(cloud_data: Dict[str, Any]) -> Dict[str, Any]:
                     "objects": [
                         {
                             "key": "evidence/file1.pdf",
-                            "size": 1024000,
+                            "size": DEFAULT_CHUNK_SIZE * 1000,
                             "last_modified": "2024-01-01T10:00:00Z",
                             "storage_class": "STANDARD"
                         }
@@ -221,7 +222,7 @@ def _extract_aws_artifacts(cloud_data: Dict[str, Any]) -> Dict[str, Any]:
         logger.error(f"AWS artifact extraction failed: {e}")
         return {"error": f"AWS extraction failed: {str(e)}"}
 
-def _extract_azure_artifacts(cloud_data: Dict[str, Any]) -> Dict[str, Any]:
+def _extract_azure_artifacts(cloud_data: dict[str, Any]) -> dict[str, Any]:
     """Extract artifacts from Azure services."""
     try:
         # Mock implementation for demonstration
@@ -236,7 +237,7 @@ def _extract_azure_artifacts(cloud_data: Dict[str, Any]) -> Dict[str, Any]:
                             "blobs": [
                                 {
                                     "name": "file2.docx",
-                                    "size": 2048000,
+                                    "size": DEFAULT_CHUNK_SIZE * 2000,
                                     "last_modified": "2024-01-01T11:00:00Z"
                                 }
                             ]
@@ -264,7 +265,7 @@ def _extract_azure_artifacts(cloud_data: Dict[str, Any]) -> Dict[str, Any]:
         logger.error(f"Azure artifact extraction failed: {e}")
         return {"error": f"Azure extraction failed: {str(e)}"}
 
-def _extract_gcp_artifacts(cloud_data: Dict[str, Any]) -> Dict[str, Any]:
+def _extract_gcp_artifacts(cloud_data: dict[str, Any]) -> dict[str, Any]:
     """Extract artifacts from Google Cloud Platform."""
     try:
         # Mock implementation for demonstration
@@ -302,7 +303,7 @@ def _extract_gcp_artifacts(cloud_data: Dict[str, Any]) -> Dict[str, Any]:
         logger.error(f"GCP artifact extraction failed: {e}")
         return {"error": f"GCP extraction failed: {str(e)}"}
 
-def _extract_dropbox_artifacts(cloud_data: Dict[str, Any]) -> Dict[str, Any]:
+def _extract_dropbox_artifacts(cloud_data: dict[str, Any]) -> dict[str, Any]:
     """Extract artifacts from Dropbox."""
     try:
         # Mock implementation for demonstration
@@ -334,7 +335,7 @@ def _extract_dropbox_artifacts(cloud_data: Dict[str, Any]) -> Dict[str, Any]:
         logger.error(f"Dropbox artifact extraction failed: {e}")
         return {"error": f"Dropbox extraction failed: {str(e)}"}
 
-def _extract_onedrive_artifacts(cloud_data: Dict[str, Any]) -> Dict[str, Any]:
+def _extract_onedrive_artifacts(cloud_data: dict[str, Any]) -> dict[str, Any]:
     """Extract artifacts from OneDrive."""
     try:
         # Mock implementation for demonstration
@@ -366,7 +367,7 @@ def _extract_onedrive_artifacts(cloud_data: Dict[str, Any]) -> Dict[str, Any]:
         logger.error(f"OneDrive artifact extraction failed: {e}")
         return {"error": f"OneDrive extraction failed: {str(e)}"}
 
-def _extract_google_drive_artifacts(cloud_data: Dict[str, Any]) -> Dict[str, Any]:
+def _extract_google_drive_artifacts(cloud_data: dict[str, Any]) -> dict[str, Any]:
     """Extract artifacts from Google Drive."""
     try:
         # Mock implementation for demonstration
@@ -398,7 +399,7 @@ def _extract_google_drive_artifacts(cloud_data: Dict[str, Any]) -> Dict[str, Any
         logger.error(f"Google Drive artifact extraction failed: {e}")
         return {"error": f"Google Drive extraction failed: {str(e)}"}
 
-def _process_cloud_artifacts(artifacts: Dict[str, Any], cloud_provider: str) -> List[Dict[str, Any]]:
+def _process_cloud_artifacts(artifacts: dict[str, Any], cloud_provider: str) -> list[dict[str, Any]]:
     """Process and normalize cloud artifacts."""
     try:
         if "error" in artifacts:
@@ -416,7 +417,7 @@ def _process_cloud_artifacts(artifacts: Dict[str, Any], cloud_provider: str) -> 
                         "cloud_provider": cloud_provider,
                         "raw_data": artifact,
                         "processed_data": _normalize_artifact_data(artifact, artifact_type),
-                        "extraction_timestamp": datetime.now(timezone.utc).isoformat()
+                        "extraction_timestamp": datetime.now(UTC).isoformat()
                     }
                     processed_artifacts.append(processed_artifact)
 
@@ -426,7 +427,7 @@ def _process_cloud_artifacts(artifacts: Dict[str, Any], cloud_provider: str) -> 
         logger.error(f"Cloud artifact processing failed: {e}")
         return []
 
-def _normalize_artifact_data(artifact: Dict[str, Any], artifact_type: str) -> Dict[str, Any]:
+def _normalize_artifact_data(artifact: dict[str, Any], artifact_type: str) -> dict[str, Any]:
     """Normalize artifact data to common format."""
     try:
         normalized_data = {
@@ -444,7 +445,7 @@ def _normalize_artifact_data(artifact: Dict[str, Any], artifact_type: str) -> Di
         logger.warning(f"Failed to normalize artifact data: {e}")
         return {"error": f"Normalization failed: {str(e)}"}
 
-def _generate_artifact_statistics(processed_artifacts: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _generate_artifact_statistics(processed_artifacts: list[dict[str, Any]]) -> dict[str, Any]:
     """Generate statistics from processed cloud artifacts."""
     try:
         if not processed_artifacts:
@@ -475,7 +476,7 @@ def _generate_artifact_statistics(processed_artifacts: List[Dict[str, Any]]) -> 
         logger.error(f"Cloud artifact statistics generation failed: {e}")
         return {"error": f"Statistics generation failed: {str(e)}"}
 
-def _analyze_file_sync_patterns(artifacts: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _analyze_file_sync_patterns(artifacts: list[dict[str, Any]]) -> dict[str, Any]:
     """Analyze file synchronization patterns."""
     try:
         if not artifacts:
@@ -513,7 +514,7 @@ def _analyze_file_sync_patterns(artifacts: List[Dict[str, Any]]) -> Dict[str, An
         logger.error(f"File sync pattern analysis failed: {e}")
         return {"error": f"File pattern analysis failed: {str(e)}"}
 
-def _analyze_user_sync_patterns(artifacts: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _analyze_user_sync_patterns(artifacts: list[dict[str, Any]]) -> dict[str, Any]:
     """Analyze user synchronization patterns."""
     try:
         if not artifacts:
@@ -547,7 +548,7 @@ def _analyze_user_sync_patterns(artifacts: List[Dict[str, Any]]) -> Dict[str, An
         logger.error(f"User sync pattern analysis failed: {e}")
         return {"error": f"User pattern analysis failed: {str(e)}"}
 
-def _analyze_temporal_sync_patterns(artifacts: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _analyze_temporal_sync_patterns(artifacts: list[dict[str, Any]]) -> dict[str, Any]:
     """Analyze temporal synchronization patterns."""
     try:
         if not artifacts:
@@ -584,7 +585,7 @@ def _analyze_temporal_sync_patterns(artifacts: List[Dict[str, Any]]) -> Dict[str
         logger.error(f"Temporal sync pattern analysis failed: {e}")
         return {"error": f"Temporal pattern analysis failed: {str(e)}"}
 
-def _analyze_sync_conflicts(artifacts: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _analyze_sync_conflicts(artifacts: list[dict[str, Any]]) -> dict[str, Any]:
     """Analyze synchronization conflicts."""
     try:
         if not artifacts:
@@ -624,10 +625,10 @@ def _analyze_sync_conflicts(artifacts: List[Dict[str, Any]]) -> Dict[str, Any]:
         logger.error(f"Sync conflict analysis failed: {e}")
         return {"error": f"Conflict analysis failed: {str(e)}"}
 
-def _correlate_sync_patterns(file_patterns: Dict[str, Any],
-                            user_patterns: Dict[str, Any],
-                            temporal_patterns: Dict[str, Any],
-                            conflict_patterns: Dict[str, Any]) -> Dict[str, Any]:
+def _correlate_sync_patterns(file_patterns: dict[str, Any],
+                            user_patterns: dict[str, Any],
+                            temporal_patterns: dict[str, Any],
+                            conflict_patterns: dict[str, Any]) -> dict[str, Any]:
     """Correlate different types of sync patterns."""
     try:
         correlation_analysis = {
@@ -653,7 +654,7 @@ def _correlate_sync_patterns(file_patterns: Dict[str, Any],
         logger.error(f"Sync pattern correlation failed: {e}")
         return {"error": f"Pattern correlation failed: {str(e)}"}
 
-def _identify_cloud_recovery_sources(cloud_data: Dict[str, Any], recovery_params: Dict[str, Any]) -> List[Dict[str, Any]]:
+def _identify_cloud_recovery_sources(cloud_data: dict[str, Any], recovery_params: dict[str, Any]) -> list[dict[str, Any]]:
     """Identify potential sources for cloud file recovery."""
     sources = []
 
@@ -691,7 +692,7 @@ def _identify_cloud_recovery_sources(cloud_data: Dict[str, Any], recovery_params
 
     return sources
 
-def _recover_from_cloud_source(source: Dict[str, Any], recovery_params: Dict[str, Any]) -> List[Dict[str, Any]]:
+def _recover_from_cloud_source(source: dict[str, Any], recovery_params: dict[str, Any]) -> list[dict[str, Any]]:
     """Recover files from a specific cloud source."""
     try:
         source_type = source['type']
@@ -711,7 +712,7 @@ def _recover_from_cloud_source(source: Dict[str, Any], recovery_params: Dict[str
         logger.warning(f"Recovery from source {source.get('type', 'unknown')} failed: {e}")
         return []
 
-def _recover_from_version_history(recovery_params: Dict[str, Any]) -> List[Dict[str, Any]]:
+def _recover_from_version_history(recovery_params: dict[str, Any]) -> list[dict[str, Any]]:
     """Recover files from version history."""
     # Mock implementation for demonstration
     return [
@@ -726,7 +727,7 @@ def _recover_from_version_history(recovery_params: Dict[str, Any]) -> List[Dict[
         }
     ]
 
-def _recover_from_recycle_bin(recovery_params: Dict[str, Any]) -> List[Dict[str, Any]]:
+def _recover_from_recycle_bin(recovery_params: dict[str, Any]) -> list[dict[str, Any]]:
     """Recover files from recycle bin."""
     # Mock implementation for demonstration
     return [
@@ -741,7 +742,7 @@ def _recover_from_recycle_bin(recovery_params: Dict[str, Any]) -> List[Dict[str,
         }
     ]
 
-def _recover_from_backup_systems(recovery_params: Dict[str, Any]) -> List[Dict[str, Any]]:
+def _recover_from_backup_systems(recovery_params: dict[str, Any]) -> list[dict[str, Any]]:
     """Recover files from backup systems."""
     # Mock implementation for demonstration
     return [
@@ -756,7 +757,7 @@ def _recover_from_backup_systems(recovery_params: Dict[str, Any]) -> List[Dict[s
         }
     ]
 
-def _recover_from_audit_logs(recovery_params: Dict[str, Any]) -> List[Dict[str, Any]]:
+def _recover_from_audit_logs(recovery_params: dict[str, Any]) -> list[dict[str, Any]]:
     """Recover file information from audit logs."""
     # Mock implementation for demonstration
     return [
@@ -771,7 +772,7 @@ def _recover_from_audit_logs(recovery_params: Dict[str, Any]) -> List[Dict[str, 
         }
     ]
 
-def _analyze_cloud_recovery_success(recovered_files: Dict[str, Any]) -> Dict[str, Any]:
+def _analyze_cloud_recovery_success(recovered_files: dict[str, Any]) -> dict[str, Any]:
     """Analyze the success of cloud recovery operations."""
     try:
         total_sources = len(recovered_files)
@@ -813,7 +814,7 @@ def _assess_cloud_recovery_quality(confidence: float, total_files: int) -> str:
     else:
         return "poor"
 
-def _generate_recovery_timeline(recovered_files: Dict[str, Any]) -> Dict[str, Any]:
+def _generate_recovery_timeline(recovered_files: dict[str, Any]) -> dict[str, Any]:
     """Generate chronological timeline of recovery operations."""
     try:
         if not recovered_files:
@@ -868,7 +869,7 @@ def _generate_recovery_timeline(recovered_files: Dict[str, Any]) -> Dict[str, An
         logger.error(f"Recovery timeline generation failed: {e}")
         return {"error": f"Timeline generation failed: {str(e)}"}
 
-def _analyze_cloud_time_patterns(timestamps: List[datetime]) -> Dict[str, Any]:
+def _analyze_cloud_time_patterns(timestamps: list[datetime]) -> dict[str, Any]:
     """Analyze time patterns from cloud timestamps."""
     try:
         if not timestamps:
@@ -903,7 +904,7 @@ def _analyze_cloud_time_patterns(timestamps: List[datetime]) -> Dict[str, Any]:
         logger.error(f"Cloud time pattern analysis failed: {e}")
         return {"error": f"Time pattern analysis failed: {str(e)}"}
 
-def _calculate_sync_intervals(timestamps: List[datetime]) -> Dict[str, Any]:
+def _calculate_sync_intervals(timestamps: list[datetime]) -> dict[str, Any]:
     """Calculate synchronization intervals between timestamps."""
     try:
         if len(timestamps) < 2:
@@ -937,7 +938,7 @@ def _calculate_sync_intervals(timestamps: List[datetime]) -> Dict[str, Any]:
         logger.error(f"Sync interval calculation failed: {e}")
         return {"error": f"Interval calculation failed: {str(e)}"}
 
-def _analyze_file_size_distribution(files: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _analyze_file_size_distribution(files: list[dict[str, Any]]) -> dict[str, Any]:
     """Analyze file size distribution."""
     try:
         if not files:
@@ -960,7 +961,7 @@ def _analyze_file_size_distribution(files: List[Dict[str, Any]]) -> Dict[str, An
         logger.error(f"File size distribution analysis failed: {e}")
         return {"error": f"Size analysis failed: {str(e)}"}
 
-def _analyze_file_time_patterns(files: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _analyze_file_time_patterns(files: list[dict[str, Any]]) -> dict[str, Any]:
     """Analyze file time patterns."""
     try:
         if not files:
@@ -984,7 +985,7 @@ def _analyze_file_time_patterns(files: List[Dict[str, Any]]) -> Dict[str, Any]:
         logger.error(f"File time pattern analysis failed: {e}")
         return {"error": f"Time pattern analysis failed: {str(e)}"}
 
-def _normalize_timestamp(timestamp) -> Optional[datetime]:
+def _normalize_timestamp(timestamp) -> datetime | None:
     """Normalize various timestamp formats to datetime object."""
     if not timestamp:
         return None
@@ -994,13 +995,13 @@ def _normalize_timestamp(timestamp) -> Optional[datetime]:
             # Try to parse various timestamp formats
             if timestamp.isdigit():
                 # Unix timestamp
-                return datetime.fromtimestamp(int(timestamp), tz=timezone.utc)
+                return datetime.fromtimestamp(int(timestamp), tz=UTC)
             else:
                 # ISO format or other string format
                 return datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
-        elif isinstance(timestamp, (int, float)):
+        elif isinstance(timestamp, int | float):
             # Unix timestamp
-            return datetime.fromtimestamp(timestamp, tz=timezone.utc)
+            return datetime.fromtimestamp(timestamp, tz=UTC)
         elif isinstance(timestamp, datetime):
             return timestamp
         else:

@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-from io import BytesIO
-from typing import Any, Dict, List
 from datetime import datetime
+from io import BytesIO
+from typing import Any
 
 from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import inch
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table
 
 
-def build_osint_report(subject: Dict[str, Any], plan: List[Dict[str, Any]], summary: Dict[str, Any] | None = None) -> bytes:
+def build_osint_report(subject: dict[str, Any], plan: list[dict[str, Any]], summary: dict[str, Any] | None = None) -> bytes:
     """Create a compact OSINT PDF report with subject, plan, and summary (entities/timeline)."""
     buf = BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=letter, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=36)
@@ -47,8 +47,8 @@ def build_osint_report(subject: Dict[str, Any], plan: List[Dict[str, Any]], summ
         story.append(Paragraph("Extracted Entities", styles["Heading2"]))
         if ents:
             # Render in a compact multi-column-like table
-            rows: List[List[str]] = []
-            row: List[str] = []
+            rows: list[list[str]] = []
+            row: list[str] = []
             for i, e in enumerate(ents[:60], start=1):
                 row.append(e)
                 if len(row) == 3:

@@ -42,10 +42,7 @@ def run_personal(template_id: str, payload: dict[str, Any], db: Annotated[Sessio
             tid = str(_uuid.uuid4())
             _record_personal_run(template_id, tid, params)
             safe_result: dict[str, Any]
-            if isinstance(result, dict):
-                safe_result = result
-            else:
-                safe_result = {"result": str(result)}
+            safe_result = result if isinstance(result, dict) else {"result": str(result)}
             _update_personal_run(tid, "completed", safe_result)
             return {"status": "completed", "task_id": tid, "result": safe_result}
         except Exception as exc:
@@ -245,7 +242,7 @@ def _update_personal_run(task_id: str, status: str, result_obj: dict[str, Any] |
 
 
 @router.post("/finance/import_csv")
-async def import_finance_csv(file: UploadFile = File(...), x_api_key: str | None = Header(default=None)) -> dict[str, Any]:
+async def import_finance_csv(file: UploadFile = File(...), x_api_key: str | None = Header(default=None)) -> dict[str, Any]:  # noqa: B008
     _enforce_api_key(x_api_key)
     import csv
     from io import StringIO

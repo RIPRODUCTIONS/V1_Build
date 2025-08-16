@@ -37,7 +37,7 @@ def synthetic_osint_smoke(self, task_data: dict[str, Any] | None = None) -> dict
 def sse_watchdog(self, max_age_seconds: int = 60) -> dict[str, Any]:
     """Detect investigations stuck in queued too long and create a SystemInsight."""
     import json as _json
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, timezone
 
     from app.db import SessionLocal
     from app.models import InvestigationRun, SystemInsight

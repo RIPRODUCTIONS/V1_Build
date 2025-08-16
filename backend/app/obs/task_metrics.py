@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Optional
+import contextlib
+from datetime import UTC, datetime
 
 from prometheus_client import Counter, Histogram
-
 
 TASK_EVENTS = Counter(
     "builder_task_events_total",
@@ -21,32 +20,30 @@ TASK_DURATION = Histogram(
 
 
 def record_started(kind: str) -> None:
-    try:
+    with contextlib.suppress(Exception):
         TASK_EVENTS.labels(kind=kind, status="started").inc()
-    except Exception:
-        pass
 
 
-def record_completed(kind: str, started_at: Optional[datetime]) -> None:
+def record_completed(kind: str, started_at: datetime | None) -> None:
     try:
         TASK_EVENTS.labels(kind=kind, status="completed").inc()
         if started_at is not None:
             if started_at.tzinfo is None:
                 # Treat naive as UTC
-                started_at = started_at.replace(tzinfo=timezone.utc)
-            dt = datetime.now(timezone.utc) - started_at
+                started_at = started_at.replace(tzinfo=UTC)
+            dt = datetime.now(UTC) - started_at
             TASK_DURATION.labels(kind=kind).observe(max(0.0, dt.total_seconds()))
     except Exception:
         pass
 
 
-def record_failed(kind: str, started_at: Optional[datetime]) -> None:
+def record_failed(kind: str, started_at: datetime | None) -> None:
     try:
         TASK_EVENTS.labels(kind=kind, status="failed").inc()
         if started_at is not None:
             if started_at.tzinfo is None:
-                started_at = started_at.replace(tzinfo=timezone.utc)
-            dt = datetime.now(timezone.utc) - started_at
+                started_at = started_at.replace(tzinfo=UTC)
+            dt = datetime.now(UTC) - started_at
             TASK_DURATION.labels(kind=kind).observe(max(0.0, dt.total_seconds()))
     except Exception:
         pass

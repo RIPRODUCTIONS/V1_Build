@@ -1,0 +1,22 @@
+{
+  "workload_name": "Demo Financial Analysis",
+  "description": "Sample financial workload for customer demonstration",
+  "tasks": [
+    {
+      "task_id": "demo_fin_001",
+      "task_type": "financial_analysis",
+      "priority": "high",
+      "description": "Analyze Q4 financial performance",
+      "assigned_agent": "AI CFO",
+      "estimated_duration": "2 hours"
+    },
+    {
+      "task_id": "demo_fin_002",
+      "task_type": "budget_planning",
+      "priority": "medium",
+      "description": "Create 2025 budget forecast",
+      "assigned_agent": "AI Controller",
+      "estimated_duration": "4 hours"
+    }
+  ]
+}

@@ -1,0 +1,143 @@
+version: '3.8'
+
+services:
+  # AI Framework Backend (Staging)
+  ai-framework-staging:
+    build:
+      context: .
+      dockerfile: Dockerfile.production
+    container_name: ai-framework-staging
+    restart: unless-stopped
+    ports:
+      - "18000:8000"  # Main API (high port range)
+      - "19090:9090"  # Metrics (high port range)
+    environment:
+      - NODE_ENV=staging
+      - LOG_LEVEL=DEBUG
+      - PROMETHEUS_ENABLED=true
+      - DEBUG=true
+      - DEMO_MODE=true
+      - JWT_SECRET=staging-jwt-secret-key-change-in-production
+    volumes:
+      - ./logs:/var/log/ai_framework
+      - ./cache:/var/cache/ai_framework
+      - ./demo_data:/app/demo_data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # PostgreSQL Database (Staging)
+  postgres-staging:
+    image: postgres:15-alpine
+    container_name: ai-framework-postgres-staging
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=ai_framework_staging
+      - POSTGRES_USER=ai_framework
+      - POSTGRES_PASSWORD=staging_password_123
+    volumes:
+      - postgres_staging_data:/var/lib/postgresql/data
+    ports:
+      - "15434:5432"  # High port range to avoid conflicts
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ai_framework -d ai_framework_staging"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis Cache (Staging)
+  redis-staging:
+    image: redis:7-alpine
+    container_name: ai-framework-redis-staging
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass staging_redis_123
+    volumes:
+      - redis_staging_data:/data
+    ports:
+      - "16381:6379"  # High port range
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Nginx Reverse Proxy (Staging)
+  nginx-staging:
+    image: nginx:alpine
+    container_name: ai-framework-nginx-staging
+    restart: unless-stopped
+    ports:
+      - "18081:80"  # High port range
+    volumes:
+      - ./nginx/nginx.staging.conf:/etc/nginx/nginx.conf:ro
+      - nginx_staging_logs:/var/log/nginx
+    depends_on:
+      - ai-framework-staging
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Prometheus Monitoring (Staging)
+  prometheus-staging:
+    image: prom/prometheus:latest
+    container_name: ai-framework-prometheus-staging
+    restart: unless-stopped
+    ports:
+      - "19093:9090"  # High port range
+    volumes:
+      - ./monitoring/prometheus.staging.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_staging_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Grafana Dashboard (Staging)
+  grafana-staging:
+    image: grafana/grafana:latest
+    container_name: ai-framework-grafana-staging
+    restart: unless-stopped
+    ports:
+      - "13002:3000"  # High port range to avoid conflicts
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=staging_grafana_123
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    volumes:
+      - grafana_staging_data:/var/lib/grafana
+      - ./monitoring/grafana/staging:/etc/grafana/provisioning:ro
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_staging_data:
+    driver: local
+  redis_staging_data:
+    driver: local
+  nginx_staging_logs:
+    driver: local
+  prometheus_staging_data:
+    driver: local
+  grafana_staging_data:
+    driver: local
+
+networks:
+  default:
+    name: ai_framework_staging
+    driver: bridge

@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from contextlib import suppress
 
-from app.db import engine
-from app.core.config import get_settings
 from app.agent.celery_app import celery_app
+from app.core.config import get_settings
+from app.db import engine
 from app.selfheal.services import HealthMonitor  # type: ignore
 from fastapi import APIRouter
 from sqlalchemy import text

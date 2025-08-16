@@ -1,15 +1,17 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Annotated
+import logging
+from typing import Annotated, Any
 
+from app.billing.pay_per_use import PayPerUseBilling
+from app.db import get_db
+from app.models import AutomationTemplate, AutomationUsage, ProcessedCheckoutSession, UserCredits
+from app.web_operator.template_library import AutomationTemplateLibrary
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.db import get_db
-from app.operator.template_library import AutomationTemplateLibrary
-from app.billing.pay_per_use import PayPerUseBilling
-from app.models import AutomationTemplate, AutomationUsage, ProcessedCheckoutSession, UserCredits
-
+# Configure logging
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/marketplace", tags=["marketplace"])
 
@@ -20,7 +22,7 @@ def get_current_user_id() -> int:
 
 
 @router.get("/templates")
-async def list_marketplace_templates(db: Annotated[Session, Depends(get_db)]) -> Dict[str, Any]:
+async def list_marketplace_templates(db: Annotated[Session, Depends(get_db)]) -> dict[str, Any]:
     lib = AutomationTemplateLibrary()
     items = await lib.list_templates_by_category(None)
     # Ensure DB-backed price if available
@@ -35,14 +37,14 @@ async def list_marketplace_templates(db: Annotated[Session, Depends(get_db)]) ->
 
 
 @router.post("/buy_credits")
-async def buy_credits(amount_usd: float, db: Annotated[Session, Depends(get_db)]) -> Dict[str, Any]:
+async def buy_credits(amount_usd: float, db: Annotated[Session, Depends(get_db)]) -> dict[str, Any]:
     user_id = get_current_user_id()
     billing = PayPerUseBilling(db)
     return billing.create_prepaid_credits(user_id, amount_usd)
 
 
 @router.post("/buy_credits/checkout")
-async def buy_credits_checkout(amount_usd: float, db: Annotated[Session, Depends(get_db)]) -> Dict[str, Any]:
+async def buy_credits_checkout(amount_usd: float, db: Annotated[Session, Depends(get_db)]) -> dict[str, Any]:
     """Create a Stripe Checkout Session for credits purchase when STRIPE_SECRET_KEY is configured.
 
     The frontend should redirect to the returned url. On success (webhook or client return),
@@ -58,8 +60,8 @@ async def buy_credits_checkout(amount_usd: float, db: Annotated[Session, Depends
     stripe.api_key = s.STRIPE_SECRET_KEY
     try:
         amount_cents = int(round(max(0.0, float(amount_usd)) * 100))
-    except Exception:
-        raise HTTPException(status_code=400, detail={"error": "invalid_amount"})
+    except Exception as e:
+        raise HTTPException(status_code=400, detail={"error": "invalid_amount"}) from e
     if amount_cents <= 0:
         raise HTTPException(status_code=400, detail={"error": "invalid_amount"})
     session = stripe.checkout.Session.create(
@@ -80,7 +82,7 @@ async def buy_credits_checkout(amount_usd: float, db: Annotated[Session, Depends
 
 
 @router.post("/buy_credits/confirm")
-async def buy_credits_confirm(session_id: str, db: Annotated[Session, Depends(get_db)]) -> Dict[str, Any]:
+async def buy_credits_confirm(session_id: str, db: Annotated[Session, Depends(get_db)]) -> dict[str, Any]:
     """Confirm a Stripe Checkout session and credit the user, idempotently."""
     from app.core.config import get_settings
     s = get_settings()
@@ -112,13 +114,13 @@ async def buy_credits_confirm(session_id: str, db: Annotated[Session, Depends(ge
 
 
 @router.post("/run/{template_id}")
-async def run_template(template_id: str, parameters: Dict[str, Any], db: Annotated[Session, Depends(get_db)]) -> Dict[str, Any]:
+async def run_template(template_id: str, parameters: dict[str, Any], db: Annotated[Session, Depends(get_db)]) -> dict[str, Any]:
     # Look up template to determine price
     lib = AutomationTemplateLibrary()
     try:
         t = await lib.get_template(template_id)
-    except KeyError:
-        raise HTTPException(status_code=404, detail="template not found")
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail="template not found") from e
     # Prefer DB price if present
     row = db.query(AutomationTemplate).filter(AutomationTemplate.id == template_id).first()
     unit_price = None
@@ -128,7 +130,9 @@ async def run_template(template_id: str, parameters: Dict[str, Any], db: Annotat
         unit_price = float(t.get("price_per_run_usd") or 0.0)
 
     # Queue the work using existing template deployment logic
-    from app.routers.template_library import _queue_for_template  # local import to avoid circular deps at import time
+    from app.routers.template_library import (
+        _queue_for_template,  # local import to avoid circular deps at import time
+    )
 
     enqueue_result = await _queue_for_template(template_id, parameters)
     if (enqueue_result or {}).get("status") != "queued":
@@ -159,7 +163,8 @@ async def run_template(template_id: str, parameters: Dict[str, Any], db: Annotat
             })
             db.add(rec)
             db.commit()
-    except Exception:
+    except Exception as e:
+        logger.warning(f"Failed to update usage record: {e}")
         pass
 
     return {
@@ -174,7 +179,7 @@ async def run_template(template_id: str, parameters: Dict[str, Any], db: Annotat
 
 
 @router.get("/usage")
-async def get_usage(db: Annotated[Session, Depends(get_db)], limit: int = 20) -> Dict[str, Any]:
+async def get_usage(db: Annotated[Session, Depends(get_db)], limit: int = 20) -> dict[str, Any]:
     user_id = get_current_user_id()
     rows = (
         db.query(AutomationUsage)
@@ -202,7 +207,7 @@ async def get_usage(db: Annotated[Session, Depends(get_db)], limit: int = 20) ->
     return {"items": items}
 
 @router.get("/credits")
-async def get_credits(db: Annotated[Session, Depends(get_db)]) -> Dict[str, Any]:
+async def get_credits(db: Annotated[Session, Depends(get_db)]) -> dict[str, Any]:
     user_id = get_current_user_id()
     billing = PayPerUseBilling(db)
     wallet = billing.get_or_create_wallet(user_id)

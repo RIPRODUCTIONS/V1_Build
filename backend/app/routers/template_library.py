@@ -1,20 +1,15 @@
 from __future__ import annotations
 
-from typing import Annotated, Dict
-
-from fastapi import APIRouter, Depends, HTTPException, Query
-
-from app.operator.template_library import AutomationTemplateLibrary
-from app.core.config import get_settings
-from app.tasks.web_automation_tasks import execute_web_automation_task
-from app.db import SessionLocal
-from app.models import TemplateUsage, TemplatePreset
-from fastapi import Response
 import csv
 import io
-from datetime import datetime, timedelta, timezone
 import time
+from datetime import UTC, datetime, timedelta
 
+from app.db import SessionLocal
+from app.models import TemplatePreset, TemplateUsage
+from app.tasks.web_automation_tasks import execute_web_automation_task
+from app.web_operator.template_library import AutomationTemplateLibrary
+from fastapi import APIRouter, HTTPException, Query, Response
 
 router = APIRouter(prefix="/templates", tags=["templates"])
 
@@ -32,16 +27,16 @@ async def get_template(template_id: str) -> dict:
     try:
         t = await lib.get_template(template_id)
         return t
-    except KeyError:
-        raise HTTPException(status_code=404, detail="template not found")
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail="template not found") from e
 
 
-async def _queue_for_template(template_id: str, parameters: Dict) -> dict:
+async def _queue_for_template(template_id: str, parameters: dict) -> dict:
     lib = AutomationTemplateLibrary()
     try:
         t = await lib.get_template(template_id)
-    except KeyError:
-        raise HTTPException(status_code=404, detail="template not found")
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail="template not found") from e
     # Minimal wiring for contact form lead generator: queue one task per target site
     if template_id == "contact_form_lead_generator":
         targets = parameters.get("target_websites") or []
@@ -228,12 +223,12 @@ async def _queue_for_template(template_id: str, parameters: Dict) -> dict:
 
 
 @router.post("/{template_id}/deploy")
-async def deploy_template(template_id: str, parameters: Dict) -> dict:
+async def deploy_template(template_id: str, parameters: dict) -> dict:
     return await _queue_for_template(template_id, parameters)
 
 
 @router.post("/{template_id}/rerun")
-async def rerun_template(template_id: str, parameters: Dict) -> dict:
+async def rerun_template(template_id: str, parameters: dict) -> dict:
     return await _queue_for_template(template_id, parameters)
 
 
@@ -257,7 +252,7 @@ class PresetIn(dict):
 
 
 @router.post("/{template_id}/presets")
-async def create_preset(template_id: str, preset: Dict) -> dict:
+async def create_preset(template_id: str, preset: dict) -> dict:
     name = str(preset.get("name") or "Preset")
     params = preset.get("parameters") or {}
     db = SessionLocal()
@@ -293,7 +288,7 @@ async def rerun_bulk_failures(template_id: str, hours: int = 24, limit: int = 50
     """
     db = SessionLocal()
     try:
-        cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=max(1, min(168, int(hours))))
+        cutoff = datetime.now(UTC).replace(tzinfo=None) - timedelta(hours=max(1, min(168, int(hours))))
         rows = (
             db.query(TemplateUsage)
             .filter(
@@ -363,7 +358,7 @@ async def usage_summary(template_id: str, hours: int = 24, buckets: int = 12) ->
             entry = cache.get(key)
             if entry and (now - entry[0] < 30.0):
                 return entry[1]
-        start = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=hours)
+        start = datetime.now(UTC).replace(tzinfo=None) - timedelta(hours=hours)
         rows = (
             db.query(TemplateUsage)
             .filter(TemplateUsage.template_id == template_id, TemplateUsage.created_at >= start)
@@ -384,7 +379,7 @@ async def usage_summary(template_id: str, hours: int = 24, buckets: int = 12) ->
                 series[idx]["failed"] += 1
         result = {"template_id": template_id, "hours": hours, "buckets": buckets, "series": series}
         cache[key] = (now, result)
-        setattr(usage_summary, "_cache", cache)  # type: ignore[attr-defined]
+        usage_summary._cache = cache  # type: ignore[attr-defined]
         return result
     finally:
         db.close()
@@ -403,7 +398,7 @@ async def recent_template_usage(template_id: str | None = None, limit: int = 10,
         if hours is not None:
             try:
                 h = max(1, min(168, int(hours)))
-                since = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=h)
+                since = datetime.now(UTC).replace(tzinfo=None) - timedelta(hours=h)
                 q = q.filter(TemplateUsage.created_at >= since)
             except Exception:
                 pass

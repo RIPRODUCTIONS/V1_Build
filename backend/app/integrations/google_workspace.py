@@ -1,17 +1,24 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Optional
+from datetime import UTC, datetime, timedelta
+from typing import Any
+
+# Constants for magic numbers
+DEFAULT_TIMEOUT_SECONDS = 10
+LONG_TIMEOUT_SECONDS = 20
+DEFAULT_EXPIRES_IN_SECONDS = 3600
+MAX_RESULTS = 100
+HTTP_OK_STATUS = 200
 
 import httpx
-
-from .base import IntegrationBase, OAuth2Integration, OAuth2Credentials
-from .models import UnifiedEvent, NormalizedEventData
-from .security import CredentialVault
-from app.core.config import get_settings
 from app.automations.event_bus import publish_calendar_created
+from app.core.config import get_settings
 from prometheus_client import Counter
+
+from .base import IntegrationBase, OAuth2Credentials, OAuth2Integration
+from .models import NormalizedEventData, UnifiedEvent
+from .security import CredentialVault
 
 
 @dataclass(slots=True)
@@ -57,7 +64,7 @@ class GoogleCalendarIntegration(OAuth2Integration):
         # Basic token refresh flow
         if not self.settings.GOOGLE_CLIENT_ID or not self.settings.GOOGLE_CLIENT_SECRET or not creds.refresh_token:
             return creds
-        async with httpx.AsyncClient(timeout=10) as client:
+        async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT_SECONDS) as client:
             resp = await client.post(
                 "https://oauth2.googleapis.com/token",
                 data={
@@ -67,12 +74,12 @@ class GoogleCalendarIntegration(OAuth2Integration):
                     "refresh_token": creds.refresh_token,
                 },
             )
-            if resp.status_code == 200:
+            if resp.status_code == HTTP_OK_STATUS:
                 data = resp.json()
                 new = OAuth2Credentials(
                     access_token=data.get("access_token", creds.access_token),
                     refresh_token=creds.refresh_token,
-                    expires_at_ts=int(datetime.now(timezone.utc).timestamp()) + int(data.get("expires_in", 3600)),
+                    expires_at_ts=int(datetime.now(UTC).timestamp()) + int(data.get("expires_in", 3600)),
                 )
                 # persist back
                 self.vault.put(user_id, self.name, "oauth", __import__("json").dumps({
@@ -86,11 +93,11 @@ class GoogleCalendarIntegration(OAuth2Integration):
     async def discover(self, user_id: str) -> bool:
         return self.get_credentials is not None and bool(self.vault.get(user_id, self.name, "oauth"))
 
-    async def _auth_headers(self, creds: OAuth2Credentials) -> Dict[str, str]:
+    async def _auth_headers(self, creds: OAuth2Credentials) -> dict[str, str]:
         return {"Authorization": f"Bearer {creds.access_token}"}
 
-    async def _list_events(self, user_id: str, creds: OAuth2Credentials, time_min: datetime, time_max: datetime) -> list[dict] | Dict[str, Any]:
-        params: Dict[str, str | int | float | bool | None] = {
+    async def _list_events(self, user_id: str, creds: OAuth2Credentials, time_min: datetime, time_max: datetime) -> list[dict] | dict[str, Any]:
+        params: dict[str, str | int | float | bool | None] = {
             "timeMin": time_min.isoformat(),
             "timeMax": time_max.isoformat(),
             "singleEvents": True,
@@ -114,7 +121,7 @@ class GoogleCalendarIntegration(OAuth2Integration):
                 self.metric_requests.labels("GET", "/events", str(r.status_code)).inc()
             try:
                 r.raise_for_status()
-            except httpx.HTTPStatusError as e:
+            except httpx.HTTPStatusError:
                 # Log rich error for diagnosis
                 detail = {
                     "status": r.status_code,
@@ -132,11 +139,11 @@ class GoogleCalendarIntegration(OAuth2Integration):
         start_iso: str,
         end_iso: str,
         timezone_str: str | None = None,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         creds = await self.get_credentials(user_id)
         if not creds:
             return {"status": "missing_creds"}
-        body: Dict[str, Any] = {
+        body: dict[str, Any] = {
             "summary": summary,
             "start": {"dateTime": start_iso},
             "end": {"dateTime": end_iso},
@@ -176,13 +183,13 @@ class GoogleCalendarIntegration(OAuth2Integration):
             data = r.json()
             return {"status": "ok", "id": data.get("id"), "htmlLink": data.get("htmlLink")}
 
-    async def sync(self, user_id: str) -> Dict[str, Any]:
+    async def sync(self, user_id: str) -> dict[str, Any]:
         if not self.settings.GOOGLE_CALENDAR_SYNC:
             return {"status": "disabled"}
         creds = await self.get_credentials(user_id)
         if not creds:
             return {"status": "missing_creds"}
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         window_start = now - timedelta(days=7)
         window_end = now + timedelta(days=30)
         items = await self._list_events(user_id, creds, window_start, window_end)
@@ -225,7 +232,7 @@ class GmailIntegration(IntegrationBase):
         except Exception:
             return False
 
-    async def sync(self, user_id: str) -> Dict[str, Any]:
+    async def sync(self, user_id: str) -> dict[str, Any]:
         # Best-effort: only run if token present and has Gmail scope; otherwise skip gracefully
         v = CredentialVault.from_env()
         blob = v.get(user_id, "google_calendar", "oauth")
@@ -267,7 +274,7 @@ class GmailIntegration(IntegrationBase):
             count = len(payload.get("messages", []))
             return {"status": "ok", "emails_scanned": count}
 
-    async def send_email(self, user_id: str, to_email: str, subject: str, body_text: str) -> Dict[str, Any]:
+    async def send_email(self, user_id: str, to_email: str, subject: str, body_text: str) -> dict[str, Any]:
         """Send an email using Gmail API.
 
         Requires scope https://www.googleapis.com/auth/gmail.send
@@ -289,7 +296,7 @@ class GmailIntegration(IntegrationBase):
             f"Subject: {subject}\r\n"
             f"Content-Type: text/plain; charset=utf-8\r\n\r\n"
             f"{body_text}"
-        ).encode("utf-8")
+        ).encode()
         b64_message = base64.urlsafe_b64encode(raw_message).decode("utf-8")
 
         url = "https://gmail.googleapis.com/gmail/v1/users/me/messages/send"
@@ -303,7 +310,7 @@ class GmailIntegration(IntegrationBase):
             data = r.json()
             return {"status": "ok", "id": data.get("id")}
 
-    async def create_draft(self, user_id: str, to_email: str, subject: str, body_text: str) -> Dict[str, Any]:
+    async def create_draft(self, user_id: str, to_email: str, subject: str, body_text: str) -> dict[str, Any]:
         """Create an email draft using Gmail API.
 
         Requires scope https://www.googleapis.com/auth/gmail.compose or gmail.modify
@@ -325,7 +332,7 @@ class GmailIntegration(IntegrationBase):
             f"Subject: {subject}\r\n"
             f"Content-Type: text/plain; charset=utf-8\r\n\r\n"
             f"{body_text}"
-        ).encode("utf-8")
+        ).encode()
         b64_message = base64.urlsafe_b64encode(raw_message).decode("utf-8")
 
         url = "https://gmail.googleapis.com/gmail/v1/users/me/drafts"
@@ -339,7 +346,7 @@ class GmailIntegration(IntegrationBase):
             data = r.json()
             return {"status": "ok", "id": data.get("id")}
 
-    async def get_draft_message_id(self, user_id: str, draft_id: str) -> Dict[str, Any]:
+    async def get_draft_message_id(self, user_id: str, draft_id: str) -> dict[str, Any]:
         v = CredentialVault.from_env()
         blob = v.get(user_id, "google_calendar", "oauth")
         if not blob:
@@ -360,7 +367,7 @@ class GmailIntegration(IntegrationBase):
             mid = msg.get("id")
             return {"status": "ok", "message_id": mid}
 
-    async def list_labels(self, user_id: str) -> Dict[str, Any]:
+    async def list_labels(self, user_id: str) -> dict[str, Any]:
         v = CredentialVault.from_env()
         blob = v.get(user_id, "google_calendar", "oauth")
         if not blob:
@@ -380,7 +387,7 @@ class GmailIntegration(IntegrationBase):
                 return {"status": "error", "code": r.status_code, "body": r.text[:300]}
             return {"status": "ok", "labels": r.json().get("labels", [])}
 
-    async def create_label(self, user_id: str, name: str) -> Dict[str, Any]:
+    async def create_label(self, user_id: str, name: str) -> dict[str, Any]:
         v = CredentialVault.from_env()
         blob = v.get(user_id, "google_calendar", "oauth")
         if not blob:
@@ -401,7 +408,7 @@ class GmailIntegration(IntegrationBase):
                 return {"status": "error", "code": r.status_code, "body": r.text[:300]}
             return {"status": "ok", "label": r.json()}
 
-    async def list_messages(self, user_id: str, q: str | None = None, max_results: int = 10) -> Dict[str, Any]:
+    async def list_messages(self, user_id: str, q: str | None = None, max_results: int = 10) -> dict[str, Any]:
         v = CredentialVault.from_env()
         blob = v.get(user_id, "google_calendar", "oauth")
         if not blob:
@@ -412,7 +419,7 @@ class GmailIntegration(IntegrationBase):
         except Exception:
             return {"status": "missing_creds"}
         headers = {"Authorization": f"Bearer {access_token}"}
-        params: Dict[str, Any] = {"maxResults": max_results}
+        params: dict[str, Any] = {"maxResults": max_results}
         if q:
             params["q"] = q
         url = "https://gmail.googleapis.com/gmail/v1/users/me/messages"
@@ -422,7 +429,7 @@ class GmailIntegration(IntegrationBase):
                 return {"status": "error", "code": r.status_code, "body": r.text[:300]}
             return {"status": "ok", "messages": r.json().get("messages", [])}
 
-    async def modify_message_labels(self, user_id: str, message_id: str, add_labels: list[str] | None = None, remove_labels: list[str] | None = None) -> Dict[str, Any]:
+    async def modify_message_labels(self, user_id: str, message_id: str, add_labels: list[str] | None = None, remove_labels: list[str] | None = None) -> dict[str, Any]:
         v = CredentialVault.from_env()
         blob = v.get(user_id, "google_calendar", "oauth")
         if not blob:
@@ -433,7 +440,7 @@ class GmailIntegration(IntegrationBase):
         except Exception:
             return {"status": "missing_creds"}
         headers = {"Authorization": f"Bearer {access_token}"}
-        body: Dict[str, Any] = {"addLabelIds": add_labels or [], "removeLabelIds": remove_labels or []}
+        body: dict[str, Any] = {"addLabelIds": add_labels or [], "removeLabelIds": remove_labels or []}
         url = f"https://gmail.googleapis.com/gmail/v1/users/me/messages/{message_id}/modify"
         async with httpx.AsyncClient(timeout=10) as client:
             r = await client.post(url, headers=headers, json=body)
@@ -441,7 +448,7 @@ class GmailIntegration(IntegrationBase):
                 return {"status": "error", "code": r.status_code, "body": r.text[:300]}
             return {"status": "ok", "message": r.json()}
 
-    async def move_message_to_label(self, user_id: str, message_id: str, label_name: str) -> Dict[str, Any]:
+    async def move_message_to_label(self, user_id: str, message_id: str, label_name: str) -> dict[str, Any]:
         # Ensure label exists
         labels = await self.list_labels(user_id)
         if labels.get("status") != "ok":
@@ -468,7 +475,7 @@ class GoogleDriveIntegration(IntegrationBase):
         except Exception:
             return False
 
-    async def sync(self, user_id: str) -> Dict[str, Any]:
+    async def sync(self, user_id: str) -> dict[str, Any]:
         v = CredentialVault.from_env()
         blob = v.get(user_id, "google_calendar", "oauth")
         if not blob:
@@ -481,7 +488,7 @@ class GoogleDriveIntegration(IntegrationBase):
 
         headers = {"Authorization": f"Bearer {access_token}"}
         url = "https://www.googleapis.com/drive/v3/files"
-        params: Dict[str, str | int | float | bool | None] = {"pageSize": 10, "fields": "files(id,name,modifiedTime)"}
+        params: dict[str, str | int | float | bool | None] = {"pageSize": 10, "fields": "files(id,name,modifiedTime)"}
         metric_requests = Counter(
             "gdrive_requests_total",
             "Total Google Drive API requests",
@@ -507,7 +514,7 @@ class GoogleDriveIntegration(IntegrationBase):
             count = len(payload.get("files", []))
             return {"status": "ok", "files_indexed": count}
 
-    async def create_document(self, user_id: str, title: str, content: str) -> Dict[str, Any]:
+    async def create_document(self, user_id: str, title: str, content: str) -> dict[str, Any]:
         """Create a Google Doc with initial text content using Drive convert upload.
 
         Requires Drive scope (e.g., https://www.googleapis.com/auth/drive.file)
@@ -544,7 +551,7 @@ class GoogleDriveIntegration(IntegrationBase):
             data = r.json()
             return {"status": "ok", "id": data.get("id")}
 
-    async def create_text_file(self, user_id: str, name: str, content: str) -> Dict[str, Any]:
+    async def create_text_file(self, user_id: str, name: str, content: str) -> dict[str, Any]:
         """Create a plain text file in Drive using multipart upload.
 
         Requires Drive file scope.
@@ -593,7 +600,7 @@ class GooglePeopleIntegration(IntegrationBase):
         except Exception:
             return False
 
-    async def list_contacts(self, user_id: str, page_size: int = 10) -> Dict[str, Any]:
+    async def list_contacts(self, user_id: str, page_size: int = 10) -> dict[str, Any]:
         v = CredentialVault.from_env()
         blob = v.get(user_id, "google_calendar", "oauth")
         if not blob:
@@ -604,7 +611,7 @@ class GooglePeopleIntegration(IntegrationBase):
         except Exception:
             return {"status": "missing_creds"}
         headers = {"Authorization": f"Bearer {access_token}"}
-        params: Dict[str, str | int | float | bool | None] = {"personFields": "names,emailAddresses", "pageSize": page_size}
+        params: dict[str, str | int | float | bool | None] = {"personFields": "names,emailAddresses", "pageSize": page_size}
         url = "https://people.googleapis.com/v1/people/me/connections"
         async with httpx.AsyncClient(timeout=10) as client:
             r = await client.get(url, headers=headers, params=params)
@@ -614,7 +621,7 @@ class GooglePeopleIntegration(IntegrationBase):
                 return {"status": "error", "code": r.status_code, "body": r.text[:400]}
             return {"status": "ok", "connections": r.json().get("connections", [])}
 
-    async def create_contact(self, user_id: str, name: str, email: str) -> Dict[str, Any]:
+    async def create_contact(self, user_id: str, name: str, email: str) -> dict[str, Any]:
         v = CredentialVault.from_env()
         blob = v.get(user_id, "google_calendar", "oauth")
         if not blob:

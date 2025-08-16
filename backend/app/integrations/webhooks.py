@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Header, HTTPException, Request
 from app.integrations.google.gmail_webhooks import GmailWebhookHandler
+from fastapi import APIRouter, Header, HTTPException, Request
 
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 
@@ -9,19 +9,19 @@ router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 @router.post("/slack")
 async def slack_webhook(request: Request, x_slack_signature: str | None = Header(default=None)):
     # TODO: validate signature
-    payload = await request.json()
+    await request.json()
     return {"status": "ok"}
 
 
 @router.post("/github")
 async def github_webhook(request: Request, x_hub_signature_256: str | None = Header(default=None)):
-    payload = await request.json()
+    await request.json()
     return {"status": "ok"}
 
 
 @router.post("/stripe")
 async def stripe_webhook(request: Request):
-    payload = await request.body()
+    await request.body()
     return {"status": "ok"}
 
 

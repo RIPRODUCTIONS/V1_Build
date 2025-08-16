@@ -69,7 +69,7 @@ def test_otel_init_tracing_network_timeout():
 
             # Should handle timeout gracefully
             try:
-                tracer_provider = init_tracing()
+                tracer_provider = init_tracing("test-service")
                 assert tracer_provider is not None
             except Exception:
                 # Timeout failure is acceptable
@@ -163,9 +163,11 @@ def test_otel_memory_pressure():
 def test_otel_graceful_shutdown():
     """Test graceful shutdown with pending spans."""
     from app.ops.otel import init_tracing
+    from opentelemetry import trace
 
     # Initialize tracing
-    tracer_provider = init_tracing()
+    init_tracing("test-service")
+    tracer_provider = trace.get_tracer_provider()
     assert tracer_provider is not None
 
     # Mock shutdown behavior
@@ -188,7 +190,7 @@ def test_otel_environment_variable_handling():
     # Test with no OTLP environment variables
     with patch.dict(os.environ, {}, clear=True):
         try:
-            tracer_provider = init_tracing()
+            tracer_provider = init_tracing("test-service")
             assert tracer_provider is not None
         except Exception:
             # No env vars should be handled gracefully
@@ -197,7 +199,7 @@ def test_otel_environment_variable_handling():
     # Test with partial OTLP configuration
     with patch.dict(os.environ, {'OTLP_ENDPOINT': 'http://collector:4317'}):
         try:
-            tracer_provider = init_tracing()
+            tracer_provider = init_tracing("test-service")
             assert tracer_provider is not None
         except Exception:
             # Partial config should be handled gracefully
@@ -217,7 +219,7 @@ def test_otel_span_processor_fallback():
 
             # Should fall back gracefully
             try:
-                tracer_provider = init_tracing()
+                tracer_provider = init_tracing("test-service")
                 assert tracer_provider is not None
             except Exception:
                 # Fallback failure is acceptable
@@ -227,9 +229,11 @@ def test_otel_span_processor_fallback():
 def test_otel_metrics_integration():
     """Test that OTLP integrates with metrics system."""
     from app.ops.otel import init_tracing
+    from opentelemetry import trace
 
     # Initialize tracing
-    tracer_provider = init_tracing()
+    init_tracing("test-service")
+    tracer_provider = trace.get_tracer_provider()
     assert tracer_provider is not None
 
     # Test that metrics are accessible
@@ -247,13 +251,15 @@ def test_otel_logging_integration():
     import logging
 
     from app.ops.otel import init_tracing
+    from opentelemetry import trace
 
     # Set up logging
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
 
     # Initialize tracing
-    tracer_provider = init_tracing()
+    init_tracing("test-service")
+    tracer_provider = trace.get_tracer_provider()
     assert tracer_provider is not None
 
     # Test logging integration

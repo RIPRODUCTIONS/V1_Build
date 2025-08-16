@@ -392,7 +392,7 @@ def evidence_storage(
             file_size = evidence_path.stat().st_size
             original_path = None
 
-        elif isinstance(evidence_data, (str, bytes)):
+        elif isinstance(evidence_data, str | bytes):
             # String or bytes data - save as file
             extension = '.txt' if isinstance(evidence_data, str) else '.bin'
             evidence_filename = f"{evidence_id}{extension}"
@@ -720,17 +720,16 @@ def encrypt_file(input_path: Path, output_path: Path, key: bytes) -> None:
     """Encrypt a file using Fernet encryption."""
     cipher = Fernet(key)
 
-    with open(input_path, 'rb') as f_in:
-        with open(output_path, 'wb') as f_out:
-            while chunk := f_in.read(8192):
-                encrypted_chunk = cipher.encrypt(chunk)
-                f_out.write(encrypted_chunk)
+    with open(input_path, 'rb') as f_in, open(output_path, 'wb') as f_out:
+        while chunk := f_in.read(8192):
+            encrypted_chunk = cipher.encrypt(chunk)
+            f_out.write(encrypted_chunk)
 
 def secure_overwrite(file_path: Path, passes: int) -> None:
     """Overwrite file with random data before deletion."""
     file_size = file_path.stat().st_size
 
-    for i in range(passes):
+    for _i in range(passes):
         with open(file_path, 'wb') as f:
             # Write random data
             f.write(os.urandom(file_size))
@@ -900,10 +899,7 @@ def cleanup_temp_files(
         Cleanup result with statistics
     """
     try:
-        if temp_dir is None:
-            temp_dir = Path(tempfile.gettempdir())
-        else:
-            temp_dir = Path(temp_dir)
+        temp_dir = Path(tempfile.gettempdir()) if temp_dir is None else Path(temp_dir)
 
         if not temp_dir.exists():
             return {

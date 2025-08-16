@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from prometheus_client import REGISTRY
 
-from app.operator import web_metrics as wm
+from app.web_operator import web_metrics as wm
 
 
 def test_web_metrics_counters_increment():

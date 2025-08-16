@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.types import ASGIApp
 from starlette.responses import Response
+from starlette.types import ASGIApp
 
 
 class SecureHeadersMiddleware(BaseHTTPMiddleware):

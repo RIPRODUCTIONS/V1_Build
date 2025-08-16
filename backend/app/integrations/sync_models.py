@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
-
-from sqlalchemy import Column, String, Text, DateTime, Integer, BigInteger, JSON
 
 from app.db import Base
+from sqlalchemy import JSON, BigInteger, Column, DateTime, Integer, String, Text
 
 
 class CalendarSyncToken(Base):

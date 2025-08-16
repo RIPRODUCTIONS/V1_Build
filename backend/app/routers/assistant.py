@@ -99,7 +99,7 @@ def self_build_scan(x_api_key: str | None = Header(default=None)) -> dict:
                     s = _json.loads(r.result_summary_json)
                     # try dict form first
                     if isinstance(s.get("platforms"), dict):
-                        for k in s["platforms"].keys():
+                        for k in s["platforms"]:
                             platform_counts[k] = platform_counts.get(k, 0) + 1
                     elif isinstance(s.get("platforms"), list):
                         for k in s["platforms"]:

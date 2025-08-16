@@ -9,6 +9,7 @@ from .providers.lmstudio_p import LMStudioProvider
 from .providers.ollama_p import OllamaProvider
 from .providers.openai_p import OpenAIProvider
 from .providers.vllm_p import VLLMProvider
+import contextlib
 
 
 class LLMRouter:
@@ -83,7 +84,8 @@ def get_llm_router() -> LLMRouter:
         router = LLMRouter(Settings())
         globals()["_router_singleton"] = router
         return router
-    return _router_singleton  # type: ignore[return-value]
+    assert _router_singleton is not None  # type guard
+    return _router_singleton
 
 
 def _reset_router(new_settings: Settings | None = None) -> None:
@@ -120,17 +122,15 @@ LLM_REQUEST_DURATION = Histogram(
 
 
 def _label_observe(hist: Histogram, value: float, labels: dict[str, str]) -> None:
-    try:
+    with contextlib.suppress(Exception):
         hist.labels(**labels).observe(value)
-    except Exception:
-        pass
 
 
 # Monkey-patch observe with labels dict for brevity above
 def _observe_with_dict(self: Histogram, value: float, labels: dict[str, str]) -> None:  # type: ignore[override]
     self.labels(**labels).observe(value)
 
-setattr(LLM_REQUEST_DURATION, "observe", _observe_with_dict)  # type: ignore[attr-defined]
+LLM_REQUEST_DURATION.observe = _observe_with_dict  # type: ignore[attr-defined]
 
 
 def _provider_name(obj: object) -> str:

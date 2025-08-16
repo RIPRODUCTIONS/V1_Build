@@ -7,11 +7,9 @@ including PE structure analysis, string extraction, pattern scanning, and file h
 
 import hashlib
 import logging
-import os
 import re
 import struct
-from typing import Dict, Any, List, Optional, Tuple
-from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -47,7 +45,7 @@ def analyze_pe_structure(sample_data: bytes) -> Dict[str, Any]:
         AnalysisError: If analysis fails
     """
     try:
-    logger.info("Starting PE structure analysis")
+        logger.info("Starting PE structure analysis")
 
         # Validate PE header
         if not _is_valid_pe_file(sample_data):
@@ -95,10 +93,10 @@ def analyze_pe_structure(sample_data: bytes) -> Dict[str, Any]:
 
     except Exception as e:
         logger.error(f"PE structure analysis failed: {e}")
-        raise AnalysisError(f"PE analysis failed: {e}")
+        raise AnalysisError(f"PE analysis failed: {e}") from e
 
 
-def extract_strings(sample_data: bytes) -> List[str]:
+def extract_strings(sample_data: bytes) -> list[str]:
     """
     Extract printable strings from binary.
 
@@ -112,7 +110,7 @@ def extract_strings(sample_data: bytes) -> List[str]:
         AnalysisError: If string extraction fails
     """
     try:
-    logger.info("Starting string extraction")
+        logger.info("Starting string extraction")
 
         strings = []
         min_length = 4  # Minimum string length
@@ -136,10 +134,10 @@ def extract_strings(sample_data: bytes) -> List[str]:
 
     except Exception as e:
         logger.error(f"String extraction failed: {e}")
-        raise AnalysisError(f"String extraction failed: {e}")
+        raise AnalysisError(f"String extraction failed: {e}") from e
 
 
-def scan_for_patterns(sample_data: bytes) -> Dict[str, Any]:
+def scan_for_patterns(sample_data: bytes) -> dict[str, Any]:
     """
     Scan for suspicious patterns and YARA rules.
 
@@ -153,7 +151,7 @@ def scan_for_patterns(sample_data: bytes) -> Dict[str, Any]:
         AnalysisError: If pattern scanning fails
     """
     try:
-    logger.info("Starting pattern scanning")
+        logger.info("Starting pattern scanning")
 
         patterns = {
             "suspicious_patterns": [],
@@ -193,7 +191,7 @@ def scan_for_patterns(sample_data: bytes) -> Dict[str, Any]:
 
     except Exception as e:
         logger.error(f"Pattern scanning failed: {e}")
-        raise AnalysisError(f"Pattern scanning failed: {e}")
+        raise AnalysisError(f"Pattern scanning failed: {e}") from e
 
 
 def calculate_file_hashes(sample_data: bytes) -> Dict[str, str]:
@@ -245,7 +243,7 @@ def calculate_file_hashes(sample_data: bytes) -> Dict[str, str]:
 
     except Exception as e:
         logger.error(f"Hash calculation failed: {e}")
-        raise AnalysisError(f"Hash calculation failed: {e}")
+        raise AnalysisError(f"Hash calculation failed: {e}") from e
 
 
 def analyze_imports_exports(pe_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -262,7 +260,7 @@ def analyze_imports_exports(pe_data: Dict[str, Any]) -> Dict[str, Any]:
         AnalysisError: If analysis fails
     """
     try:
-    logger.info("Starting import/export analysis")
+        logger.info("Starting import/export analysis")
 
         analysis = {
             "import_analysis": {},
@@ -294,7 +292,7 @@ def analyze_imports_exports(pe_data: Dict[str, Any]) -> Dict[str, Any]:
 
     except Exception as e:
         logger.error(f"Import/export analysis failed: {e}")
-        raise AnalysisError(f"Import/export analysis failed: {e}")
+        raise AnalysisError(f"Import/export analysis failed: {e}") from e
 
 
 # Helper functions for PE analysis
@@ -558,8 +556,8 @@ def _extract_unicode_string_from_position(data: bytes, start_pos: int, min_lengt
             if 32 <= char <= 126:  # Printable ASCII
                 string_chars.append(chr(char))
                 pos += 2
-                        else:
-                            break
+            else:
+                break
 
         result = "".join(string_chars)
         return result if len(result) >= min_length else None

@@ -3,13 +3,13 @@ from __future__ import annotations
 import types
 import pytest
 
-from app.operator.templates.shopping_automation import PersonalShoppingAssistant
+from app.web_operator.templates.shopping_automation import PersonalShoppingAssistant
 
 
 @pytest.mark.asyncio
 async def test_shopping_automation_aggregate_success(monkeypatch):
     # Enable operator web via settings stub
-    import app.operator.templates.shopping_automation as mod
+    import app.web_operator.templates.shopping_automation as mod
 
     monkeypatch.setattr(mod, "get_settings", lambda: types.SimpleNamespace(OPERATOR_WEB_REAL=True))
 
@@ -38,7 +38,7 @@ async def test_shopping_automation_aggregate_success(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_shopping_automation_disabled(monkeypatch):
-    import app.operator.templates.shopping_automation as mod
+    import app.web_operator.templates.shopping_automation as mod
 
     monkeypatch.setattr(mod, "get_settings", lambda: types.SimpleNamespace(OPERATOR_WEB_REAL=False))
     res = await PersonalShoppingAssistant().execute({"product_query": "phone"})

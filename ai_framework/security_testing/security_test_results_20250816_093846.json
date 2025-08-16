@@ -1,0 +1,202 @@
+{
+  "summary": {
+    "total_tests": 16,
+    "passed": 1,
+    "failed": 7,
+    "warnings": 8,
+    "critical_issues": 3,
+    "high_issues": 4,
+    "medium_issues": 0,
+    "low_issues": 0,
+    "overall_score": 6.25
+  },
+  "test_results": [
+    {
+      "test_name": "Authentication Bypass",
+      "category": "Authentication",
+      "severity": "HIGH",
+      "status": "FAIL",
+      "description": "Endpoint /metrics accessible without authentication",
+      "details": {
+        "endpoint": "/metrics",
+        "status_code": 200
+      },
+      "timestamp": "2025-08-16T09:38:45.720815"
+    },
+    {
+      "test_name": "Authentication Bypass",
+      "category": "Authentication",
+      "severity": "HIGH",
+      "status": "FAIL",
+      "description": "Endpoint /api/system/status accessible without authentication",
+      "details": {
+        "endpoint": "/api/system/status",
+        "status_code": 200
+      },
+      "timestamp": "2025-08-16T09:38:45.727294"
+    },
+    {
+      "test_name": "Authentication Bypass",
+      "category": "Authentication",
+      "severity": "HIGH",
+      "status": "FAIL",
+      "description": "Endpoint /api/dashboard/overview accessible without authentication",
+      "details": {
+        "endpoint": "/api/dashboard/overview",
+        "status_code": 200
+      },
+      "timestamp": "2025-08-16T09:38:45.732248"
+    },
+    {
+      "test_name": "Authorization Bypass",
+      "category": "Authorization",
+      "severity": "HIGH",
+      "status": "FAIL",
+      "description": "Endpoint /api/system/status accessible without proper authorization",
+      "details": {
+        "endpoint": "/api/system/status",
+        "status_code": 200
+      },
+      "timestamp": "2025-08-16T09:38:45.737447"
+    },
+    {
+      "test_name": "SQL Injection Vulnerability",
+      "category": "Input Validation",
+      "severity": "CRITICAL",
+      "status": "FAIL",
+      "description": "SQL injection payload not properly validated: ' OR 1=1 --...",
+      "details": {
+        "payload": "' OR 1=1 --",
+        "status_code": 200
+      },
+      "timestamp": "2025-08-16T09:38:45.740159"
+    },
+    {
+      "test_name": "SQL Injection Vulnerability",
+      "category": "Input Validation",
+      "severity": "CRITICAL",
+      "status": "FAIL",
+      "description": "SQL injection payload not properly validated: '; DROP TABLE users;...",
+      "details": {
+        "payload": "'; DROP TABLE users; --",
+        "status_code": 200
+      },
+      "timestamp": "2025-08-16T09:38:45.743930"
+    },
+    {
+      "test_name": "SQL Injection Vulnerability",
+      "category": "Input Validation",
+      "severity": "CRITICAL",
+      "status": "FAIL",
+      "description": "SQL injection payload not properly validated: ' UNION SELECT * FRO...",
+      "details": {
+        "payload": "' UNION SELECT * FROM users --",
+        "status_code": 200
+      },
+      "timestamp": "2025-08-16T09:38:45.746460"
+    },
+    {
+      "test_name": "Rate Limiting Missing",
+      "category": "Rate Limiting",
+      "severity": "MEDIUM",
+      "status": "WARNING",
+      "description": "No rate limiting detected for 100 rapid requests",
+      "details": {
+        "total_requests": 100,
+        "rate_limited": 0,
+        "successful": 100
+      },
+      "timestamp": "2025-08-16T09:38:46.272257"
+    },
+    {
+      "test_name": "HTTPS Not Enabled",
+      "category": "SSL/TLS",
+      "severity": "MEDIUM",
+      "status": "WARNING",
+      "description": "HTTPS not enabled for http://localhost:18000",
+      "details": {
+        "scheme": "http",
+        "hostname": "localhost",
+        "port": 18000
+      },
+      "timestamp": "2025-08-16T09:38:46.272417"
+    },
+    {
+      "test_name": "X-Content-Type-Options Header Missing",
+      "category": "Security Headers",
+      "severity": "MEDIUM",
+      "status": "WARNING",
+      "description": "Security header X-Content-Type-Options is missing",
+      "details": {
+        "header": "X-Content-Type-Options"
+      },
+      "timestamp": "2025-08-16T09:38:46.274786"
+    },
+    {
+      "test_name": "X-Frame-Options Header Missing",
+      "category": "Security Headers",
+      "severity": "MEDIUM",
+      "status": "WARNING",
+      "description": "Security header X-Frame-Options is missing",
+      "details": {
+        "header": "X-Frame-Options"
+      },
+      "timestamp": "2025-08-16T09:38:46.274886"
+    },
+    {
+      "test_name": "X-XSS-Protection Header Missing",
+      "category": "Security Headers",
+      "severity": "MEDIUM",
+      "status": "WARNING",
+      "description": "Security header X-XSS-Protection is missing",
+      "details": {
+        "header": "X-XSS-Protection"
+      },
+      "timestamp": "2025-08-16T09:38:46.274942"
+    },
+    {
+      "test_name": "Strict-Transport-Security Header Missing",
+      "category": "Security Headers",
+      "severity": "MEDIUM",
+      "status": "WARNING",
+      "description": "Security header Strict-Transport-Security is missing",
+      "details": {
+        "header": "Strict-Transport-Security"
+      },
+      "timestamp": "2025-08-16T09:38:46.274968"
+    },
+    {
+      "test_name": "Content-Security-Policy Header Missing",
+      "category": "Security Headers",
+      "severity": "MEDIUM",
+      "status": "WARNING",
+      "description": "Security header Content-Security-Policy is missing",
+      "details": {
+        "header": "Content-Security-Policy"
+      },
+      "timestamp": "2025-08-16T09:38:46.275014"
+    },
+    {
+      "test_name": "Referrer-Policy Header Missing",
+      "category": "Security Headers",
+      "severity": "MEDIUM",
+      "status": "WARNING",
+      "description": "Security header Referrer-Policy is missing",
+      "details": {
+        "header": "Referrer-Policy"
+      },
+      "timestamp": "2025-08-16T09:38:46.275029"
+    },
+    {
+      "test_name": "CORS Properly Configured",
+      "category": "CORS Policy",
+      "severity": "LOW",
+      "status": "PASS",
+      "description": "CORS origin properly restricted to: https://malicious-site.com",
+      "details": {
+        "allowed_origin": "https://malicious-site.com"
+      },
+      "timestamp": "2025-08-16T09:38:46.279121"
+    }
+  ]
+}

@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-from io import BytesIO
-from typing import Any, Dict
 from datetime import datetime
+from io import BytesIO
+from typing import Any
 
 from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import inch
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table
 
 
-def build_forensics_report(summary: Dict[str, Any]) -> bytes:
+def build_forensics_report(summary: dict[str, Any]) -> bytes:
     buf = BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=letter, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=36)
     styles = getSampleStyleSheet()

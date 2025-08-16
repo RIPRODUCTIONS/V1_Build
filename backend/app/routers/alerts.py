@@ -1,21 +1,18 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List
-
 import smtplib
 from email.mime.text import MIMEText
+from typing import Any
 
 import httpx
-from fastapi import APIRouter, Request, Header, HTTPException, Depends
-from app.middleware.auth import validate_api_key
-
 from app.core.config import get_settings
-
+from app.middleware.auth import validate_api_key
+from fastapi import APIRouter, Depends, Header, Request
 
 router = APIRouter(prefix="/alerts", tags=["alerts"], dependencies=[Depends(validate_api_key)])
 
 
-async def _post_webhook(url: str, payload: Dict[str, Any]) -> None:
+async def _post_webhook(url: str, payload: dict[str, Any]) -> None:
     try:
         async with httpx.AsyncClient(timeout=10) as client:
             await client.post(url, json=payload)
@@ -44,11 +41,11 @@ def _send_email(subject: str, body: str) -> None:
 
 
 @router.post("/prometheus")
-async def receive_prometheus_alerts(request: Request) -> Dict[str, Any]:
+async def receive_prometheus_alerts(request: Request) -> dict[str, Any]:
     s = get_settings()
     body = await request.json()
-    alerts: List[Dict[str, Any]] = list(body.get("alerts") or [])
-    summary_lines: List[str] = []
+    alerts: list[dict[str, Any]] = list(body.get("alerts") or [])
+    summary_lines: list[str] = []
     for a in alerts[:20]:
         status = str(a.get("status") or "")
         labels = a.get("labels") or {}
@@ -74,7 +71,7 @@ async def receive_prometheus_alerts(request: Request) -> Dict[str, Any]:
 
 
 @router.post("/test")
-async def send_test_alert(request: Request, payload: Dict[str, Any] | None = None, x_api_key: str | None = Header(default=None)) -> Dict[str, Any]:
+async def send_test_alert(request: Request, payload: dict[str, Any] | None = None, x_api_key: str | None = Header(default=None)) -> dict[str, Any]:
     """Send a synthetic alert via configured channels. Requires X-API-Key when SECURE_MODE=true."""
     import os as _os
     if (_os.getenv("SECURE_MODE", "false").lower() == "true"):

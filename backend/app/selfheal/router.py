@@ -15,7 +15,7 @@ router = APIRouter(prefix="/selfheal", tags=["selfheal"])
     "/health",
     response_model=list[SystemHealth],
 )
-async def get_system_health(user=Depends(require_scopes({ADMIN_TASKS}))) -> list[SystemHealth]:
+async def get_system_health(user=Depends(require_scopes({ADMIN_TASKS}))) -> list[SystemHealth]:  # noqa: B008
     now = datetime.now(UTC)
     # Stub with a couple of components; extend with real checks later
     return [
@@ -40,7 +40,7 @@ async def get_system_health(user=Depends(require_scopes({ADMIN_TASKS}))) -> list
     "/heal",
     response_model=HealingResult,
 )
-async def trigger_healing(user=Depends(require_scopes({ADMIN_TASKS}))) -> HealingResult:
+async def trigger_healing(user=Depends(require_scopes({ADMIN_TASKS}))) -> HealingResult:  # noqa: B008
     # Stub OK response; to be replaced with actual orchestration
     return HealingResult(success=True, message="Healing initiated", strategy_applied="restart-component", attempts=1)
 
@@ -49,7 +49,7 @@ async def trigger_healing(user=Depends(require_scopes({ADMIN_TASKS}))) -> Healin
     "/rebuild",
     response_model=BuildResult,
 )
-async def trigger_self_build(user=Depends(require_scopes({ADMIN_TASKS}))) -> BuildResult:
+async def trigger_self_build(user=Depends(require_scopes({ADMIN_TASKS}))) -> BuildResult:  # noqa: B008
     # Stub OK response
     return BuildResult(success=True, component="# generated component code ...", performance_improvements={"cpu": 0.12})
 

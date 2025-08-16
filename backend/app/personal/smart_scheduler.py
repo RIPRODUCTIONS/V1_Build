@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 
 class SmartPersonalScheduler:
     """Intelligently schedule and manage personal automations (scaffold)."""
 
-    async def create_automation_schedule(self, user_preferences: Dict[str, Any]) -> Dict[str, Any]:
+    async def create_automation_schedule(self, user_preferences: dict[str, Any]) -> dict[str, Any]:
         # Placeholder: return a basic schedule structure
         return {
             "schedule": [
@@ -16,7 +16,7 @@ class SmartPersonalScheduler:
             ]
         }
 
-    async def workflow_orchestration(self, workflow_name: str) -> Dict[str, Any]:
+    async def workflow_orchestration(self, workflow_name: str) -> dict[str, Any]:
         # Placeholder: return a composed workflow definition
         return {
             "workflow": workflow_name,

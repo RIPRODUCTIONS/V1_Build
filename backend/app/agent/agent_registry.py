@@ -47,11 +47,11 @@ def set_agent_config(name: AgentName, provider: str | None, model: str | None) -
         try:
             rec = db.query(AgentConfigKV).filter(AgentConfigKV.name == name).first()
             if not rec:
-                rec = AgentConfigKV(name=name, provider=provider, model=model, updated_at=datetime.now(timezone.utc))
+                rec = AgentConfigKV(name=name, provider=provider, model=model, updated_at=datetime.now(datetime.UTC))
             else:
                 rec.provider = provider
                 rec.model = model
-                rec.updated_at = datetime.now(timezone.utc)
+                rec.updated_at = datetime.now(datetime.UTC)
             db.add(rec)
             db.commit()
         finally:

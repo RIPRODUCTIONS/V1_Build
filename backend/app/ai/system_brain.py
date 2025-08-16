@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any
 
 
-def plan_investigations(context: Dict[str, Any] | None = None) -> List[Dict[str, Any]]:
+def plan_investigations(context: dict[str, Any] | None = None) -> list[dict[str, Any]]:
     """Very lightweight rule-based planner for investigation sequencing.
 
     Returns a list of steps like {"kind": "osint"} in the order to execute.
     """
     ctx = context or {}
-    steps: List[Dict[str, Any]] = []
+    steps: list[dict[str, Any]] = []
     # Always start with OSINT for subject discovery
     steps.append({"kind": "osint"})
     # If we have any artifact sources, add forensics timeline
@@ -29,16 +29,17 @@ def plan_investigations(context: Dict[str, Any] | None = None) -> List[Dict[str,
     return steps
 
 
-def propose_new_templates(observed: Dict[str, Any]) -> List[Dict[str, Any]]:
+def propose_new_templates(observed: dict[str, Any]) -> list[dict[str, Any]]:
     """Generate basic proposals for new automation templates.
 
     Heuristic: if repeated investigations mention the same platform or action,
     propose a dedicated template.
     """
-    proposals: List[Dict[str, Any]] = []
+    proposals: list[dict[str, Any]] = []
     platforms = observed.get("platform_counts", {})
+    MIN_PLATFORM_COUNT = 3
     for platform, count in platforms.items():
-        if count >= 3:
+        if count >= MIN_PLATFORM_COUNT:
             proposals.append({
                 "name": f"{platform.title()} Investigator",
                 "template_id": f"investigate_{platform}",

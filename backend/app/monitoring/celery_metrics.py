@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import logging
 import os
 import threading
@@ -110,10 +111,8 @@ try:
 
     @celery_app.on_after_finalize.connect
     def _setup_monitoring_periodic(sender, **kwargs):
-        try:
+        with contextlib.suppress(Exception):
             sender.add_periodic_task(60.0, update_queue_metrics.s(), name="monitor.update_queue_metrics")
-        except Exception:
-            pass
 
     @shared_task(name="monitor.update_queue_metrics")
     def update_queue_metrics() -> None:
@@ -142,10 +141,8 @@ try:
                         # Fall back to 0 on per-queue error
                         celery_queue_depth.labels(queue=qname).set(0)
             finally:
-                try:
+                with contextlib.suppress(Exception):
                     r.close()
-                except Exception:
-                    pass
         except Exception as exc:
             logger.debug("update_queue_metrics failed: %s", exc)
 

@@ -2,14 +2,12 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
-from .events import EventContext
 
 import redis.asyncio as redis
 
-from .events import BusEvent
-
+from .events import BusEvent, EventContext
 
 STREAM_KEY = os.getenv("AUTOMATION_EVENT_STREAM", "automation:events")
 DLQ_KEY = os.getenv("AUTOMATION_EVENT_DLQ", "automation:events:dlq")
@@ -32,7 +30,7 @@ async def publish_calendar_created(user_id: str, payload: dict[str, Any], contex
     evt: BusEvent = {
         "type": "calendar.event.created",
         "user_id": user_id,
-        "ts": datetime.now(timezone.utc).isoformat(),
+        "ts": datetime.now(UTC).isoformat(),
         "payload": payload,
         "context": (context or {}),
     }

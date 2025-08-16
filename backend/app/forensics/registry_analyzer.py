@@ -1,13 +1,16 @@
+import hashlib
 import logging
 import os
 import struct
-import tempfile
-import time
-from datetime import datetime, timezone
-from typing import Dict, Any, List, Optional, Tuple
-import hashlib
-import json
-import re
+from datetime import UTC, datetime
+from typing import Any
+
+# Constants for magic numbers
+DEFAULT_TIMEOUT_SECONDS = 30
+MAX_HIVE_SIZE_MB = 100
+DEFAULT_CHUNK_SIZE = 1024
+MAX_KEY_LENGTH = 255
+MAX_VALUE_LENGTH = 16384
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +30,7 @@ class UserActivityError(RegistryAnalysisError):
     """Exception raised when user activity extraction fails."""
     pass
 
-def parse_registry_hives(hive_files: List[str], analysis_params: Dict[str, Any]) -> Dict[str, Any]:
+def parse_registry_hives(hive_files: list[str], analysis_params: dict[str, Any]) -> dict[str, Any]:
     """
     Parse Windows registry hive files for analysis.
     Args:
@@ -64,7 +67,7 @@ def parse_registry_hives(hive_files: List[str], analysis_params: Dict[str, Any])
             "parsed_hives": parsed_hives,
             "hive_metadata": hive_metadata,
             "registry_summary": registry_summary,
-            "analysis_timestamp": datetime.now(timezone.utc).isoformat()
+            "analysis_timestamp": datetime.now(UTC).isoformat()
         }
 
         logger.info(f"Successfully parsed {len(parsed_hives)} registry hives")
@@ -72,9 +75,9 @@ def parse_registry_hives(hive_files: List[str], analysis_params: Dict[str, Any])
 
     except Exception as e:
         logger.error(f"Registry hive parsing failed: {e}")
-        raise HiveParsingError(f"Registry parsing failed: {e}")
+        raise HiveParsingError(f"Registry parsing failed: {e}") from e
 
-def analyze_registry_changes(registry_data: Dict[str, Any], baseline_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def analyze_registry_changes(registry_data: dict[str, Any], baseline_data: dict[str, Any] | None = None) -> dict[str, Any]:
     """
     Analyze changes in registry data compared to baseline.
     Args:
@@ -95,7 +98,7 @@ def analyze_registry_changes(registry_data: Dict[str, Any], baseline_data: Optio
                 "baseline_comparison": False,
                 "current_state_analysis": current_analysis,
                 "change_summary": "No baseline for comparison",
-                "analysis_timestamp": datetime.now(timezone.utc).isoformat()
+                "analysis_timestamp": datetime.now(UTC).isoformat()
             }
 
         # Compare current state with baseline
@@ -109,7 +112,7 @@ def analyze_registry_changes(registry_data: Dict[str, Any], baseline_data: Optio
             "change_categories": change_categories,
             "risk_assessment": risk_assessment,
             "change_summary": _generate_change_summary(changes),
-            "analysis_timestamp": datetime.now(timezone.utc).isoformat()
+            "analysis_timestamp": datetime.now(UTC).isoformat()
         }
 
         logger.info(f"Registry change analysis completed: {len(changes)} changes detected")
@@ -117,9 +120,9 @@ def analyze_registry_changes(registry_data: Dict[str, Any], baseline_data: Optio
 
     except Exception as e:
         logger.error(f"Registry change analysis failed: {e}")
-        raise ChangeAnalysisError(f"Change analysis failed: {e}")
+        raise ChangeAnalysisError(f"Change analysis failed: {e}") from e
 
-def extract_user_activity(registry_data: Dict[str, Any], user_context: Dict[str, Any]) -> Dict[str, Any]:
+def extract_user_activity(registry_data: dict[str, Any], user_context: dict[str, Any]) -> dict[str, Any]:
     """
     Extract user activity patterns from registry data.
     Args:
@@ -158,7 +161,7 @@ def extract_user_activity(registry_data: Dict[str, Any], user_context: Dict[str,
             "correlated_activity": correlated_activity,
             "activity_timeline": activity_timeline,
             "user_behavior_profile": _generate_user_behavior_profile(correlated_activity),
-            "extraction_timestamp": datetime.now(timezone.utc).isoformat()
+            "extraction_timestamp": datetime.now(UTC).isoformat()
         }
 
         logger.info("User activity extraction completed successfully")
@@ -166,7 +169,7 @@ def extract_user_activity(registry_data: Dict[str, Any], user_context: Dict[str,
 
     except Exception as e:
         logger.error(f"User activity extraction failed: {e}")
-        raise UserActivityError(f"Activity extraction failed: {e}")
+        raise UserActivityError(f"Activity extraction failed: {e}") from e
 
 def _validate_hive_file(hive_file: str) -> bool:
     """Validate registry hive file format and accessibility."""
@@ -176,18 +179,15 @@ def _validate_hive_file(hive_file: str) -> bool:
 
         # Check file size (registry hives are typically several MB)
         file_size = os.path.getsize(hive_file)
-        if file_size < 1024:  # Less than 1KB is suspicious
+        if file_size < DEFAULT_CHUNK_SIZE:  # Less than 1KB is suspicious
             return False
 
         # Check file permissions
-        if not os.access(hive_file, os.R_OK):
-            return False
-
-        return True
+        return os.access(hive_file, os.R_OK)
     except Exception:
         return False
 
-def _parse_single_hive(hive_file: str, analysis_params: Dict[str, Any]) -> Dict[str, Any]:
+def _parse_single_hive(hive_file: str, analysis_params: dict[str, Any]) -> dict[str, Any]:
     """Parse a single registry hive file."""
     try:
         with open(hive_file, 'rb') as f:
@@ -216,14 +216,14 @@ def _parse_single_hive(hive_file: str, analysis_params: Dict[str, Any]) -> Dict[
             "extracted_keys": extracted_keys,
             "total_keys_extracted": len(extracted_keys),
             "hive_size": len(hive_content),
-            "parse_timestamp": datetime.now(timezone.utc).isoformat()
+            "parse_timestamp": datetime.now(UTC).isoformat()
         }
 
     except Exception as e:
         logger.error(f"Failed to parse hive {hive_file}: {e}")
-        raise HiveParsingError(f"Hive parsing failed: {e}")
+        raise HiveParsingError(f"Hive parsing failed: {e}") from e
 
-def _parse_hive_header(hive_content: bytes) -> Dict[str, Any]:
+def _parse_hive_header(hive_content: bytes) -> dict[str, Any]:
     """Parse registry hive header structure."""
     try:
         if len(hive_content) < 4096:  # Minimum hive size
@@ -240,12 +240,12 @@ def _parse_hive_header(hive_content: bytes) -> Dict[str, Any]:
             "sequence1": sequence1,
             "sequence2": sequence2,
             "timestamp": timestamp,
-            "timestamp_readable": datetime.fromtimestamp(timestamp, tz=timezone.utc).isoformat() if timestamp > 0 else "Unknown"
+            "timestamp_readable": datetime.fromtimestamp(timestamp, tz=UTC).isoformat() if timestamp > 0 else "Unknown"
         }
     except Exception as e:
         return {"error": f"Header parsing failed: {str(e)}"}
 
-def _extract_registry_key(hive_content: bytes, key_path: str) -> Optional[Dict[str, Any]]:
+def _extract_registry_key(hive_content: bytes, key_path: str) -> dict[str, Any] | None:
     """Extract specific registry key data."""
     try:
         # This is a simplified implementation
@@ -257,7 +257,7 @@ def _extract_registry_key(hive_content: bytes, key_path: str) -> Optional[Dict[s
             "key_name": key_path.split('\\')[-1],
             "subkeys": [],
             "values": [],
-            "last_modified": datetime.now(timezone.utc).isoformat(),
+            "last_modified": datetime.now(UTC).isoformat(),
             "access_count": 0
         }
 
@@ -281,7 +281,7 @@ def _extract_registry_key(hive_content: bytes, key_path: str) -> Optional[Dict[s
         logger.warning(f"Failed to extract key {key_path}: {e}")
         return None
 
-def _get_default_registry_keys() -> List[str]:
+def _get_default_registry_keys() -> list[str]:
     """Get default registry keys to extract for analysis."""
     return [
         r"SOFTWARE\Microsoft\Windows\CurrentVersion\Run",
@@ -312,16 +312,16 @@ def _extract_hive_name(hive_file: str) -> str:
     else:
         return filename.split('.')[0].upper()
 
-def _extract_hive_metadata(hive_file: str) -> Dict[str, Any]:
+def _extract_hive_metadata(hive_file: str) -> dict[str, Any]:
     """Extract metadata from hive file."""
     try:
         stat_info = os.stat(hive_file)
         return {
             "file_path": hive_file,
             "file_size": stat_info.st_size,
-            "created_time": datetime.fromtimestamp(stat_info.st_ctime, tz=timezone.utc).isoformat(),
-            "modified_time": datetime.fromtimestamp(stat_info.st_mtime, tz=timezone.utc).isoformat(),
-            "accessed_time": datetime.fromtimestamp(stat_info.st_atime, tz=timezone.utc).isoformat(),
+            "created_time": datetime.fromtimestamp(stat_info.st_ctime, tz=UTC).isoformat(),
+            "modified_time": datetime.fromtimestamp(stat_info.st_mtime, tz=UTC).isoformat(),
+            "accessed_time": datetime.fromtimestamp(stat_info.st_atime, tz=UTC).isoformat(),
             "file_hash": _calculate_file_hash(hive_file)
         }
     except Exception as e:
@@ -338,7 +338,7 @@ def _calculate_file_hash(file_path: str) -> str:
     except Exception:
         return "hash_calculation_failed"
 
-def _generate_registry_summary(parsed_hives: Dict[str, Any]) -> Dict[str, Any]:
+def _generate_registry_summary(parsed_hives: dict[str, Any]) -> dict[str, Any]:
     """Generate summary of parsed registry data."""
     total_keys = sum(hive.get('total_keys_extracted', 0) for hive in parsed_hives.values())
     total_size = sum(hive.get('hive_size', 0) for hive in parsed_hives.values())
@@ -351,7 +351,7 @@ def _generate_registry_summary(parsed_hives: Dict[str, Any]) -> Dict[str, Any]:
         "parse_status": "completed"
     }
 
-def _analyze_current_registry_state(registry_data: Dict[str, Any]) -> Dict[str, Any]:
+def _analyze_current_registry_state(registry_data: dict[str, Any]) -> dict[str, Any]:
     """Analyze current registry state without baseline comparison."""
     return {
         "analysis_type": "current_state_only",
@@ -360,7 +360,7 @@ def _analyze_current_registry_state(registry_data: Dict[str, Any]) -> Dict[str, 
         "analysis_summary": "Current registry state analyzed"
     }
 
-def _identify_registry_changes(current_data: Dict[str, Any], baseline_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+def _identify_registry_changes(current_data: dict[str, Any], baseline_data: dict[str, Any]) -> list[dict[str, Any]]:
     """Identify changes between current and baseline registry data."""
     changes = []
 
@@ -393,7 +393,7 @@ def _identify_registry_changes(current_data: Dict[str, Any], baseline_data: Dict
 
     return changes
 
-def _categorize_changes(changes: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
+def _categorize_changes(changes: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
     """Categorize registry changes by type."""
     categories = {
         "new_hives": [],
@@ -418,7 +418,7 @@ def _categorize_changes(changes: List[Dict[str, Any]]) -> Dict[str, List[Dict[st
 
     return categories
 
-def _assess_change_risks(changes: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _assess_change_risks(changes: list[dict[str, Any]]) -> dict[str, Any]:
     """Assess risk level of registry changes."""
     risk_scores = {
         "low": 0,
@@ -441,7 +441,7 @@ def _assess_change_risks(changes: List[Dict[str, Any]]) -> Dict[str, Any]:
         "risk_assessment": _generate_risk_assessment(risk_scores, overall_risk)
     }
 
-def _calculate_change_risk(change: Dict[str, Any]) -> str:
+def _calculate_change_risk(change: dict[str, Any]) -> str:
     """Calculate risk level for a specific change."""
     change_type = change.get('type', 'unknown')
 
@@ -458,7 +458,7 @@ def _calculate_change_risk(change: Dict[str, Any]) -> str:
     else:
         return "medium"
 
-def _calculate_overall_risk(risk_scores: Dict[str, int], total_changes: int) -> str:
+def _calculate_overall_risk(risk_scores: dict[str, int], total_changes: int) -> str:
     """Calculate overall risk level based on risk scores."""
     if total_changes == 0:
         return "none"
@@ -480,7 +480,7 @@ def _calculate_overall_risk(risk_scores: Dict[str, int], total_changes: int) -> 
     else:
         return "low"
 
-def _generate_risk_assessment(risk_scores: Dict[str, int], overall_risk: str) -> str:
+def _generate_risk_assessment(risk_scores: dict[str, int], overall_risk: str) -> str:
     """Generate human-readable risk assessment."""
     if overall_risk == "critical":
         return "Critical risk level - immediate attention required"
@@ -493,7 +493,7 @@ def _generate_risk_assessment(risk_scores: Dict[str, int], overall_risk: str) ->
     else:
         return "No changes detected"
 
-def _generate_change_summary(changes: List[Dict[str, Any]]) -> str:
+def _generate_change_summary(changes: list[dict[str, Any]]) -> str:
     """Generate summary of registry changes."""
     if not changes:
         return "No registry changes detected"
@@ -509,7 +509,7 @@ def _generate_change_summary(changes: List[Dict[str, Any]]) -> str:
 
     return "; ".join(summary_parts)
 
-def _extract_login_activity(registry_data: Dict[str, Any]) -> Dict[str, Any]:
+def _extract_login_activity(registry_data: dict[str, Any]) -> dict[str, Any]:
     """Extract login activity from registry data."""
     # Mock implementation for demonstration
     return {
@@ -534,7 +534,7 @@ def _extract_login_activity(registry_data: Dict[str, Any]) -> Dict[str, Any]:
         "active_sessions": 0
     }
 
-def _extract_application_usage(registry_data: Dict[str, Any]) -> Dict[str, Any]:
+def _extract_application_usage(registry_data: dict[str, Any]) -> dict[str, Any]:
     """Extract application usage patterns from registry."""
     # Mock implementation for demonstration
     return {
@@ -556,7 +556,7 @@ def _extract_application_usage(registry_data: Dict[str, Any]) -> Dict[str, Any]:
         "most_used_app": "Google Chrome"
     }
 
-def _extract_file_access_patterns(registry_data: Dict[str, Any]) -> Dict[str, Any]:
+def _extract_file_access_patterns(registry_data: dict[str, Any]) -> dict[str, Any]:
     """Extract file access patterns from registry."""
     # Mock implementation for demonstration
     return {
@@ -579,7 +579,7 @@ def _extract_file_access_patterns(registry_data: Dict[str, Any]) -> Dict[str, An
         "total_recent_files": 2
     }
 
-def _extract_network_activity(registry_data: Dict[str, Any]) -> Dict[str, Any]:
+def _extract_network_activity(registry_data: dict[str, Any]) -> dict[str, Any]:
     """Extract network activity from registry."""
     # Mock implementation for demonstration
     return {
@@ -602,7 +602,7 @@ def _extract_network_activity(registry_data: Dict[str, Any]) -> Dict[str, Any]:
         "total_dns_queries": 1
     }
 
-def _extract_system_interactions(registry_data: Dict[str, Any]) -> Dict[str, Any]:
+def _extract_system_interactions(registry_data: dict[str, Any]) -> dict[str, Any]:
     """Extract system interaction patterns from registry."""
     # Mock implementation for demonstration
     return {
@@ -622,9 +622,9 @@ def _extract_system_interactions(registry_data: Dict[str, Any]) -> Dict[str, Any
         "event_types": ["service_start", "registry_modification"]
     }
 
-def _correlate_user_activities(login_activity: Dict[str, Any], application_usage: Dict[str, Any],
-                              file_access_patterns: Dict[str, Any], network_activity: Dict[str, Any],
-                              system_interactions: Dict[str, Any], user_context: Dict[str, Any]) -> Dict[str, Any]:
+def _correlate_user_activities(login_activity: dict[str, Any], application_usage: dict[str, Any],
+                              file_access_patterns: dict[str, Any], network_activity: dict[str, Any],
+                              system_interactions: dict[str, Any], user_context: dict[str, Any]) -> dict[str, Any]:
     """Correlate different types of user activities."""
     # Mock implementation for demonstration
     return {
@@ -653,7 +653,7 @@ def _correlate_user_activities(login_activity: Dict[str, Any], application_usage
         "correlation_score": 0.85
     }
 
-def _generate_activity_timeline(correlated_activity: Dict[str, Any]) -> Dict[str, Any]:
+def _generate_activity_timeline(correlated_activity: dict[str, Any]) -> dict[str, Any]:
     """Generate chronological timeline of user activities."""
     # Mock implementation for demonstration
     return {
@@ -679,7 +679,7 @@ def _generate_activity_timeline(correlated_activity: Dict[str, Any]) -> Dict[str
         ]
     }
 
-def _generate_user_behavior_profile(correlated_activity: Dict[str, Any]) -> Dict[str, Any]:
+def _generate_user_behavior_profile(correlated_activity: dict[str, Any]) -> dict[str, Any]:
     """Generate user behavior profile based on activities."""
     # Mock implementation for demonstration
     return {

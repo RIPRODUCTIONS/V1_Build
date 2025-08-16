@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Any, Literal, TypedDict
-
 
 EventType = Literal[
     "calendar.event.created",

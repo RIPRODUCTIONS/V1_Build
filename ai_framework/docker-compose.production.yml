@@ -1,0 +1,265 @@
+services:
+  # AI Framework Production Service
+  ai-framework-production:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: ai-framework-production
+    restart: unless-stopped
+    ports:
+      - "8000:8000"  # Main API
+      - "9090:9090"  # Metrics
+    environment:
+      - NODE_ENV=production
+      - DEBUG=false
+      - DEMO_MODE=false
+      - JWT_SECRET=${JWT_SECRET:-your-super-secure-production-jwt-secret-change-this-immediately}
+      - API_KEY=${API_KEY:-your-production-api-key-change-this-immediately}
+      - DATABASE_URL=${DATABASE_URL:-postgresql://ai_user:ai_password@postgres-production:5432/ai_framework_prod}
+      - REDIS_URL=${REDIS_URL:-redis://redis-production:6379/0}
+      - LOG_LEVEL=INFO
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-https://yourdomain.com,https://www.yourdomain.com}
+      - RATE_LIMIT_REQUESTS=1000
+      - RATE_LIMIT_WINDOW=60
+      - SECURITY_HEADERS=true
+      - CORS_ENABLED=true
+      - SSL_VERIFY=true
+    volumes:
+      - ./logs:/var/log/ai_framework
+      - ./cache:/var/cache/ai_framework
+      - ./data:/var/data/ai_framework
+      - ./ssl:/var/ssl/ai_framework
+    depends_on:
+      - postgres-production
+      - redis-production
+    networks:
+      - ai-network-production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+    security_opt:
+      - no-new-privileges:true
+    read_only: false
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+
+  # PostgreSQL Production Database
+  postgres-production:
+    image: postgres:15-alpine
+    container_name: ai-framework-postgres-production
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=ai_framework_prod
+      - POSTGRES_USER=ai_user
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-your-super-secure-production-db-password}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
+      - ./database/backups:/backups
+    ports:
+      - "15432:5432"
+    networks:
+      - ai-network-production
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ai_user -d ai_framework_prod"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    security_opt:
+      - no-new-privileges:true
+
+  # Redis Production Cache
+  redis-production:
+    image: redis:7-alpine
+    container_name: ai-framework-redis-production
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-your-super-secure-production-redis-password}
+    volumes:
+      - redis_data_prod:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
+    ports:
+      - "16379:6379"
+    networks:
+      - ai-network-production
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    security_opt:
+      - no-new-privileges:true
+
+  # Prometheus Production Monitoring
+  prometheus-production:
+    image: prom/prometheus:latest
+    container_name: ai-framework-prometheus-production
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data_prod:/prometheus
+      - ./monitoring/rules:/etc/prometheus/rules
+    ports:
+      - "9091:9090"
+    networks:
+      - ai-network-production
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    security_opt:
+      - no-new-privileges:true
+
+  # Grafana Production Dashboard
+  grafana-production:
+    image: grafana/grafana:latest
+    container_name: ai-framework-grafana-production
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-your-super-secure-production-grafana-password}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+      - GF_SECURITY_DISABLE_GRAVATAR=true
+      - GF_SECURITY_COOKIE_SECURE=true
+      - GF_SECURITY_COOKIE_HTTPONLY=true
+      - GF_SECURITY_COOKIE_SAMESITE=strict
+    volumes:
+      - grafana_data_prod:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+    ports:
+      - "13000:3000"
+    networks:
+      - ai-network-production
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    security_opt:
+      - no-new-privileges:true
+
+  # Nginx Production Reverse Proxy
+  nginx-production:
+    image: nginx:alpine
+    container_name: ai-framework-nginx-production
+    restart: unless-stopped
+    volumes:
+      - ./nginx/nginx.production.conf:/etc/nginx/nginx.conf
+      - ./ssl:/etc/nginx/ssl
+      - ./logs/nginx:/var/log/nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - ai-framework-production
+    networks:
+      - ai-network-production
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    security_opt:
+      - no-new-privileges:true
+
+  # Backup Service
+  backup-service:
+    image: postgres:15-alpine
+    container_name: ai-framework-backup-production
+    restart: "no"
+    environment:
+      - POSTGRES_DB=ai_framework_prod
+      - POSTGRES_USER=ai_user
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-your-super-secure-production-db-password}
+      - POSTGRES_HOST=postgres-production
+    volumes:
+      - ./database/backups:/backups
+      - ./scripts/backup.sh:/backup.sh
+    networks:
+      - ai-network-production
+    command: ["/bin/sh", "/backup.sh"]
+    depends_on:
+      - postgres-production
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  postgres_data_prod:
+    driver: local
+  redis_data_prod:
+    driver: local
+  prometheus_data_prod:
+    driver: local
+  grafana_data_prod:
+    driver: local
+
+networks:
+  ai-network-production:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16
+    driver_opts:
+      com.docker.network.bridge.name: ai-br-prod

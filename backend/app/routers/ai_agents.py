@@ -1,11 +1,10 @@
-from typing import Any, Optional
+from typing import Any
 
-from fastapi import APIRouter
-from pydantic import BaseModel
-
-from app.agent.agent_registry import get_registry, set_agent_config, AgentName
+from app.agent.agent_registry import AgentName, get_registry, set_agent_config
 from app.core.config import get_settings
 from app.services.llm.router import LLMRouter
+from fastapi import APIRouter
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/ai/agents", tags=["ai-agents"])
 
@@ -13,7 +12,7 @@ router = APIRouter(prefix="/ai/agents", tags=["ai-agents"])
 class AgentRequest(BaseModel):
     goal: str
     context: dict[str, Any] | None = None
-    agent: Optional[str] = None  # research|writer|reviewer|planner
+    agent: str | None = None  # research|writer|reviewer|planner
 
 
 class AgentResponse(BaseModel):
@@ -23,8 +22,8 @@ class AgentResponse(BaseModel):
 
 
 class AgentConfigIn(BaseModel):
-    provider: Optional[str] = None
-    model: Optional[str] = None
+    provider: str | None = None
+    model: str | None = None
 
 
 @router.get("/registry")
@@ -38,8 +37,8 @@ async def configure_agent(name: str, cfg: AgentConfigIn) -> dict[str, Any]:
         literal_name: AgentName = name  # type: ignore[assignment]
     except Exception:
         return {"ok": False, "error": "unknown agent"}
-    set_agent_config(name=literal_name, provider=cfg.provider, model=cfg.model)
-    return {"ok": True, "agent": name, "config": cfg.dict()}
+        set_agent_config(name=literal_name, provider=cfg.provider, model=cfg.model)
+    return {"ok": True, "agent": name, "config": cfg.model_dump()}
 
 
 @router.post("/run", response_model=AgentResponse)

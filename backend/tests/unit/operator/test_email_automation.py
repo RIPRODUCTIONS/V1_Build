@@ -1,13 +1,13 @@
 import types
 import pytest
 
-from app.operator.templates.email_automation import PersonalEmailAutomation
+from app.web_operator.templates.email_automation import PersonalEmailAutomation
 
 
 @pytest.mark.asyncio
 async def test_email_automation_success(monkeypatch):
     # Stub GmailIntegration.list_messages to return three messages
-    import app.operator.templates.email_automation as ema
+    import app.web_operator.templates.email_automation as ema
 
     class _Gmail:
         async def list_messages(self, user_id: str, q: str | None = None, max_results: int = 10):
@@ -25,7 +25,7 @@ async def test_email_automation_success(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_email_automation_missing_creds(monkeypatch):
-    import app.operator.templates.email_automation as ema
+    import app.web_operator.templates.email_automation as ema
 
     class _Gmail:
         async def list_messages(self, user_id: str, q: str | None = None, max_results: int = 10):

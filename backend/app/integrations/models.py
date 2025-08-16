@@ -1,21 +1,19 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
-from typing import List, Optional
 
 from pydantic import BaseModel
 
 
 class NormalizedEventData(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    participants: List[str] = []
-    location: Optional[str] = None
-    monetary_value: Optional[Decimal] = None
-    tags: List[str] = []
-    urgency: Optional[str] = None
+    title: str | None = None
+    description: str | None = None
+    participants: list[str] = []
+    location: str | None = None
+    monetary_value: Decimal | None = None
+    tags: list[str] = []
+    urgency: str | None = None
 
 
 class UnifiedEvent(BaseModel):

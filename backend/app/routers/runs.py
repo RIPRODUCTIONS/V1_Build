@@ -2,14 +2,12 @@ from __future__ import annotations
 
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Path
-from sqlalchemy.orm import Session
-
 from app.db import get_db
 from app.models import Task
 from app.security.deps import require_scopes
 from app.security.scopes import READ_RUNS, WRITE_RUNS
-
+from fastapi import APIRouter, Depends, Path
+from sqlalchemy.orm import Session
 
 automation_router = APIRouter(prefix="/automation", tags=["automation:runs"])
 

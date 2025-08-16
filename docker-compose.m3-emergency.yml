@@ -1,0 +1,151 @@
+# Docker Compose configuration for M3 Max emergency deployment
+
+services:
+  ai-framework:
+    build:
+      context: ./ai_framework
+      dockerfile: Dockerfile
+      platforms:
+        - linux/arm64  # M3 Max native
+    container_name: ai-framework-m3
+    ports:
+      - "8100:8000"  # No conflicts
+    environment:
+      # M3 Max optimizations
+      - WORKERS=12
+      - WORKER_CONNECTIONS=2000
+      - PYTHONMALLOC=pymalloc
+      - MALLOC_ARENA_MAX=4
+      - DATABASE_URL=postgresql://ai_user:ai_pass_123@postgres-m3:5432/ai_framework
+      - REDIS_URL=redis://:redis_pass_123@redis-m3:6379/0
+      # M3 Max specific
+      - APPLE_SILICON_OPTIMIZED=true
+      - USE_NEURAL_ENGINE=true
+      - THERMAL_MONITORING=true
+    volumes:
+      - ./ai_framework/logs:/app/logs
+      - ./ai_framework/data:/app/data
+    networks:
+      - ai-m3-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+          cpus: '8.0'
+        reservations:
+          memory: 2G
+          cpus: '2.0'
+    # M3 Max specific optimizations
+    platform: linux/arm64
+    shm_size: 2gb
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+
+  postgres-m3:
+    image: postgres:15-alpine
+    container_name: postgres-m3
+    ports:
+      - "5434:5432"  # Different port
+    environment:
+      POSTGRES_DB: ai_framework
+      POSTGRES_USER: ai_user
+      POSTGRES_PASSWORD: ai_pass_123
+    command: >
+      postgres
+      -c max_connections=200
+      -c shared_buffers=2GB
+      -c effective_cache_size=12GB
+      -c work_mem=32MB
+      -c max_worker_processes=12
+      -c max_parallel_workers=8
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+    volumes:
+      - postgres_m3_data:/var/lib/postgresql/data
+    networks:
+      - ai-m3-network
+    restart: unless-stopped
+
+  redis-m3:
+    image: redis:7-alpine
+    platform: linux/arm64
+    container_name: redis-m3
+    ports:
+      - "6380:6379"  # Different port
+    command: >
+      redis-server
+      --requirepass redis_pass_123
+      --maxmemory 2gb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+      --tcp-keepalive 300
+      --timeout 0
+      --tcp-backlog 511
+      --databases 16
+    volumes:
+      - redis_m3_data:/data
+    networks:
+      - ai-m3-network
+    restart: unless-stopped
+
+  grafana-m3:
+    image: grafana/grafana:latest
+    platform: linux/arm64
+    container_name: grafana-m3
+    ports:
+      - "3002:3000"  # Different port
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_INSTALL_PLUGINS=grafana-clock-panel
+    volumes:
+      - grafana_m3_data:/var/lib/grafana
+    networks:
+      - ai-m3-network
+    restart: unless-stopped
+
+  prometheus-m3:
+    image: prom/prometheus:latest
+    platform: linux/arm64
+    container_name: prometheus-m3
+    ports:
+      - "9092:9090"  # Different port
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+      - '--storage.tsdb.retention.time=30d'
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_m3_data:/prometheus
+    networks:
+      - ai-m3-network
+    restart: unless-stopped
+
+networks:
+  ai-m3-network:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: ai-m3-bridge
+
+volumes:
+  postgres_m3_data:
+    driver: local
+    driver_opts:
+      type: apfs
+      o: cow
+  redis_m3_data:
+  grafana_m3_data:
+  prometheus_m3_data:

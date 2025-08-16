@@ -1,12 +1,12 @@
 import types
 import pytest
 
-from app.operator.templates.calendar_automation import PersonalCalendarAutomation
+from app.web_operator.templates.calendar_automation import PersonalCalendarAutomation
 
 
 @pytest.mark.asyncio
 async def test_calendar_automation_success(monkeypatch):
-    import app.operator.templates.calendar_automation as ca
+    import app.web_operator.templates.calendar_automation as ca
 
     class _Cal:
         async def get_credentials(self, user_id: str):
@@ -28,7 +28,7 @@ async def test_calendar_automation_success(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_calendar_automation_missing_creds(monkeypatch):
-    import app.operator.templates.calendar_automation as ca
+    import app.web_operator.templates.calendar_automation as ca
 
     class _Cal:
         async def get_credentials(self, user_id: str):

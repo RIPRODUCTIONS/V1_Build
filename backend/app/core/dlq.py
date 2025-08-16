@@ -3,8 +3,8 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 import redis
 
@@ -13,44 +13,44 @@ import redis
 class DLQItem:
     id: str
     queue_name: str
-    payload: Dict[str, Any]
-    error_details: Dict[str, Any]
+    payload: dict[str, Any]
+    error_details: dict[str, Any]
     failed_at: str
     retry_count: int
 
 
 class DeadLetterQueue:
-    def __init__(self, redis_url: Optional[str] = None) -> None:
+    def __init__(self, redis_url: str | None = None) -> None:
         self.redis_url = redis_url or os.getenv("REDIS_URL", "redis://localhost:6379/0")
         self.client = redis.from_url(self.redis_url, decode_responses=True)
 
     def _key(self, queue_name: str) -> str:
         return f"dlq:{queue_name}"
 
-    async def send_to_dlq(self, queue_name: str, failed_operation: Dict[str, Any], error: Exception, context: Dict[str, Any] | None = None) -> None:
+    async def send_to_dlq(self, queue_name: str, failed_operation: dict[str, Any], error: Exception, context: dict[str, Any] | None = None) -> None:
         """Store failed operation with metadata; trim list by retention policy."""
         item = {
             "id": __import__("uuid").uuid4().hex,
             "queue_name": queue_name,
             "payload": failed_operation,
             "error_details": {"type": type(error).__name__, "str": str(error)},
-            "failed_at": datetime.now(timezone.utc).isoformat(),
+            "failed_at": datetime.now(UTC).isoformat(),
             "retry_count": 0,
             "context": context or {},
         }
         await self._push(queue_name, item)
 
-    async def _push(self, queue_name: str, item: Dict[str, Any]) -> None:
+    async def _push(self, queue_name: str, item: dict[str, Any]) -> None:
         key = self._key(queue_name)
         self.client.lpush(key, json.dumps(item))
         # Trim to max size
         max_items = int(os.getenv("DLQ_MAX_ITEMS_PER_QUEUE", "1000"))
         self.client.ltrim(key, 0, max_items - 1)
 
-    async def get_dlq_items(self, queue_name: str, limit: int = 50) -> List[DLQItem]:
+    async def get_dlq_items(self, queue_name: str, limit: int = 50) -> list[DLQItem]:
         key = self._key(queue_name)
         raw = self.client.lrange(key, 0, limit - 1)
-        out: List[DLQItem] = []
+        out: list[DLQItem] = []
         for r in reversed(raw):  # oldest first
             d = json.loads(r)
             out.append(DLQItem(
@@ -78,7 +78,7 @@ class DeadLetterQueue:
             ok = False
             try:
                 ok = bool(await replay_func(d.get("payload")))
-            except Exception as e:  # requeue with increment
+            except Exception:  # requeue with increment
                 d["retry_count"] = int(d.get("retry_count", 0)) + 1
                 self._replace_item(key, raw, json.dumps(d))
                 return False
@@ -98,7 +98,7 @@ class DeadLetterQueue:
         pipe.rpush(key, new_raw)
         pipe.execute()
 
-    async def get_dlq_item(self, queue_name: str, item_id: str) -> Optional[Dict[str, Any]]:
+    async def get_dlq_item(self, queue_name: str, item_id: str) -> dict[str, Any] | None:
         key = self._key(queue_name)
         for raw in self.client.lrange(key, 0, -1):
             d = json.loads(raw)
@@ -106,9 +106,9 @@ class DeadLetterQueue:
                 return d
         return None
 
-    async def bulk_replay_dlq_items(self, queue_name: str, item_ids: List[str], user_id: str, replay_func=None) -> Dict[str, Any]:
+    async def bulk_replay_dlq_items(self, queue_name: str, item_ids: list[str], user_id: str, replay_func=None) -> dict[str, Any]:
         """Replay multiple DLQ items with simple concurrency control."""
-        results: Dict[str, Any] = {"success": 0, "failed": 0, "items": []}
+        results: dict[str, Any] = {"success": 0, "failed": 0, "items": []}
         sem = __import__("asyncio").Semaphore(5)
 
         async def _replay_one(item_id: str) -> None:
@@ -127,7 +127,7 @@ class DeadLetterQueue:
         results["requested_by"] = user_id
         return results
 
-    async def bulk_delete_dlq_items(self, queue_name: str, item_ids: List[str], user_id: str) -> Dict[str, Any]:
+    async def bulk_delete_dlq_items(self, queue_name: str, item_ids: list[str], user_id: str) -> dict[str, Any]:
         key = self._key(queue_name)
         items = self.client.lrange(key, 0, -1)
         deleted = 0
@@ -138,9 +138,9 @@ class DeadLetterQueue:
                 deleted += 1
         return {"deleted": deleted, "total": len(item_ids), "queue": queue_name, "requested_by": user_id}
 
-    async def collect_dlq_metrics(self) -> Dict[str, Any]:
+    async def collect_dlq_metrics(self) -> dict[str, Any]:
         """Compute simple in-memory metrics for all queues (best-effort)."""
-        metrics: Dict[str, Any] = {}
+        metrics: dict[str, Any] = {}
         # Scan keys by prefix
         for key in self.client.scan_iter(match="dlq:*"):
             qname = key.split(":", 1)[1]
@@ -148,7 +148,7 @@ class DeadLetterQueue:
             metrics[qname] = {"depth": count}
         return metrics
 
-    async def generate_dlq_analytics_report(self) -> Dict[str, Any]:
+    async def generate_dlq_analytics_report(self) -> dict[str, Any]:
         m = await self.collect_dlq_metrics()
         return {"queues": m, "summary": {"total_items": sum(v["depth"] for v in m.values())}}
 

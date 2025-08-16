@@ -1,19 +1,17 @@
 from __future__ import annotations
 
 import re
-from typing import Iterable
 
 from .scopes import (
     ADMIN_TASKS,
     ADMIN_USERS,
-    READ_RUNS,
-    WRITE_RUNS,
-    READ_TASKS,
-    WRITE_TASKS,
     READ_LEADS,
+    READ_RUNS,
+    READ_TASKS,
     WRITE_AI,
+    WRITE_RUNS,
+    WRITE_TASKS,
 )
-
 
 # Path regexes map to required scopes by HTTP method
 RBAC_ROUTE_SCOPE_MAP: list[tuple[re.Pattern[str], dict[str, set[str]]]] = [

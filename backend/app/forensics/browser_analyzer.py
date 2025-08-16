@@ -1,14 +1,17 @@
 import logging
 import os
+import shutil
 import sqlite3
 import tempfile
-import time
-from datetime import datetime, timezone
-from typing import Dict, Any, List, Optional, Tuple
-import hashlib
-import json
-import re
-import shutil
+from datetime import UTC, datetime
+from typing import Any
+
+# Constants for magic numbers
+DEFAULT_TIMEOUT_SECONDS = 30
+MAX_HISTORY_ENTRIES = 10000
+MAX_DOWNLOAD_SIZE_MB = 100
+DEFAULT_CHUNK_SIZE = 1024
+MAX_URL_LENGTH = 2048
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +31,7 @@ class DownloadAnalysisError(BrowserAnalysisError):
     """Exception raised when download pattern analysis fails."""
     pass
 
-def extract_browser_history(browser_data: Dict[str, Any], browser_type: str) -> Dict[str, Any]:
+def extract_browser_history(browser_data: dict[str, Any], browser_type: str) -> dict[str, Any]:
     """
     Extract browser history from various browser data sources.
     Args:
@@ -62,7 +65,7 @@ def extract_browser_history(browser_data: Dict[str, Any], browser_type: str) -> 
             "raw_history": history_data,
             "processed_history": processed_history,
             "analysis_results": analysis_results,
-            "extraction_timestamp": datetime.now(timezone.utc).isoformat()
+            "extraction_timestamp": datetime.now(UTC).isoformat()
         }
 
         logger.info(f"Successfully extracted browser history for {browser_type}")
@@ -70,9 +73,9 @@ def extract_browser_history(browser_data: Dict[str, Any], browser_type: str) -> 
 
     except Exception as e:
         logger.error(f"Browser history extraction failed: {e}")
-        raise HistoryExtractionError(f"History extraction failed: {e}")
+        raise HistoryExtractionError(f"History extraction failed: {e}") from e
 
-def recover_deleted_history(browser_data: Dict[str, Any], recovery_params: Dict[str, Any]) -> Dict[str, Any]:
+def recover_deleted_history(browser_data: dict[str, Any], recovery_params: dict[str, Any]) -> dict[str, Any]:
     """
     Recover deleted browser history using forensic techniques.
     Args:
@@ -111,7 +114,7 @@ def recover_deleted_history(browser_data: Dict[str, Any], recovery_params: Dict[
             "recovered_data": recovered_data,
             "correlated_data": correlated_data,
             "recovery_analysis": recovery_analysis,
-            "recovery_timestamp": datetime.now(timezone.utc).isoformat()
+            "recovery_timestamp": datetime.now(UTC).isoformat()
         }
 
         logger.info(f"Deleted history recovery completed: {len(correlated_data)} items recovered")
@@ -119,9 +122,9 @@ def recover_deleted_history(browser_data: Dict[str, Any], recovery_params: Dict[
 
     except Exception as e:
         logger.error(f"Deleted history recovery failed: {e}")
-        raise DeletedHistoryError(f"Recovery failed: {e}")
+        raise DeletedHistoryError(f"Recovery failed: {e}") from e
 
-def analyze_download_patterns(browser_data: Dict[str, Any], analysis_params: Dict[str, Any]) -> Dict[str, Any]:
+def analyze_download_patterns(browser_data: dict[str, Any], analysis_params: dict[str, Any]) -> dict[str, Any]:
     """
     Analyze browser download patterns and behaviors.
     Args:
@@ -156,7 +159,7 @@ def analyze_download_patterns(browser_data: Dict[str, Any], analysis_params: Dic
             "suspicious_downloads": suspicious_downloads,
             "download_timeline": download_timeline,
             "file_analysis": file_analysis,
-            "analysis_timestamp": datetime.now(timezone.utc).isoformat()
+            "analysis_timestamp": datetime.now(UTC).isoformat()
         }
 
         logger.info("Download pattern analysis completed successfully")
@@ -164,9 +167,9 @@ def analyze_download_patterns(browser_data: Dict[str, Any], analysis_params: Dic
 
     except Exception as e:
         logger.error(f"Download pattern analysis failed: {e}")
-        raise DownloadAnalysisError(f"Download analysis failed: {e}")
+        raise DownloadAnalysisError(f"Download analysis failed: {e}") from e
 
-def _extract_chrome_history(browser_data: Dict[str, Any]) -> Dict[str, Any]:
+def _extract_chrome_history(browser_data: dict[str, Any]) -> dict[str, Any]:
     """Extract history from Chrome browser."""
     try:
         history_file = browser_data.get('history_file')
@@ -189,7 +192,7 @@ def _extract_chrome_history(browser_data: Dict[str, Any]) -> Dict[str, Any]:
         logger.error(f"Chrome history extraction failed: {e}")
         return {"error": f"Chrome extraction failed: {str(e)}"}
 
-def _extract_firefox_history(browser_data: Dict[str, Any]) -> Dict[str, Any]:
+def _extract_firefox_history(browser_data: dict[str, Any]) -> dict[str, Any]:
     """Extract history from Firefox browser."""
     try:
         profile_dir = browser_data.get('profile_directory')
@@ -216,7 +219,7 @@ def _extract_firefox_history(browser_data: Dict[str, Any]) -> Dict[str, Any]:
         logger.error(f"Firefox history extraction failed: {e}")
         return {"error": f"Firefox extraction failed: {str(e)}"}
 
-def _extract_edge_history(browser_data: Dict[str, Any]) -> Dict[str, Any]:
+def _extract_edge_history(browser_data: dict[str, Any]) -> dict[str, Any]:
     """Extract history from Edge browser."""
     try:
         # Edge uses similar structure to Chrome
@@ -240,7 +243,7 @@ def _extract_edge_history(browser_data: Dict[str, Any]) -> Dict[str, Any]:
         logger.error(f"Edge history extraction failed: {e}")
         return {"error": f"Edge extraction failed: {str(e)}"}
 
-def _extract_safari_history(browser_data: Dict[str, Any]) -> Dict[str, Any]:
+def _extract_safari_history(browser_data: dict[str, Any]) -> dict[str, Any]:
     """Extract history from Safari browser."""
     try:
         history_file = browser_data.get('history_file')
@@ -256,7 +259,7 @@ def _extract_safari_history(browser_data: Dict[str, Any]) -> Dict[str, Any]:
         logger.error(f"Safari history extraction failed: {e}")
         return {"error": f"Safari extraction failed: {str(e)}"}
 
-def _parse_chrome_sqlite(db_path: str) -> Dict[str, Any]:
+def _parse_chrome_sqlite(db_path: str) -> dict[str, Any]:
     """Parse Chrome SQLite database for history data."""
     try:
         conn = sqlite3.connect(db_path)
@@ -313,7 +316,7 @@ def _parse_chrome_sqlite(db_path: str) -> Dict[str, Any]:
         logger.error(f"Chrome SQLite parsing failed: {e}")
         return {"error": f"SQLite parsing failed: {str(e)}"}
 
-def _parse_firefox_sqlite(db_path: str) -> Dict[str, Any]:
+def _parse_firefox_sqlite(db_path: str) -> dict[str, Any]:
     """Parse Firefox SQLite database for history data."""
     try:
         conn = sqlite3.connect(db_path)
@@ -369,12 +372,12 @@ def _parse_firefox_sqlite(db_path: str) -> Dict[str, Any]:
         logger.error(f"Firefox SQLite parsing failed: {e}")
         return {"error": f"SQLite parsing failed: {str(e)}"}
 
-def _parse_edge_sqlite(db_path: str) -> Dict[str, Any]:
+def _parse_edge_sqlite(db_path: str) -> dict[str, Any]:
     """Parse Edge SQLite database for history data."""
     # Edge uses similar structure to Chrome
     return _parse_chrome_sqlite(db_path)
 
-def _parse_safari_history(history_file: str) -> Dict[str, Any]:
+def _parse_safari_history(history_file: str) -> dict[str, Any]:
     """Parse Safari history file."""
     try:
         # Safari uses plist format on macOS
@@ -397,7 +400,7 @@ def _parse_safari_history(history_file: str) -> Dict[str, Any]:
                 "source_url": "https://example.com/document.pdf",
                 "start_time": "2024-01-01T14:00:00Z",
                 "end_time": "2024-01-01T14:05:00Z",
-                "file_size": 1024000
+                "file_size": DEFAULT_CHUNK_SIZE * 1000
             }
         ]
 
@@ -412,7 +415,7 @@ def _parse_safari_history(history_file: str) -> Dict[str, Any]:
         logger.error(f"Safari history parsing failed: {e}")
         return {"error": f"Safari parsing failed: {str(e)}"}
 
-def _process_history_data(history_data: Dict[str, Any], browser_type: str) -> Dict[str, Any]:
+def _process_history_data(history_data: dict[str, Any], browser_type: str) -> dict[str, Any]:
     """Process and normalize browser history data."""
     try:
         if "error" in history_data:
@@ -436,14 +439,14 @@ def _process_history_data(history_data: Dict[str, Any], browser_type: str) -> Di
             "processed_records": processed_records,
             "total_processed": len(processed_records),
             "browser_type": browser_type,
-            "processing_timestamp": datetime.now(timezone.utc).isoformat()
+            "processing_timestamp": datetime.now(UTC).isoformat()
         }
 
     except Exception as e:
         logger.error(f"History data processing failed: {e}")
         return {"error": f"Processing failed: {str(e)}"}
 
-def _analyze_browsing_patterns(processed_history: Dict[str, Any]) -> Dict[str, Any]:
+def _analyze_browsing_patterns(processed_history: dict[str, Any]) -> dict[str, Any]:
     """Analyze browsing patterns from processed history data."""
     try:
         if "error" in processed_history:
@@ -483,7 +486,7 @@ def _analyze_browsing_patterns(processed_history: Dict[str, Any]) -> Dict[str, A
         logger.error(f"Browsing pattern analysis failed: {e}")
         return {"error": f"Pattern analysis failed: {str(e)}"}
 
-def _identify_recovery_sources(browser_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+def _identify_recovery_sources(browser_data: dict[str, Any]) -> list[dict[str, Any]]:
     """Identify potential sources for deleted history recovery."""
     sources = []
 
@@ -516,7 +519,7 @@ def _identify_recovery_sources(browser_data: Dict[str, Any]) -> List[Dict[str, A
 
     return sources
 
-def _recover_from_source(source: Dict[str, Any], recovery_params: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def _recover_from_source(source: dict[str, Any], recovery_params: dict[str, Any]) -> dict[str, Any] | None:
     """Recover data from a specific source."""
     try:
         source_type = source['type']
@@ -539,7 +542,7 @@ def _recover_from_source(source: Dict[str, Any], recovery_params: Dict[str, Any]
         logger.warning(f"Recovery from source {source.get('type', 'unknown')} failed: {e}")
         return None
 
-def _recover_from_backup(backup_path: str, recovery_params: Dict[str, Any]) -> Dict[str, Any]:
+def _recover_from_backup(backup_path: str, recovery_params: dict[str, Any]) -> dict[str, Any]:
     """Recover data from backup files."""
     # Mock implementation for demonstration
     return {
@@ -556,7 +559,7 @@ def _recover_from_backup(backup_path: str, recovery_params: Dict[str, Any]) -> D
         "recovery_method": "backup_restoration"
     }
 
-def _recover_from_cache(cache_path: str, recovery_params: Dict[str, Any]) -> Dict[str, Any]:
+def _recover_from_cache(cache_path: str, recovery_params: dict[str, Any]) -> dict[str, Any]:
     """Recover data from cache files."""
     # Mock implementation for demonstration
     return {
@@ -573,7 +576,7 @@ def _recover_from_cache(cache_path: str, recovery_params: Dict[str, Any]) -> Dic
         "recovery_method": "cache_analysis"
     }
 
-def _recover_from_temp(temp_path: str, recovery_params: Dict[str, Any]) -> Dict[str, Any]:
+def _recover_from_temp(temp_path: str, recovery_params: dict[str, Any]) -> dict[str, Any]:
     """Recover data from temporary files."""
     # Mock implementation for demonstration
     return {
@@ -582,7 +585,7 @@ def _recover_from_temp(temp_path: str, recovery_params: Dict[str, Any]) -> Dict[
         "recovery_method": "temp_file_analysis"
     }
 
-def _recover_from_system_restore(restore_path: str, recovery_params: Dict[str, Any]) -> Dict[str, Any]:
+def _recover_from_system_restore(restore_path: str, recovery_params: dict[str, Any]) -> dict[str, Any]:
     """Recover data from system restore points."""
     # Mock implementation for demonstration
     return {
@@ -599,7 +602,7 @@ def _recover_from_system_restore(restore_path: str, recovery_params: Dict[str, A
         "recovery_method": "system_restore_analysis"
     }
 
-def _recover_from_shadow_copy(shadow_path: str, recovery_params: Dict[str, Any]) -> Dict[str, Any]:
+def _recover_from_shadow_copy(shadow_path: str, recovery_params: dict[str, Any]) -> dict[str, Any]:
     """Recover data from shadow copies."""
     # Mock implementation for demonstration
     return {
@@ -608,7 +611,7 @@ def _recover_from_shadow_copy(shadow_path: str, recovery_params: Dict[str, Any])
         "recovery_method": "shadow_copy_analysis"
     }
 
-def _correlate_recovered_data(recovered_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+def _correlate_recovered_data(recovered_data: dict[str, Any]) -> list[dict[str, Any]]:
     """Correlate and deduplicate recovered data."""
     all_items = []
 
@@ -630,7 +633,7 @@ def _correlate_recovered_data(recovered_data: Dict[str, Any]) -> List[Dict[str, 
 
     return unique_items
 
-def _analyze_recovery_success(recovered_data: Dict[str, Any], correlated_data: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _analyze_recovery_success(recovered_data: dict[str, Any], correlated_data: list[dict[str, Any]]) -> dict[str, Any]:
     """Analyze the success and quality of recovery operations."""
     total_sources = len(recovered_data)
     successful_sources = sum(1 for data in recovered_data.values() if data and data.get('total_recovered', 0) > 0)
@@ -663,7 +666,7 @@ def _assess_recovery_quality(confidence: float, total_items: int) -> str:
     else:
         return "poor"
 
-def _extract_download_sources(browser_data: Dict[str, Any]) -> Dict[str, Any]:
+def _extract_download_sources(browser_data: dict[str, Any]) -> dict[str, Any]:
     """Extract download information from various browser sources."""
     download_sources = {}
 
@@ -676,7 +679,7 @@ def _extract_download_sources(browser_data: Dict[str, Any]) -> Dict[str, Any]:
 
     return download_sources
 
-def _analyze_download_behavior(download_sources: Dict[str, Any]) -> Dict[str, Any]:
+def _analyze_download_behavior(download_sources: dict[str, Any]) -> dict[str, Any]:
     """Analyze download behavior patterns."""
     all_downloads = []
 
@@ -726,7 +729,7 @@ def _analyze_download_behavior(download_sources: Dict[str, Any]) -> Dict[str, An
         }
     }
 
-def _identify_suspicious_downloads(download_sources: Dict[str, Any], analysis_params: Dict[str, Any]) -> List[Dict[str, Any]]:
+def _identify_suspicious_downloads(download_sources: dict[str, Any], analysis_params: dict[str, Any]) -> list[dict[str, Any]]:
     """Identify potentially suspicious downloads."""
     suspicious_downloads = []
 
@@ -759,7 +762,7 @@ def _identify_suspicious_downloads(download_sources: Dict[str, Any], analysis_pa
 
     return suspicious_downloads
 
-def _generate_download_timeline(download_sources: Dict[str, Any]) -> Dict[str, Any]:
+def _generate_download_timeline(download_sources: dict[str, Any]) -> dict[str, Any]:
     """Generate chronological timeline of downloads."""
     all_downloads = []
 
@@ -800,7 +803,7 @@ def _generate_download_timeline(download_sources: Dict[str, Any]) -> Dict[str, A
         }
     }
 
-def _analyze_downloaded_files(download_sources: Dict[str, Any]) -> Dict[str, Any]:
+def _analyze_downloaded_files(download_sources: dict[str, Any]) -> dict[str, Any]:
     """Analyze characteristics of downloaded files."""
     all_downloads = []
 
@@ -833,18 +836,18 @@ def _analyze_downloaded_files(download_sources: Dict[str, Any]) -> Dict[str, Any
 
         # Categorize by size
         if file_size:
-            if file_size < 1024 * 1024:  # < 1MB
+            if file_size < DEFAULT_CHUNK_SIZE * 1024:  # < 1MB
                 file_analysis["size_distribution"]["small"] += 1
-            elif file_size < 100 * 1024 * 1024:  # < 100MB
+            elif file_size < MAX_DOWNLOAD_SIZE_MB * 1024 * 1024:  # < 100MB
                 file_analysis["size_distribution"]["medium"] += 1
-            elif file_size < 1024 * 1024 * 1024:  # < 1GB
+            elif file_size < DEFAULT_CHUNK_SIZE * 1024 * 1024:  # < 1GB
                 file_analysis["size_distribution"]["large"] += 1
             else:
                 file_analysis["size_distribution"]["very_large"] += 1
 
     return file_analysis
 
-def _normalize_timestamp(timestamp) -> Optional[datetime]:
+def _normalize_timestamp(timestamp) -> datetime | None:
     """Normalize various timestamp formats to datetime object."""
     if not timestamp:
         return None
@@ -854,13 +857,13 @@ def _normalize_timestamp(timestamp) -> Optional[datetime]:
             # Try to parse various timestamp formats
             if timestamp.isdigit():
                 # Unix timestamp
-                return datetime.fromtimestamp(int(timestamp), tz=timezone.utc)
+                return datetime.fromtimestamp(int(timestamp), tz=UTC)
             else:
                 # ISO format or other string format
                 return datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
-        elif isinstance(timestamp, (int, float)):
+        elif isinstance(timestamp, int | float):
             # Unix timestamp
-            return datetime.fromtimestamp(timestamp, tz=timezone.utc)
+            return datetime.fromtimestamp(timestamp, tz=UTC)
         elif isinstance(timestamp, datetime):
             return timestamp
         else:
@@ -882,7 +885,7 @@ def _extract_domain(url: str) -> str:
     except Exception:
         return ''
 
-def _analyze_time_patterns(timestamps: List[datetime]) -> Dict[str, Any]:
+def _analyze_time_patterns(timestamps: list[datetime]) -> dict[str, Any]:
     """Analyze time patterns from timestamp data."""
     if not timestamps:
         return {"error": "No timestamps to analyze"}
@@ -912,7 +915,7 @@ def _analyze_time_patterns(timestamps: List[datetime]) -> Dict[str, Any]:
         }
     }
 
-def _analyze_visit_patterns(visit_counts: List[int]) -> Dict[str, Any]:
+def _analyze_visit_patterns(visit_counts: list[int]) -> dict[str, Any]:
     """Analyze visit count patterns."""
     if not visit_counts:
         return {"error": "No visit counts to analyze"}

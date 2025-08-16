@@ -1,21 +1,20 @@
 from __future__ import annotations
 
+import json
 import logging
+import os
 import time
 from collections import defaultdict, deque
-from datetime import datetime, timezone
-import os
+from datetime import UTC, datetime
 from typing import Annotated
 
 from app.core.config import get_settings
 from app.db import get_db
 from app.models import AgentRun, Artifact, Lead, Task
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
+from pydantic import BaseModel
 from sqlalchemy import delete
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
-import json
-import time
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 _logger = logging.getLogger("cleanup")
@@ -44,7 +43,7 @@ def require_rate_limit(request: Request) -> None:
         _logger.info(
             "cleanup_request",
             extra={
-                "ts": datetime.now(timezone.utc).isoformat(),
+                "ts": datetime.now(UTC).isoformat(),
                 "ip": ip,
                 "route": str(request.url.path),
                 "auth": "rate_limited",
@@ -65,7 +64,7 @@ def require_ci(
         _logger.info(
             "cleanup_request",
             extra={
-                "ts": datetime.now(timezone.utc).isoformat(),
+                "ts": datetime.now(UTC).isoformat(),
                 "ip": ip,
                 "route": str(request.url.path),
                 "auth": "ci_env_false",
@@ -76,7 +75,7 @@ def require_ci(
         _logger.info(
             "cleanup_request",
             extra={
-                "ts": datetime.now(timezone.utc).isoformat(),
+                "ts": datetime.now(UTC).isoformat(),
                 "ip": ip,
                 "route": str(request.url.path),
                 "auth": "invalid_token",
@@ -86,7 +85,7 @@ def require_ci(
     _logger.info(
         "cleanup_request",
         extra={
-                "ts": datetime.now(timezone.utc).isoformat(),
+                "ts": datetime.now(UTC).isoformat(),
             "ip": ip,
             "route": str(request.url.path),
             "auth": "success",
@@ -235,7 +234,6 @@ def seed_calendar_rules(
 # --- DLQ admin ---
 from app.core.dlq import DeadLetterQueue
 from app.core.event_bus import STREAM_KEY as SYSTEM_STREAM
-from app.core.config import get_settings
 
 
 @router.get("/dlq/{queue}/items")
@@ -419,8 +417,8 @@ def admin_delete_template(template_id: str, _: Annotated[None, Depends(require_c
 
 @router.get("/templates/roi")
 def admin_templates_roi(_: Annotated[None, Depends(require_ci)] = None):
-    from app.db import SessionLocal
     from app.core.config import get_settings
+    from app.db import SessionLocal
 
     s = get_settings()
     db = SessionLocal()
@@ -431,7 +429,7 @@ def admin_templates_roi(_: Annotated[None, Depends(require_ci)] = None):
             .all()
         )
         out = []
-        cutoff = datetime.now(timezone.utc).replace(tzinfo=None)  # naive to match DB default
+        cutoff = datetime.now(UTC).replace(tzinfo=None)  # naive to match DB default
         from datetime import timedelta
         cutoff = cutoff - timedelta(hours=24)
         for r in rows:

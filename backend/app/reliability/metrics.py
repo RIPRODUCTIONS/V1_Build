@@ -3,24 +3,60 @@ import time
 from collections.abc import Awaitable, Callable
 
 from fastapi import APIRouter, Request
+from prometheus_client import Counter, Histogram
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.core.config import Settings
 from app.services.llm.router import _reset_router, get_llm_router
 
+# Global metrics
+REQUEST_COUNT = Counter('http_requests_total', 'Total HTTP requests', ['method', 'endpoint', 'status'])
+REQUEST_DURATION = Histogram('http_request_duration_seconds', 'HTTP request duration in seconds', ['method', 'endpoint'])
 
 class SimpleTimingMetrics(BaseHTTPMiddleware):
     def __init__(self, app) -> None:
         super().__init__(app)
-        self._enabled = bool(os.getenv("METRICS_ENABLED"))
+        self._enabled = bool(os.getenv("METRICS_ENABLED", "true"))
 
     async def dispatch(self, request: Request, call_next: Callable[..., Awaitable]):
         if not self._enabled:
             return await call_next(request)
+
         start = time.perf_counter()
         response = await call_next(request)
-        _ = time.perf_counter() - start  # hook to metrics backend when enabled
+        duration = time.perf_counter() - start
+
+        # Record metrics
+        endpoint = request.url.path
+        method = request.method
+        status = response.status_code
+
+        REQUEST_COUNT.labels(method=method, endpoint=endpoint, status=status).inc()
+        REQUEST_DURATION.labels(method=method, endpoint=endpoint).observe(duration)
+
         return response
+
+
+class StandaloneTimingMetrics:
+    """Standalone timing metrics for testing and direct use."""
+
+    def __init__(self) -> None:
+        self._enabled = True
+        # Register metrics in the global registry
+        self._register_metrics()
+
+    def _register_metrics(self) -> None:
+        """Register metrics in the global Prometheus registry."""
+        # The metrics are already registered globally when the module is imported
+        pass
+
+    def record_request(self, method: str, endpoint: str, status: int, duration: float) -> None:
+        """Record a request manually."""
+        if not self._enabled:
+            return
+
+        REQUEST_COUNT.labels(method=method, endpoint=endpoint, status=status).inc()
+        REQUEST_DURATION.labels(method=method, endpoint=endpoint).observe(duration)
 
 
 router = APIRouter(tags=["ops"])

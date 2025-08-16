@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
 from app.automations.models import AutomationRule, RuleExecution
@@ -49,7 +49,7 @@ def automation_health(db: Annotated[Session, Depends(get_db)]):
         except Exception:
             lag = 0
 
-        one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
+        one_hour_ago = datetime.now(UTC) - timedelta(hours=1)
         recent = db.query(RuleExecution).filter(RuleExecution.executed_at >= one_hour_ago).all()
         total = len(recent)
         failed = sum(1 for e in recent if e.status == "failed")
@@ -68,7 +68,7 @@ def automation_health(db: Annotated[Session, Depends(get_db)]):
                 "error_rate_1h": round(error_rate, 2),
                 "active_rules": active_rules,
             },
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
     except Exception as e:  # pragma: no cover
         return {"status": "error", "error": str(e)}
@@ -76,7 +76,7 @@ def automation_health(db: Annotated[Session, Depends(get_db)]):
 
 @router.get("/metrics")
 def automation_metrics(db: Annotated[Session, Depends(get_db)]):
-    since = datetime.now(timezone.utc) - timedelta(hours=24)
+    since = datetime.now(UTC) - timedelta(hours=24)
     rows = (
         db.query(
             RuleExecution.rule_id,

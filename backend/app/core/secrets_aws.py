@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Any, Dict
+from typing import Any
 
 
 def _merge_env_from_secret(secret_blob: str) -> None:
     try:
-        data: Dict[str, Any] = json.loads(secret_blob)
+        data: dict[str, Any] = json.loads(secret_blob)
     except json.JSONDecodeError:
         # Support KEY=VAL\n format
         for line in secret_blob.splitlines():
@@ -16,7 +16,7 @@ def _merge_env_from_secret(secret_blob: str) -> None:
                 os.environ.setdefault(k.strip(), v.strip())
         return
     for k, v in data.items():
-        if isinstance(v, (str, int, float)):
+        if isinstance(v, str | int | float):
             os.environ.setdefault(str(k), str(v))
 
 

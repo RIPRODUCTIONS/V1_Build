@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
-from typing import Any, Dict
-
 from app.security.deps import require_scopes
-from app.security.scopes import WRITE_AI, READ_LEADS
-from .models import HistoricalInsights, BehavioralInsights, PredictiveAutomationPlan, PredictionBundle
-from .schemas import HistoricalAnalyzeRequest, BehaviorAnalyzeRequest, PredictAutomateRequest
-from .engines import HistoricalDataMiner, BehaviorAnalysisEngine, PredictiveAutomationEngine
+from app.security.scopes import READ_LEADS, WRITE_AI
+from fastapi import APIRouter, Depends
 
+from .engines import BehaviorAnalysisEngine, HistoricalDataMiner, PredictiveAutomationEngine
+from .models import BehavioralInsights, HistoricalInsights, PredictiveAutomationPlan
+from .schemas import BehaviorAnalyzeRequest, HistoricalAnalyzeRequest, PredictAutomateRequest
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 
@@ -17,7 +15,7 @@ router = APIRouter(prefix="/ai", tags=["ai"])
     "/historical/ingest_and_analyze",
     response_model=HistoricalInsights,
 )
-async def ingest_and_analyze_historical(req: HistoricalAnalyzeRequest | None = None, user=Depends(require_scopes({READ_LEADS}))) -> HistoricalInsights:
+async def ingest_and_analyze_historical(req: HistoricalAnalyzeRequest | None = None, user=Depends(require_scopes({READ_LEADS}))) -> HistoricalInsights:  # noqa: B008
     miner = HistoricalDataMiner()
     user_id = (req.user_id if req else "anonymous")
     years_back = (req.years_back if req else 10)
@@ -29,7 +27,7 @@ async def ingest_and_analyze_historical(req: HistoricalAnalyzeRequest | None = N
     "/behavior/analyze",
     response_model=BehavioralInsights,
 )
-async def analyze_behavior(req: BehaviorAnalyzeRequest | None = None, user=Depends(require_scopes({WRITE_AI}))) -> BehavioralInsights:
+async def analyze_behavior(req: BehaviorAnalyzeRequest | None = None, user=Depends(require_scopes({WRITE_AI}))) -> BehavioralInsights:  # noqa: B008
     engine = BehaviorAnalysisEngine()
     user_id = (req.user_id if req else "anonymous")
     horizon_days = (req.horizon_days if req else 90)
@@ -41,7 +39,7 @@ async def analyze_behavior(req: BehaviorAnalyzeRequest | None = None, user=Depen
     "/predict/automate",
     response_model=PredictiveAutomationPlan,
 )
-async def predict_and_automate(req: PredictAutomateRequest | None = None, user=Depends(require_scopes({WRITE_AI}))) -> PredictiveAutomationPlan:
+async def predict_and_automate(req: PredictAutomateRequest | None = None, user=Depends(require_scopes({WRITE_AI}))) -> PredictiveAutomationPlan:  # noqa: B008
     engine = PredictiveAutomationEngine()
     user_id = (req.user_id if req else "anonymous")
     pre_execute = (req.pre_execute if req else True)

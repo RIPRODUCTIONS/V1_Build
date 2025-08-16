@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import boto3
 from app.agent.celery_app import celery_app
 from app.agent.pipeline import run_agent_pipeline
 from app.core.config import get_settings
 from app.db import SessionLocal
-from app.models import Artifact, Task
+from app.models import Artifact, SystemAutonomy, Task
+from app.tasks.investigation_tasks import run_investigations_autopilot
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -90,23 +92,16 @@ def cleanup_old_artifacts(days: int = 30) -> int:
         db.close()
 
 
-from typing import Any
-
-
 @celery_app.task(name="system.autonomy.tick", autoretry_for=(Exception,), retry_backoff=True)
 def system_autonomy_tick() -> dict[str, Any]:
-    from datetime import datetime, timedelta
 
-    from app.db import SessionLocal
-    from app.models import SystemAutonomy
-    from app.tasks.investigation_tasks import run_investigations_autopilot
 
     db: Session = SessionLocal()
     try:
         cfg = db.query(SystemAutonomy).first()
         if not cfg or not cfg.enabled:
             return {"status": "disabled"}
-        now = datetime.now(timezone.utc)
+        now = datetime.now(datetime.UTC)
         if cfg.last_tick and now - cfg.last_tick < timedelta(minutes=cfg.run_interval_minutes):
             return {"status": "skipped", "next_in_minutes": cfg.run_interval_minutes}
         res = run_investigations_autopilot.apply(args=[["task_data"], {"subject": {"name": "Jane Doe"}, "task_id": None}]) if False else run_investigations_autopilot.apply(args=[{"subject": {"name": "Jane Doe"}, "task_id": None}])

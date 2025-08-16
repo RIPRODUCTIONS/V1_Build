@@ -8,8 +8,6 @@ from app.dependencies.auth import get_current_user
 from app.models import User
 from app.schemas import LoginRequest, RegisterRequest, UserOut
 from fastapi import APIRouter, Depends, HTTPException, status
-from app.security.deps import require_scopes
-from app.security.scopes import ADMIN_USERS
 from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.orm import Session
