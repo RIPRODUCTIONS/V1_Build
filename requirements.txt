@@ -1,0 +1,4 @@
+# Python dependencies for n8n automation project
+transformers>=4.21.0
+torch>=1.12.0
+tokenizers>=0.13.0

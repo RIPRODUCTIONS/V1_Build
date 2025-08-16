@@ -2,6 +2,40 @@
 
 This repository contains a collection of n8n automation workflows designed to streamline various business processes. Each workflow is organized by category and can be imported directly into your n8n instance.
 
+# n8n Automation Workflows
+
+This repository contains a collection of n8n automation workflows designed to streamline various business processes. Each workflow is organized by category and can be imported directly into your n8n instance.
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Docker and Docker Compose installed
+- Node.js (v16+) and npm
+- Python 3.8+ and pip3
+
+### Installation
+1. **Clone and setup:**
+   ```bash
+   git clone <repository-url>
+   cd V1_Build
+   npm install
+   pip3 install -r requirements.txt
+   ```
+
+2. **Start n8n:**
+   ```bash
+   npm run setup
+   # OR
+   ./setup.sh
+   ```
+
+3. **Access n8n:**
+   - URL: http://localhost:5678
+   - Username: admin
+   - Password: yourSecurePassword123
+
+For detailed installation instructions, see [INSTALL.md](INSTALL.md).
+
 ## 🚀 Getting Started
 
 ### Prerequisites
