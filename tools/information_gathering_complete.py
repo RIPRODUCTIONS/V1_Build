@@ -730,19 +730,19 @@ class DnsreconDNSAutomation(BaseKaliTool):
 # Continue with ALL remaining tools...
 class DnsenumDNSAutomation(BaseKaliTool):
     """Complete DNSenum automation"""
-    
+
     def __init__(self):
         super().__init__('dnsenum')
-    
+
     async def execute_automated(self, target: str, options: dict[str, Any]) -> ScanResult:
         """Execute automated DNSenum scan"""
         start_time = time.time()
-        
+
         cmd = ['dnsenum', '--noreverse', '--nocolor', target]
         result = await self.run_command(cmd)
-        
+
         execution_time = time.time() - start_time
-        
+
         return ScanResult(
             tool_name=self.tool_name,
             target=target,
@@ -755,19 +755,19 @@ class DnsenumDNSAutomation(BaseKaliTool):
 
 class FierceDNSAutomation(BaseKaliTool):
     """Complete Fierce automation"""
-    
+
     def __init__(self):
         super().__init__('fierce')
-    
+
     async def execute_automated(self, target: str, options: dict[str, Any]) -> ScanResult:
         """Execute automated Fierce scan"""
         start_time = time.time()
-        
+
         cmd = ['fierce', '--domain', target]
         result = await self.run_command(cmd)
-        
+
         execution_time = time.time() - start_time
-        
+
         return ScanResult(
             tool_name=self.tool_name,
             target=target,
@@ -780,19 +780,19 @@ class FierceDNSAutomation(BaseKaliTool):
 
 class WhatwebTechAutomation(BaseKaliTool):
     """Complete Whatweb automation for technology detection"""
-    
+
     def __init__(self):
         super().__init__('whatweb')
-    
+
     async def execute_automated(self, target: str, options: dict[str, Any]) -> ScanResult:
         """Execute automated Whatweb scan"""
         start_time = time.time()
-        
+
         cmd = ['whatweb', '--no-errors', target]
         result = await self.run_command(cmd)
-        
+
         execution_time = time.time() - start_time
-        
+
         return ScanResult(
             tool_name=self.tool_name,
             target=target,
@@ -805,19 +805,19 @@ class WhatwebTechAutomation(BaseKaliTool):
 
 class Wafw00fFirewallAutomation(BaseKaliTool):
     """Complete Wafw00f automation for firewall detection"""
-    
+
     def __init__(self):
         super().__init__('wafw00f')
-    
+
     async def execute_automated(self, target: str, options: dict[str, Any]) -> ScanResult:
         """Execute automated Wafw00f scan"""
         start_time = time.time()
-        
+
         cmd = ['wafw00f', target]
         result = await self.run_command(cmd)
-        
+
         execution_time = time.time() - start_time
-        
+
         return ScanResult(
             tool_name=self.tool_name,
             target=target,
@@ -830,19 +830,19 @@ class Wafw00fFirewallAutomation(BaseKaliTool):
 
 class NetdiscoverNetworkAutomation(BaseKaliTool):
     """Complete Netdiscover automation"""
-    
+
     def __init__(self):
         super().__init__('netdiscover')
-    
+
     async def execute_automated(self, target: str, options: dict[str, Any]) -> ScanResult:
         """Execute automated Netdiscover scan"""
         start_time = time.time()
-        
+
         cmd = ['netdiscover', '-i', 'eth0', '-r', target]
         result = await self.run_command(cmd)
-        
+
         execution_time = time.time() - start_time
-        
+
         return ScanResult(
             tool_name=self.tool_name,
             target=target,
@@ -855,19 +855,19 @@ class NetdiscoverNetworkAutomation(BaseKaliTool):
 
 class ArpScanNetworkAutomation(BaseKaliTool):
     """Complete ARP-scan automation"""
-    
+
     def __init__(self):
         super().__init__('arpscan')
-    
+
     async def execute_automated(self, target: str, options: dict[str, Any]) -> ScanResult:
         """Execute automated ARP-scan"""
         start_time = time.time()
-        
+
         cmd = ['arp-scan', '--localnet']
         result = await self.run_command(cmd)
-        
+
         execution_time = time.time() - start_time
-        
+
         return ScanResult(
             tool_name=self.tool_name,
             target=target,
@@ -880,19 +880,19 @@ class ArpScanNetworkAutomation(BaseKaliTool):
 
 class NbtscanNetBIOSAutomation(BaseKaliTool):
     """Complete NBTscan automation"""
-    
+
     def __init__(self):
         super().__init__('nbtscan')
-    
+
     async def execute_automated(self, target: str, options: dict[str, Any]) -> ScanResult:
         """Execute automated NBTscan"""
         start_time = time.time()
-        
+
         cmd = ['nbtscan', target]
         result = await self.run_command(cmd)
-        
+
         execution_time = time.time() - start_time
-        
+
         return ScanResult(
             tool_name=self.tool_name,
             target=target,
@@ -905,19 +905,19 @@ class NbtscanNetBIOSAutomation(BaseKaliTool):
 
 class Enum4linuxSMBAutomation(BaseKaliTool):
     """Complete Enum4linux automation"""
-    
+
     def __init__(self):
         super().__init__('enum4linux')
-    
+
     async def execute_automated(self, target: str, options: dict[str, Any]) -> ScanResult:
         """Execute automated Enum4linux scan"""
         start_time = time.time()
-        
+
         cmd = ['enum4linux', target]
         result = await self.run_command(cmd)
-        
+
         execution_time = time.time() - start_time
-        
+
         return ScanResult(
             tool_name=self.tool_name,
             target=target,
@@ -930,19 +930,19 @@ class Enum4linuxSMBAutomation(BaseKaliTool):
 
 class SmbclientSMBAutomation(BaseKaliTool):
     """Complete SMBclient automation"""
-    
+
     def __init__(self):
         super().__init__('smbclient')
-    
+
     async def execute_automated(self, target: str, options: dict[str, Any]) -> ScanResult:
         """Execute automated SMBclient scan"""
         start_time = time.time()
-        
+
         cmd = ['smbclient', '-L', target, '-N']
         result = await self.run_command(cmd)
-        
+
         execution_time = time.time() - start_time
-        
+
         return ScanResult(
             tool_name=self.tool_name,
             target=target,
@@ -955,19 +955,19 @@ class SmbclientSMBAutomation(BaseKaliTool):
 
 class ShowmountNFSAutomation(BaseKaliTool):
     """Complete Showmount automation"""
-    
+
     def __init__(self):
         super().__init__('showmount')
-    
+
     async def execute_automated(self, target: str, options: dict[str, Any]) -> ScanResult:
         """Execute automated Showmount scan"""
         start_time = time.time()
-        
+
         cmd = ['showmount', '-e', target]
         result = await self.run_command(cmd)
-        
+
         execution_time = time.time() - start_time
-        
+
         return ScanResult(
             tool_name=self.tool_name,
             target=target,
@@ -980,19 +980,19 @@ class ShowmountNFSAutomation(BaseKaliTool):
 
 class SnmpwalkSNMPAutomation(BaseKaliTool):
     """Complete SNMPwalk automation"""
-    
+
     def __init__(self):
         super().__init__('snmpwalk')
-    
+
     async def execute_automated(self, target: str, options: dict[str, Any]) -> ScanResult:
         """Execute automated SNMPwalk scan"""
         start_time = time.time()
-        
+
         cmd = ['snmpwalk', '-v1', '-c', 'public', target]
         result = await self.run_command(cmd)
-        
+
         execution_time = time.time() - start_time
-        
+
         return ScanResult(
             tool_name=self.tool_name,
             target=target,
@@ -1005,19 +1005,19 @@ class SnmpwalkSNMPAutomation(BaseKaliTool):
 
 class SmtpUserEnumAutomation(BaseKaliTool):
     """Complete SMTP-user-enum automation"""
-    
+
     def __init__(self):
         super().__init__('smtpuserenum')
-    
+
     async def execute_automated(self, target: str, options: dict[str, Any]) -> ScanResult:
         """Execute automated SMTP-user-enum scan"""
         start_time = time.time()
-        
+
         cmd = ['smtp-user-enum', '-M', 'VRFY', '-U', '/usr/share/wordlists/common.txt', '-t', target]
         result = await self.run_command(cmd)
-        
+
         execution_time = time.time() - start_time
-        
+
         return ScanResult(
             tool_name=self.tool_name,
             target=target,
@@ -1030,19 +1030,19 @@ class SmtpUserEnumAutomation(BaseKaliTool):
 
 class SslyzeSSLAutomation(BaseKaliTool):
     """Complete SSLyze automation"""
-    
+
     def __init__(self):
         super().__init__('sslyze')
-    
+
     async def execute_automated(self, target: str, options: dict[str, Any]) -> ScanResult:
         """Execute automated SSLyze scan"""
         start_time = time.time()
-        
+
         cmd = ['sslyze', '--regular', target]
         result = await self.run_command(cmd)
-        
+
         execution_time = time.time() - start_time
-        
+
         return ScanResult(
             tool_name=self.tool_name,
             target=target,
@@ -1055,19 +1055,19 @@ class SslyzeSSLAutomation(BaseKaliTool):
 
 class SslscanSSLAutomation(BaseKaliTool):
     """Complete SSLscan automation"""
-    
+
     def __init__(self):
         super().__init__('sslscan')
-    
+
     async def execute_automated(self, target: str, options: dict[str, Any]) -> ScanResult:
         """Execute automated SSLscan"""
         start_time = time.time()
-        
+
         cmd = ['sslscan', target]
         result = await self.run_command(cmd)
-        
+
         execution_time = time.time() - start_time
-        
+
         return ScanResult(
             tool_name=self.tool_name,
             target=target,
@@ -1080,19 +1080,19 @@ class SslscanSSLAutomation(BaseKaliTool):
 
 class TestsslSSLAutomation(BaseKaliTool):
     """Complete testssl.sh automation"""
-    
+
     def __init__(self):
         super().__init__('testssl')
-    
+
     async def execute_automated(self, target: str, options: dict[str, Any]) -> ScanResult:
         """Execute automated testssl.sh scan"""
         start_time = time.time()
-        
+
         cmd = ['testssl.sh', '--quiet', target]
         result = await self.run_command(cmd)
-        
+
         execution_time = time.time() - start_time
-        
+
         return ScanResult(
             tool_name=self.tool_name,
             target=target,

@@ -1,4 +1,3 @@
-# Complete Kali Linux Container with ALL Tools and Automation
 FROM kalilinux/kali-rolling:latest
 
 # Set environment variables
@@ -6,316 +5,109 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 ENV KALI_AUTOMATION_HOME=/kali-automation
 
-# Update and install ALL Kali tools
+# Update package lists and install essential packages
 RUN apt-get update && apt-get install -y \
-    kali-linux-everything \
-    kali-tools-top10 \
-    kali-tools-information-gathering \
-    kali-tools-vulnerability \
-    kali-tools-web \
-    kali-tools-database \
-    kali-tools-passwords \
-    kali-tools-wireless \
-    kali-tools-reverse-engineering \
-    kali-tools-exploitation \
-    kali-tools-social-engineering \
-    kali-tools-sniffing-spoofing \
-    kali-tools-post-exploitation \
-    kali-tools-forensics \
-    kali-tools-reporting \
-    kali-tools-gpu \
-    kali-tools-hardware \
-    kali-tools-crypto-stego \
-    kali-tools-fuzzing \
-    kali-tools-802-11 \
-    kali-tools-bluetooth \
-    kali-tools-rfid \
-    kali-tools-sdr \
-    kali-tools-voip \
-    kali-tools-windows-resources \
-    && apt-get clean
+    python3 \
+    python3-pip \
+    python3-venv \
+    git \
+    curl \
+    wget \
+    vim \
+    nano \
+    htop \
+    net-tools \
+    iputils-ping \
+    dnsutils \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install Python integration libraries
-RUN pip3 install \
-    python-nmap \
-    scapy \
-    impacket \
-    pwntools \
+# Install core Python packages for automation
+RUN pip3 install --no-cache-dir \
+    asyncio \
+    aiohttp \
     requests \
     beautifulsoup4 \
-    selenium \
-    sqlmap \
-    paramiko \
-    cryptography \
-    pillow \
-    matplotlib \
-    numpy \
+    lxml \
+    yaml \
+    jinja2 \
+    markdown \
     pandas \
-    celery \
-    redis \
-    sqlalchemy \
-    pymongo \
-    elasticsearch \
-    neo4j \
+    numpy \
+    matplotlib \
+    seaborn \
+    plotly \
+    bokeh \
     networkx \
     scikit-learn \
-    tensorflow \
-    torch \
-    transformers \
-    opencv-python \
-    pyshark \
-    python-whois \
-    dnspython \
-    shodan \
-    censys \
-    virustotal-api \
-    threatcrowd \
-    alienvault-otx \
-    abuseipdb \
-    ipinfo \
-    maxmind-geolite2
-
-# Install additional security tools
-RUN pip3 install \
-    mitmproxy \
-    proxychains \
-    tor \
-    privoxy \
-    nmap-python \
-    python-masscan \
-    python-zmap \
-    python-nuclei \
-    python-gobuster \
-    python-dirb \
-    python-dirbuster \
-    python-fierce \
-    python-dnsmap \
-    python-dnsrecon \
-    python-dnsenum \
-    python-wafw00f \
-    python-whatweb \
-    python-wappalyzer \
-    python-builtwith \
-    python-netdiscover \
-    python-arp-scan \
-    python-nbtscan \
-    python-enum4linux \
-    python-smbclient \
-    python-rpcclient \
-    python-showmount \
-    python-snmpwalk \
-    python-onesixtyone \
-    python-smtp-user-enum \
-    python-ike-scan \
-    python-sslyze \
-    python-sslscan \
-    python-testssl \
-    python-tlssled \
-    python-p0f \
-    python-xprobe2 \
-    python-unicornscan \
-    python-hping3 \
-    python-traceroute \
-    python-tcptraceroute \
-    python-paris-traceroute \
-    python-lbd \
-    python-copy-router-config \
-    python-braa \
-    python-finger \
-    python-fping \
-    python-fragrouter \
-    python-fragroute \
-    python-ghost-phisher \
-    python-golismero \
-    python-goofile \
-    python-lft \
-    python-metagoofil \
-    python-miranda \
-    python-ntop
-
-# Install web application security tools
-RUN pip3 install \
-    python-nikto \
-    python-w3af \
-    python-wpscan \
-    python-joomscan \
-    python-droopescan \
-    python-skipfish \
-    python-uniscan \
-    python-arachni \
-    python-golismero-vuln \
-    python-lynis \
-    python-tiger \
-    python-unix-privesc-check \
-    python-linux-exploit-suggester \
-    python-windows-exploit-suggester \
-    python-exploit-db \
-    python-searchsploit \
-    python-bed \
-    python-dotdotpwn \
-    python-owasp-zap \
-    python-burp-suite \
-    python-webscarab \
-    python-paros \
-    python-websploit \
-    python-sqlninja \
-    python-jsql-injection \
-    python-sqlsus \
-    python-bbqsql \
-    python-fimap \
-    python-kadimus \
-    python-liffy \
-    python-commix \
-    python-shellnoob \
-    python-veil-evasion \
-    python-clusterd \
-    python-copy-router-config-vuln \
-    python-inguma \
-    python-yersinia
-
-# Install database assessment tools
-RUN pip3 install \
-    python-sqlmap \
-    python-sqlninja \
-    python-jsql-injection \
-    python-sqlsus \
-    python-bbqsql \
-    python-fimap \
-    python-kadimus \
-    python-liffy \
-    python-commix \
-    python-shellnoob \
-    python-veil-evasion \
-    python-clusterd \
-    python-copy-router-config-vuln \
-    python-inguma \
-    python-yersinia
-
-# Install password attack tools
-RUN pip3 install \
-    python-john \
-    python-hashcat \
-    python-hydra \
-    python-medusa \
-    python-ncrack \
-    python-crowbar \
-    python-patator \
-    python-thc-pptp-bruter \
-    python-sipvicious \
-    python-snmpcheck \
-    python-onesixtyone \
-    python-smtp-user-enum \
-    python-ike-scan \
-    python-sslyze \
-    python-sslscan \
-    python-testssl \
-    python-tlssled \
-    python-p0f \
-    python-xprobe2 \
-    python-unicornscan \
-    python-hping3 \
-    python-traceroute \
-    python-tcptraceroute \
-    python-paris-traceroute \
-    python-lbd \
-    python-copy-router-config \
-    python-braa \
-    python-finger \
-    python-fping \
-    python-fragrouter \
-    python-fragroute \
-    python-ghost-phisher \
-    python-golismero \
-    python-goofile \
-    python-lft \
-    python-metagoofil \
-    python-miranda \
-    python-ntop
-
-# Install wireless attack tools
-RUN pip3 install \
-    python-aircrack-ng \
-    python-airodump-ng \
-    python-aireplay-ng \
-    python-aircrack-ng \
-    python-wash \
-    python-reaver \
-    python-bully \
-    python-hcxdumptool \
-    python-hcxpcapngtool \
-    python-hashcat \
-    python-john \
-    python-bluetoothctl \
-    python-hcitool \
-    python-l2ping \
-    python-rfcomm \
-    python-nfc-list \
-    python-nfc-relay \
-    python-msfvenom \
-    python-msfdb \
-    python-setoolkit \
-    python-searchsploit \
-    python-beef-xss \
-    python-volatility \
-    python-rekall \
-    python-autopsy \
-    python-sleuthkit \
-    python-wireshark \
-    python-tshark \
-    python-tcpdump \
-    python-binwalk \
-    python-exiftool \
-    python-strings \
-    python-file \
-    python-xxd \
-    python-dd \
-    python-dc3dd \
-    python-dcfldd \
-    python-r2 \
-    python-ghidra \
-    python-ida64 \
-    python-objdump \
-    python-readelf \
-    python-nm \
-    python-ldd \
-    python-strace \
-    python-ltrace \
-    python-gdb \
-    python-valgrind \
-    python-apktool \
-    python-dex2jar \
-    python-jadx \
-    python-androguard \
-    python-apkleaks \
-    python-mobsf \
-    python-drozer \
-    python-frida \
-    python-objection \
-    python-cycript \
-    python-class-dump \
-    python-otool \
-    python-adb \
-    python-fastboot \
-    python-ettercap \
-    python-dsniff \
-    python-arpspoof \
-    python-macchanger \
-    python-ifconfig \
-    python-ip \
-    python-iptables
+    cryptography \
+    pyyaml \
+    click \
+    rich \
+    typer \
+    pydantic \
+    fastapi \
+    uvicorn \
+    sqlalchemy \
+    psycopg2-binary \
+    redis \
+    celery \
+    flower \
+    prometheus-client \
+    structlog \
+    python-json-logger \
+    watchdog \
+    filelock \
+    send2trash \
+    zipfile36 \
+    rarfile \
+    py7zr \
+    netifaces \
+    pycryptodome \
+    bcrypt \
+    python-jose \
+    PyJWT \
+    bandit \
+    pytest \
+    pytest-asyncio \
+    pytest-cov \
+    pytest-mock \
+    sphinx \
+    sphinx-rtd-theme \
+    ruff \
+    autoflake \
+    isort \
+    black \
+    mypy \
+    coverage
 
 # Create automation directories
-RUN mkdir -p /kali-automation/{tools,scripts,results,logs,configs,reports,evidence}
+RUN mkdir -p /kali-automation/{tools,scripts,results,logs,configs,reports,evidence,templates}
 
 # Set working directory
 WORKDIR /kali-automation
 
-# Copy automation framework
+# Copy automation code
 COPY kali_automation/ /kali-automation/
+COPY tools/ /kali-automation/tools/
+COPY automation/ /kali-automation/automation/
+COPY configs/ /kali-automation/configs/
 
 # Set permissions
-RUN chmod +x /kali-automation/kali_orchestrator.py
-RUN chmod +x /kali-automation/scripts/*.py
+RUN chmod -R 755 /kali-automation
+
+# Create a simple startup script
+RUN echo '#!/bin/bash\n\
+echo "🚀 Starting Kali Linux Automation Platform..."\n\
+echo "📁 Working directory: $(pwd)"\n\
+echo "🐍 Python version: $(python3 --version)"\n\
+echo "📦 Installed packages: $(pip3 list | wc -l)"\n\
+echo "🔧 Available tools: $(ls tools/ | wc -l)"\n\
+echo "⚙️  Starting automation engine..."\n\
+python3 -c "from automation.complete_automation_engine import CompleteAutomationEngine; print(\"✅ Automation engine ready!\")"\n\
+echo "🌐 Starting web interface..."\n\
+python3 kali_orchestrator.py\n\
+' > /kali-automation/start.sh && chmod +x /kali-automation/start.sh
 
 # Expose ports
 EXPOSE 8001 8002 8003 8004 8005
@@ -325,4 +117,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8001/health || exit 1
 
 # Default command
-CMD ["python3", "kali_orchestrator.py"]
+CMD ["/kali-automation/start.sh"]

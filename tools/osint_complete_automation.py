@@ -533,7 +533,7 @@ class HaveIBeenPwnedAutomation(BaseOSINTTool):
 
 class OSINTAutomationOrchestrator:
     """Master orchestrator for all OSINT tools"""
-    
+
     def __init__(self):
         self.spiderfoot = SpiderfootOSINTAutomation()
         self.maltego = MaltegoOSINTAutomation()
@@ -544,11 +544,11 @@ class OSINTAutomationOrchestrator:
         self.shodan = ShodanSearchAutomation()
         self.hibp = HaveIBeenPwnedAutomation()
         self.osint_history = []
-    
+
     async def comprehensive_osint_investigation(self, target: str, investigation_type: str = 'comprehensive') -> Dict[str, Any]:
         """Run comprehensive OSINT investigation across all tools"""
         start_time = time.time()
-        
+
         results = {
             'target': target,
             'investigation_type': investigation_type,
@@ -561,7 +561,7 @@ class OSINTAutomationOrchestrator:
                 'total_findings': 0
             }
         }
-        
+
         # SpiderFoot investigation
         print(f"Running SpiderFoot investigation on {target}")
         spiderfoot_result = await self.spiderfoot.execute_automated(target, {'scan_type': investigation_type})
@@ -572,7 +572,7 @@ class OSINTAutomationOrchestrator:
             results['summary']['total_findings'] += len(spiderfoot_result.parsed_data.get('findings', []))
         else:
             results['summary']['failed_investigations'] += 1
-        
+
         # Username enumeration
         print(f"Running username enumeration on {target}")
         maigret_result = await self.maigret.execute_automated(target, {})
@@ -583,7 +583,7 @@ class OSINTAutomationOrchestrator:
             results['summary']['total_findings'] += len(maigret_result.parsed_data.get('accounts', []))
         else:
             results['summary']['failed_investigations'] += 1
-        
+
         # Email intelligence
         if '@' in target:
             print(f"Running email intelligence on {target}")
@@ -595,7 +595,7 @@ class OSINTAutomationOrchestrator:
                 results['summary']['total_findings'] += len(holehe_result.parsed_data.get('breaches', []))
             else:
                 results['summary']['failed_investigations'] += 1
-        
+
         # Domain intelligence
         if '.' in target and '@' not in target:
             print(f"Running domain intelligence on {target}")
@@ -607,31 +607,31 @@ class OSINTAutomationOrchestrator:
                 results['summary']['total_findings'] += len(shodan_result.parsed_data.get('hosts', []))
             else:
                 results['summary']['failed_investigations'] += 1
-        
+
         results['total_duration'] = time.time() - start_time
         self.osint_history.append(results)
-        
+
         return results
-    
+
     async def quick_osint_check(self, target: str) -> Dict[str, Any]:
         """Quick OSINT check with essential tools"""
         return await self.comprehensive_osint_investigation(target, 'quick')
-    
+
     async def deep_osint_investigation(self, target: str) -> Dict[str, Any]:
         """Deep OSINT investigation with all tools"""
         return await self.comprehensive_osint_investigation(target, 'deep')
-    
+
     async def get_investigation_history(self) -> List[Dict[str, Any]]:
         """Get history of all OSINT investigations"""
         return self.osint_history
-    
+
     async def get_tool_status(self) -> Dict[str, Any]:
         """Get status of all OSINT tools"""
         tools = [
             'spiderfoot', 'maltego', 'recon_ng', 'whatsmyname',
             'maigret', 'holehe', 'shodan', 'hibp'
         ]
-        
+
         status = {}
         for tool_name in tools:
             try:
@@ -645,7 +645,7 @@ class OSINTAutomationOrchestrator:
                     'available': False,
                     'error': 'Tool not implemented'
                 }
-        
+
         return status
 
 
@@ -653,21 +653,21 @@ class OSINTAutomationOrchestrator:
 async def main():
     """Test the OSINT automation"""
     orchestrator = OSINTAutomationOrchestrator()
-    
+
     # Test target
     test_target = 'example.com'
-    
+
     print(f"Starting comprehensive OSINT investigation on {test_target}")
-    
+
     # Run comprehensive investigation
     results = await orchestrator.comprehensive_osint_investigation(test_target)
-    
+
     print(f"OSINT investigation completed in {results['total_duration']:.2f} seconds!")
     print(f"Total tools: {results['summary']['total_tools']}")
     print(f"Successful investigations: {results['summary']['successful_investigations']}")
     print(f"Failed investigations: {results['summary']['failed_investigations']}")
     print(f"Total findings: {results['summary']['total_findings']}")
-    
+
     # Get tool status
     tool_status = await orchestrator.get_tool_status()
     print(f"\nTool status:")

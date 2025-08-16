@@ -40,3 +40,17 @@ node_modules
 *.bak
 *.orig
 *~
+
+# Desktop app build artifacts
+apps/desktop/dist/
+*.dmg
+*.zip
+*.blockmap
+*.app/
+
+# Database and log files
+*.db
+*.sqlite
+*.log
+server.out
+*.out

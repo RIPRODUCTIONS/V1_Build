@@ -12,14 +12,50 @@ from datetime import datetime, timezone
 from typing import Dict, Any, List
 
 
+@pytest.fixture
+def sample_investigation_data():
+    """Fixture providing sample investigation data for testing."""
+    return {
+        "investigation_id": "inv_12345",
+        "investigator": "Detective Smith",
+        "case_number": "CASE-2024-001",
+        "priority": "high",
+        "status": "active"
+    }
+
+
+@pytest.fixture
+def sample_evidence_chain():
+    """Fixture providing sample evidence chain of custody data."""
+    return {
+        "evidence_id": "EVID_001",
+        "collected_by": "Detective Smith",
+        "collection_time": "2024-01-15T09:30:00Z",
+        "location": "Crime Scene A",
+        "collection_method": "Digital imaging",
+        "integrity_verified": True,
+        "hash_verification": "passed"
+    }
+
+
+@pytest.fixture
+def sample_time_range():
+    """Fixture providing sample time range for analysis."""
+    return {
+        "start": "2024-01-01T00:00:00Z",
+        "end": "2024-01-15T23:59:59Z",
+        "timezone": "UTC"
+    }
+
+
 class TestForensicsWorkflows:
     """Test suite for comprehensive forensics workflow analysis."""
 
-    def test_forensics_file_carving_recovery(self):
+    def test_forensics_file_carving_recovery(self, sample_investigation_data, sample_evidence_chain):
         """Test file carving forensics analysis with complete recovery workflow."""
         # Setup mock data for file carving analysis
         carving_params = {
-            "investigation_id": "inv_12345",
+            "investigation_id": sample_investigation_data["investigation_id"],
             "source_image": "/evidence/disk_image.dd",
             "carving_parameters": {
                 "file_signatures": ["25504446", "FFD8FFE0", "504B0304"],
@@ -27,12 +63,7 @@ class TestForensicsWorkflows:
                 "max_file_size": 10485760,
                 "scan_depth": "deep"
             },
-            "chain_of_custody": {
-                "evidence_id": "EVID_001",
-                "collected_by": "Detective Smith",
-                "collection_time": "2024-01-15T09:30:00Z",
-                "location": "Crime Scene A"
-            }
+            "chain_of_custody": sample_evidence_chain
         }
 
         # Mock scan results
@@ -117,7 +148,7 @@ class TestForensicsWorkflows:
             "scan_info": scan_results,
             "recovered_files": recovered_files,
             "validation_results": validation_results,
-            "investigation_id": "inv_12345",
+            "investigation_id": sample_investigation_data["investigation_id"],
             "analysis_type": "file_carving",
             "execution_time": 45.2,
             "timestamp": "2024-01-15T10:30:00Z"
@@ -133,7 +164,7 @@ class TestForensicsWorkflows:
         assert carving_result["validation_results"]["validation_results"][2]["readable"] is False
 
         # Verify additional metadata
-        assert carving_result["investigation_id"] == "inv_12345"
+        assert carving_result["investigation_id"] == sample_investigation_data["investigation_id"]
         assert carving_result["analysis_type"] == "file_carving"
         assert "execution_time" in carving_result
         assert "timestamp" in carving_result
