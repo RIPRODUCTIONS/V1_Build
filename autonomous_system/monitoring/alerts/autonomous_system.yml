@@ -1,0 +1,247 @@
+# Alerting Rules for Autonomous Task Solver System
+# Production-ready alerting configuration
+
+groups:
+  - name: autonomous_system_alerts
+    rules:
+      # High error rate alert
+      - alert: HighErrorRate
+        expr: rate(autonomous_system_errors_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          service: autonomous-system
+        annotations:
+          summary: "High error rate detected in autonomous system"
+          description: "Error rate is {{ $value }} errors per second over the last 5 minutes"
+
+      # Task execution failure alert
+      - alert: TaskExecutionFailure
+        expr: rate(autonomous_system_tasks_failed_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+          service: autonomous-system
+        annotations:
+          summary: "High task failure rate detected"
+          description: "Task failure rate is {{ $value }} failures per second over the last 5 minutes"
+
+      # Low task success rate alert
+      - alert: LowTaskSuccessRate
+        expr: (rate(autonomous_system_tasks_successful_total[5m]) / rate(autonomous_system_tasks_executed_total[5m])) < 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: autonomous-system
+        annotations:
+          summary: "Low task success rate detected"
+          description: "Task success rate is {{ $value | humanizePercentage }} over the last 5 minutes"
+
+      # High response time alert
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(autonomous_system_api_request_duration_seconds_bucket[5m])) > 2
+        for: 2m
+        labels:
+          severity: warning
+          service: autonomous-system
+        annotations:
+          summary: "High API response time detected"
+          description: "95th percentile response time is {{ $value }} seconds over the last 5 minutes"
+
+      # System health degradation alert
+      - alert: SystemHealthDegradation
+        expr: autonomous_system_health_score < 0.7
+        for: 5m
+        labels:
+          severity: warning
+          service: autonomous-system
+        annotations:
+          summary: "System health score is degraded"
+          description: "System health score is {{ $value }} (threshold: 0.7)"
+
+      # Critical system health alert
+      - alert: CriticalSystemHealth
+        expr: autonomous_system_health_score < 0.5
+        for: 2m
+        labels:
+          severity: critical
+          service: autonomous-system
+        annotations:
+          summary: "Critical system health score"
+          description: "System health score is {{ $value }} (threshold: 0.5) - immediate attention required"
+
+      # High CPU usage alert
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: autonomous-system
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is {{ $value }}% on {{ $labels.instance }}"
+
+      # High memory usage alert
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: autonomous-system
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is {{ $value }}% on {{ $labels.instance }}"
+
+      # High disk usage alert
+      - alert: HighDiskUsage
+        expr: (node_filesystem_size_bytes - node_filesystem_free_bytes) / node_filesystem_size_bytes * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: autonomous-system
+        annotations:
+          summary: "High disk usage detected"
+          description: "Disk usage is {{ $value }}% on {{ $labels.instance }}"
+
+      # Database connection issues alert
+      - alert: DatabaseConnectionIssues
+        expr: rate(autonomous_system_database_connection_errors_total[5m]) > 0
+        for: 2m
+        labels:
+          severity: warning
+          service: autonomous-system
+        annotations:
+          summary: "Database connection issues detected"
+          description: "Database connection errors are occurring at {{ $value }} errors per second"
+
+      # Redis connection issues alert
+      - alert: RedisConnectionIssues
+        expr: rate(autonomous_system_redis_connection_errors_total[5m]) > 0
+        for: 2m
+        labels:
+          severity: warning
+          service: autonomous-system
+        annotations:
+          summary: "Redis connection issues detected"
+          description: "Redis connection errors are occurring at {{ $value }} errors per second"
+
+      # API endpoint down alert
+      - alert: APIEndpointDown
+        expr: up{job="autonomous-system-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: autonomous-system
+        annotations:
+          summary: "API endpoint is down"
+          description: "The autonomous system API endpoint is not responding"
+
+      # Worker process down alert
+      - alert: WorkerProcessDown
+        expr: up{job="autonomous-system-workers"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          service: autonomous-system
+        annotations:
+          summary: "Worker process is down"
+          description: "One or more worker processes are not responding"
+
+      # High queue depth alert
+      - alert: HighQueueDepth
+        expr: autonomous_system_task_queue_depth > 100
+        for: 5m
+        labels:
+          severity: warning
+          service: autonomous-system
+        annotations:
+          summary: "High task queue depth detected"
+          description: "Task queue depth is {{ $value }} tasks (threshold: 100)"
+
+      # Model selection failures alert
+      - alert: ModelSelectionFailures
+        expr: rate(autonomous_system_model_selection_failures_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          service: autonomous-system
+        annotations:
+          summary: "High model selection failure rate"
+          description: "Model selection failures are occurring at {{ $value }} failures per second"
+
+      # Agent pool exhaustion alert
+      - alert: AgentPoolExhaustion
+        expr: autonomous_system_available_agents / autonomous_system_total_agents < 0.2
+        for: 5m
+        labels:
+          severity: warning
+          service: autonomous-system
+        annotations:
+          summary: "Agent pool is nearly exhausted"
+          description: "Only {{ $value | humanizePercentage }} of agents are available"
+
+      # Self-healing failures alert
+      - alert: SelfHealingFailures
+        expr: rate(autonomous_system_self_healing_failures_total[5m]) > 0
+        for: 2m
+        labels:
+          severity: warning
+          service: autonomous-system
+        annotations:
+          summary: "Self-healing failures detected"
+          description: "Self-healing attempts are failing at {{ $value }} failures per second"
+
+      # Performance degradation alert
+      - alert: PerformanceDegradation
+        expr: rate(autonomous_system_task_execution_duration_seconds_sum[5m]) / rate(autonomous_system_task_execution_duration_seconds_count[5m]) > 60
+        for: 5m
+        labels:
+          severity: warning
+          service: autonomous-system
+        annotations:
+          summary: "Task execution performance degraded"
+          description: "Average task execution time is {{ $value }} seconds (threshold: 60s)"
+
+      # Resource exhaustion alert
+      - alert: ResourceExhaustion
+        expr: autonomous_system_resource_usage_percent > 90
+        for: 2m
+        labels:
+          severity: critical
+          service: autonomous-system
+        annotations:
+          summary: "Resource exhaustion detected"
+          description: "System resource usage is {{ $value }}% (threshold: 90%)"
+
+      # Backup failure alert
+      - alert: BackupFailure
+        expr: time() - autonomous_system_last_backup_timestamp > 86400
+        for: 1h
+        labels:
+          severity: warning
+          service: autonomous-system
+        annotations:
+          summary: "Backup failure detected"
+          description: "Last successful backup was {{ $value | humanizeDuration }} ago"
+
+      # Deployment failure alert
+      - alert: DeploymentFailure
+        expr: autonomous_system_deployment_status != 1
+        for: 5m
+        labels:
+          severity: critical
+          service: autonomous-system
+        annotations:
+          summary: "Deployment failure detected"
+          description: "System deployment status is unhealthy"
+
+      # Security violation alert
+      - alert: SecurityViolation
+        expr: rate(autonomous_system_security_violations_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+          service: autonomous-system
+        annotations:
+          summary: "Security violation detected"
+          description: "Security violations are occurring at {{ $value }} violations per second"

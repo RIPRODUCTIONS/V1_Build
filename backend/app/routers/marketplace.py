@@ -56,7 +56,10 @@ async def buy_credits_checkout(amount_usd: float, db: Annotated[Session, Depends
     import stripe  # type: ignore
 
     stripe.api_key = s.STRIPE_SECRET_KEY
-    amount_cents = int(round(max(0.0, float(amount_usd)) * 100))
+    try:
+        amount_cents = int(round(max(0.0, float(amount_usd)) * 100))
+    except Exception:
+        raise HTTPException(status_code=400, detail={"error": "invalid_amount"})
     if amount_cents <= 0:
         raise HTTPException(status_code=400, detail={"error": "invalid_amount"})
     session = stripe.checkout.Session.create(
@@ -93,8 +96,11 @@ async def buy_credits_confirm(session_id: str, db: Annotated[Session, Depends(ge
 
     stripe.api_key = s.STRIPE_SECRET_KEY
     sess = stripe.checkout.Session.retrieve(session_id)
-    if sess and sess["payment_status"] == "paid":
-        amount_paid = float(sess.get("amount_total", 0) or 0) / 100.0
+    if sess and sess.get("payment_status") == "paid":
+        try:
+            amount_paid = float(sess.get("amount_total", 0) or 0) / 100.0
+        except Exception:
+            amount_paid = 0.0
         user_id = get_current_user_id()
         # Apply credits and record processed session
         billing = PayPerUseBilling(db)
@@ -140,7 +146,8 @@ async def run_template(template_id: str, parameters: Dict[str, Any], db: Annotat
 
     # Attach a simple receipt summary to the usage record
     try:
-        usage_id = int(charge.get("usage_id"))
+        raw_usage_id = charge.get("usage_id")
+        usage_id = int(raw_usage_id) if raw_usage_id is not None else -1
         rec = db.get(AutomationUsage, usage_id)
         if rec:
             import json as _json

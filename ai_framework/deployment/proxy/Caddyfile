@@ -1,0 +1,24 @@
+{DOMAIN} {
+	encode gzip
+	log {
+		output file /var/log/caddy/ai_framework.access.log
+		format single_field common_log
+	}
+
+	# TLS automatic with Let's Encrypt
+	email {EMAIL}
+
+	# Proxy API and WebSocket to FastAPI
+	reverse_proxy 127.0.0.1:8001 {
+		transport http {
+			versions h2c 1.1
+		}
+		headers_up X-Forwarded-Proto {scheme}
+		headers_up X-Forwarded-For {remote}
+	}
+}
+
+
+
+
+

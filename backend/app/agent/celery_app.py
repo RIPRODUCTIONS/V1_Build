@@ -14,6 +14,7 @@ celery_app = Celery("builder", broker=REDIS_URL, backend=REDIS_URL, include=[
     "app.tasks.web_automation_tasks",
     "app.tasks.personal_automation_tasks",
     "app.tasks.investigation_tasks",
+    "app.monitoring.celery_metrics",
 ])
 
 celery_app.conf.update(
@@ -25,9 +26,12 @@ celery_app.conf.update(
         "app.agent.tasks.create_followup_task": {"queue": "default"},
         "app.integrations.tasks.*": {"queue": "integrations"},
         "app.automations.tasks.*": {"queue": "automations"},
-        "automation.execute_web_task": {"queue": "automations"},
-        "personal.research.execute": {"queue": "automations"},
-        "personal.shopping.execute": {"queue": "automations"},
+        # Route Playwright/web browsing tasks to dedicated webexec queue
+        "automation.execute_web_task": {"queue": "webexec"},
+        "personal.research.execute": {"queue": "webexec"},
+        "personal.shopping.execute": {"queue": "webexec"},
+        # Generic matcher for future webexec.* tasks
+        "webexec.*": {"queue": "webexec"},
         "personal.social.execute": {"queue": "automations"},
         "personal.email.execute": {"queue": "automations"},
         "personal.finance.execute": {"queue": "automations"},
@@ -38,11 +42,12 @@ celery_app.conf.update(
             "investigation.threat.apt_attribution.run": {"queue": "automations"},
             "investigation.supplychain.sca.run": {"queue": "automations"},
             "investigation.autopilot.run": {"queue": "automations"},
+        "coverage.expand": {"queue": "automations"},
     },
     beat_schedule={
         # Nightly housekeeping at 03:00 UTC: cleanup artifacts older than 30 days
-        "cleanup_old_artifacts": {
-            "task": "app.agent.tasks.cleanup_old_artifacts",
+        "cleanup_old_runs": {
+            "task": "maintenance.cleanup_runs",
             "schedule": 24 * 60 * 60,  # daily
             "args": [30],
         },
@@ -72,6 +77,17 @@ celery_app.conf.update(
                     "args": [{"subject": {"name": "Jane Doe"}}],
                 }} if os.getenv("AUTOPILOT_SCHEDULE_ENABLED", "false").lower() == "true" else {}
             ),
+            # Optional: Coverage expansion hourly
+            **(
+                {"coverage_expand_hourly": {
+                    "task": "coverage.expand",
+                    "schedule": 60 * 60,
+                    "args": [{"topics": [
+                        "osint techniques", "digital forensics timeline", "apt tracking",
+                        "insurance fraud signals", "crypto tumblers"
+                    ]}],
+                }} if os.getenv("COVERAGE_EXPAND_ENABLED", "false").lower() == "true" else {}
+            ),
             **(
                 {"assistant_self_build_scan_daily": {
                     "task": "app.agent.tasks.noop",  # use a lightweight task name; actual scan via app route runner
@@ -83,6 +99,19 @@ celery_app.conf.update(
                     "task": "system.autonomy.tick",
                     "schedule": 10 * 60,
                 }} if os.getenv("SYSTEM_AUTONOMY_ENABLED", "false").lower() == "true" else {}
+            ),
+            # Synthetic monitors (opt-in)
+            **(
+                {"monitor_synthetic_osint_hourly": {
+                    "task": "monitor.synthetic.osint",
+                    "schedule": 60 * 60,
+                }} if os.getenv("SYNTHETIC_OSINT_ENABLED", "false").lower() == "true" else {}
+            ),
+            **(
+                {"monitor_sse_watchdog": {
+                    "task": "monitor.sse.watchdog",
+                    "schedule": 60,
+                }} if os.getenv("SSE_WATCHDOG_ENABLED", "false").lower() == "true" else {}
             ),
     },
 )

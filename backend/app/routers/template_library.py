@@ -12,8 +12,7 @@ from app.models import TemplateUsage, TemplatePreset
 from fastapi import Response
 import csv
 import io
-from datetime import datetime, timedelta
-from datetime import UTC as _UTC
+from datetime import datetime, timedelta, timezone
 import time
 
 
@@ -48,183 +47,183 @@ async def _queue_for_template(template_id: str, parameters: Dict) -> dict:
         targets = parameters.get("target_websites") or []
         if not isinstance(targets, list) or not targets:
             raise HTTPException(status_code=400, detail="target_websites required (list)")
-        task_ids: list[str] = []
+        task_ids_cf: list[str] = []
         for url in targets[:10]:  # cap to protect CI
             job = execute_web_automation_task.delay({
                 "description": f"contact_form: {parameters.get('contact_message_template', '')[:40]}",
                 "url": url,
             })
-            task_ids.append(job.id)
+            task_ids_cf.append(job.id)
         # Log usage
         try:
             db = SessionLocal()
             try:
                 from json import dumps
-                db.add(TemplateUsage(template_id=template_id, queued_tasks=len(task_ids), success=True, parameters_json=dumps(parameters)))
+                db.add(TemplateUsage(template_id=template_id, queued_tasks=len(task_ids_cf), success=True, parameters_json=dumps(parameters)))
                 db.commit()
             finally:
                 db.close()
         except Exception:
             pass
-        return {"status": "queued", "template": t["id"], "task_ids": task_ids}
+        return {"status": "queued", "template": t["id"], "task_ids": task_ids_cf}
     if template_id == "ecommerce_price_monitor":
         product_urls = parameters.get("product_urls") or []
         if not isinstance(product_urls, list) or not product_urls:
             raise HTTPException(status_code=400, detail="product_urls required (list)")
-        task_ids: list[str] = []
+        task_ids_pm: list[str] = []
         for url in product_urls[:10]:
             job = execute_web_automation_task.delay({
                 "description": "price_monitor",
                 "url": url,
             })
-            task_ids.append(job.id)
+            task_ids_pm.append(job.id)
         try:
             db = SessionLocal()
             try:
                 from json import dumps
-                db.add(TemplateUsage(template_id=template_id, queued_tasks=len(task_ids), success=True, parameters_json=dumps(parameters)))
+                db.add(TemplateUsage(template_id=template_id, queued_tasks=len(task_ids_pm), success=True, parameters_json=dumps(parameters)))
                 db.commit()
             finally:
                 db.close()
         except Exception:
             pass
-        return {"status": "queued", "template": t["id"], "task_ids": task_ids}
+        return {"status": "queued", "template": t["id"], "task_ids": task_ids_pm}
     if template_id == "linkedin_lead_extractor":
         profile_urls = parameters.get("profile_urls") or []
         if not isinstance(profile_urls, list) or not profile_urls:
             raise HTTPException(status_code=400, detail="profile_urls required (list)")
-        task_ids: list[str] = []
+        task_ids_li: list[str] = []
         for url in profile_urls[:10]:
             job = execute_web_automation_task.delay({
                 "description": "linkedin_lead_extract",
                 "url": url,
             })
-            task_ids.append(job.id)
+            task_ids_li.append(job.id)
         try:
             db = SessionLocal()
             try:
                 from json import dumps
-                db.add(TemplateUsage(template_id=template_id, queued_tasks=len(task_ids), success=True, parameters_json=dumps(parameters)))
+                db.add(TemplateUsage(template_id=template_id, queued_tasks=len(task_ids_li), success=True, parameters_json=dumps(parameters)))
                 db.commit()
             finally:
                 db.close()
         except Exception:
             pass
-        return {"status": "queued", "template": t["id"], "task_ids": task_ids}
+        return {"status": "queued", "template": t["id"], "task_ids": task_ids_li}
     if template_id == "ecommerce_price_spy":
         product_urls = parameters.get("product_urls") or []
         if not isinstance(product_urls, list) or not product_urls:
             raise HTTPException(status_code=400, detail="product_urls required (list)")
-        task_ids: list[str] = []
+        task_ids_ps: list[str] = []
         for url in product_urls[:10]:
             job = execute_web_automation_task.delay({
                 "description": "ecommerce_price_spy",
                 "url": url,
             })
-            task_ids.append(job.id)
+            task_ids_ps.append(job.id)
         try:
             db = SessionLocal()
             try:
                 from json import dumps
-                db.add(TemplateUsage(template_id=template_id, queued_tasks=len(task_ids), success=True, parameters_json=dumps(parameters)))
+                db.add(TemplateUsage(template_id=template_id, queued_tasks=len(task_ids_ps), success=True, parameters_json=dumps(parameters)))
                 db.commit()
             finally:
                 db.close()
         except Exception:
             pass
-        return {"status": "queued", "template": t["id"], "task_ids": task_ids}
+        return {"status": "queued", "template": t["id"], "task_ids": task_ids_ps}
     if template_id == "social_media_lead_harvester":
         queries = parameters.get("queries") or []
         if not isinstance(queries, list) or not queries:
             raise HTTPException(status_code=400, detail="queries required (list)")
         # For MVP, create search URLs (Google) per query
-        task_ids: list[str] = []
+        task_ids_sl: list[str] = []
         for q in queries[:10]:
-            url = f"https://www.google.com/search?q={__import__('urllib.parse').quote_plus(str(q))}"
+            url = f"https://www.google.com/search?q={__import__('urllib.parse', fromlist=['parse']).quote_plus(str(q))}"
             job = execute_web_automation_task.delay({
                 "description": "social_leads_search",
                 "url": url,
             })
-            task_ids.append(job.id)
+            task_ids_sl.append(job.id)
         try:
             db = SessionLocal()
             try:
                 from json import dumps
-                db.add(TemplateUsage(template_id=template_id, queued_tasks=len(task_ids), success=True, parameters_json=dumps(parameters)))
+                db.add(TemplateUsage(template_id=template_id, queued_tasks=len(task_ids_sl), success=True, parameters_json=dumps(parameters)))
                 db.commit()
             finally:
                 db.close()
         except Exception:
             pass
-        return {"status": "queued", "template": t["id"], "task_ids": task_ids}
+        return {"status": "queued", "template": t["id"], "task_ids": task_ids_sl}
     if template_id == "job_board_auto_applier":
         job_queries = parameters.get("job_queries") or []
         if not isinstance(job_queries, list) or not job_queries:
             raise HTTPException(status_code=400, detail="job_queries required (list)")
-        task_ids: list[str] = []
+        task_ids_jb: list[str] = []
         for q in job_queries[:10]:
-            url = f"https://www.google.com/search?q={__import__('urllib.parse').quote_plus(str(q))}+site:indeed.com+OR+site:linkedin.com/jobs"
+            url = f"https://www.google.com/search?q={__import__('urllib.parse', fromlist=['parse']).quote_plus(str(q))}+site:indeed.com+OR+site:linkedin.com/jobs"
             job = execute_web_automation_task.delay({
                 "description": "job_auto_apply",
                 "url": url,
             })
-            task_ids.append(job.id)
+            task_ids_jb.append(job.id)
         try:
             db = SessionLocal()
             try:
                 from json import dumps
-                db.add(TemplateUsage(template_id=template_id, queued_tasks=len(task_ids), success=True, parameters_json=dumps(parameters)))
+                db.add(TemplateUsage(template_id=template_id, queued_tasks=len(task_ids_jb), success=True, parameters_json=dumps(parameters)))
                 db.commit()
             finally:
                 db.close()
         except Exception:
             pass
-        return {"status": "queued", "template": t["id"], "task_ids": task_ids}
+        return {"status": "queued", "template": t["id"], "task_ids": task_ids_jb}
     if template_id == "review_reputation_monitor":
         brand_terms = parameters.get("brand_terms") or []
         if not isinstance(brand_terms, list) or not brand_terms:
             raise HTTPException(status_code=400, detail="brand_terms required (list)")
-        task_ids: list[str] = []
+        task_ids_rr: list[str] = []
         for term in brand_terms[:10]:
-            url = f"https://www.google.com/search?q={__import__('urllib.parse').quote_plus(str(term))}+reviews+OR+site:yelp.com+OR+site:trustpilot.com"
+            url = f"https://www.google.com/search?q={__import__('urllib.parse', fromlist=['parse']).quote_plus(str(term))}+reviews+OR+site:yelp.com+OR+site:trustpilot.com"
             job = execute_web_automation_task.delay({
                 "description": "review_monitor",
                 "url": url,
             })
-            task_ids.append(job.id)
+            task_ids_rr.append(job.id)
         try:
             db = SessionLocal()
             try:
                 from json import dumps
-                db.add(TemplateUsage(template_id=template_id, queued_tasks=len(task_ids), success=True, parameters_json=dumps(parameters)))
+                db.add(TemplateUsage(template_id=template_id, queued_tasks=len(task_ids_rr), success=True, parameters_json=dumps(parameters)))
                 db.commit()
             finally:
                 db.close()
         except Exception:
             pass
-        return {"status": "queued", "template": t["id"], "task_ids": task_ids}
+        return {"status": "queued", "template": t["id"], "task_ids": task_ids_rr}
     if template_id == "website_change_monitor":
         pages = parameters.get("pages") or []
         if not isinstance(pages, list) or not pages:
             raise HTTPException(status_code=400, detail="pages required (list)")
-        task_ids: list[str] = []
+        task_ids_wc: list[str] = []
         for url in pages[:10]:
             job = execute_web_automation_task.delay({
                 "description": "website_change_monitor",
                 "url": url,
             })
-            task_ids.append(job.id)
+            task_ids_wc.append(job.id)
         try:
             db = SessionLocal()
             try:
                 from json import dumps
-                db.add(TemplateUsage(template_id=template_id, queued_tasks=len(task_ids), success=True, parameters_json=dumps(parameters)))
+                db.add(TemplateUsage(template_id=template_id, queued_tasks=len(task_ids_wc), success=True, parameters_json=dumps(parameters)))
                 db.commit()
             finally:
                 db.close()
         except Exception:
             pass
-        return {"status": "queued", "template": t["id"], "task_ids": task_ids}
+        return {"status": "queued", "template": t["id"], "task_ids": task_ids_wc}
     return {"status": "accepted", "template": t["id"], "parameters": parameters}
 
 
@@ -294,7 +293,7 @@ async def rerun_bulk_failures(template_id: str, hours: int = 24, limit: int = 50
     """
     db = SessionLocal()
     try:
-        cutoff = datetime.now(_UTC).replace(tzinfo=None) - timedelta(hours=max(1, min(168, int(hours))))
+        cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=max(1, min(168, int(hours))))
         rows = (
             db.query(TemplateUsage)
             .filter(
@@ -364,7 +363,7 @@ async def usage_summary(template_id: str, hours: int = 24, buckets: int = 12) ->
             entry = cache.get(key)
             if entry and (now - entry[0] < 30.0):
                 return entry[1]
-        start = datetime.now(_UTC).replace(tzinfo=None) - timedelta(hours=hours)
+        start = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=hours)
         rows = (
             db.query(TemplateUsage)
             .filter(TemplateUsage.template_id == template_id, TemplateUsage.created_at >= start)
@@ -404,7 +403,7 @@ async def recent_template_usage(template_id: str | None = None, limit: int = 10,
         if hours is not None:
             try:
                 h = max(1, min(168, int(hours)))
-                since = datetime.now(_UTC).replace(tzinfo=None) - timedelta(hours=h)
+                since = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=h)
                 q = q.filter(TemplateUsage.created_at >= since)
             except Exception:
                 pass

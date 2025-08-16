@@ -16,11 +16,15 @@ def execute_web_automation_task(task_data: Dict[str, Any]) -> Dict[str, Any]:
 
     async def _run() -> Dict[str, Any]:
         executor = MVPWebExecutor()
-        return await executor.execute_simple_web_task(
-            task_description=str(task_data.get("description", "")),
-            target_url=task_data.get("url"),
-            correlation_id=task_data.get("correlation_id"),
-        )
+        try:
+            return await executor.execute_simple_web_task(
+                task_description=str(task_data.get("description", "")),
+                target_url=task_data.get("url"),
+                correlation_id=task_data.get("correlation_id"),
+            )
+        except ModuleNotFoundError as e:
+            # Playwright not present: return safe fallback
+            return {"success": False, "reason": str(e), "url": task_data.get("url"), "description": task_data.get("description")}
 
     return asyncio.run(_run())
 

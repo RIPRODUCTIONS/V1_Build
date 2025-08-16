@@ -1,0 +1,313 @@
+# Production Deployment Configuration
+# Comprehensive deployment settings for the Autonomous Task Solver System
+
+deployment:
+  # Required Docker images for deployment
+  required_images:
+    - "autonomous-system:latest"
+    - "redis:7-alpine"
+    - "postgres:15-alpine"
+    - "chromadb/chroma:latest"
+    - "prom/prometheus:latest"
+    - "grafana/grafana:latest"
+
+  # Files to backup before deployment
+  backup_files:
+    - "docker-compose.yml"
+    - "config/config.yaml"
+    - "config/environment.py"
+    - ".env"
+
+  # Docker volumes to backup
+  backup_volumes:
+    - "autonomous_data"
+    - "autonomous_logs"
+    - "postgres_data"
+    - "redis_data"
+    - "chromadb_data"
+
+  # External endpoints to check during deployment
+  external_endpoints:
+    - "https://api.openai.com/v1/models"
+    - "https://api.anthropic.com/v1/messages"
+
+environments:
+  development:
+    docker_compose_file: "docker-compose.dev.yml"
+    health_check_endpoints:
+      - "http://localhost:8001/health"
+      - "http://localhost:8081/metrics"
+    rollback_strategy: "restart_previous"
+    resource_limits:
+      cpu: "2.0"
+      memory: "4GB"
+      disk: "20GB"
+
+  staging:
+    docker_compose_file: "docker-compose.staging.yml"
+    health_check_endpoints:
+      - "http://staging.example.com/health"
+      - "http://staging.example.com/metrics"
+    rollback_strategy: "restore_backup"
+    resource_limits:
+      cpu: "4.0"
+      memory: "8GB"
+      disk: "50GB"
+
+  production:
+    docker_compose_file: "docker-compose.yml"
+    health_check_endpoints:
+      - "https://api.example.com/health"
+      - "https://api.example.com/metrics"
+      - "https://api.example.com/system/status"
+    rollback_strategy: "restore_backup"
+    resource_limits:
+      cpu: "8.0"
+      memory: "16GB"
+      disk: "100GB"
+
+    # Production-specific settings
+    scaling:
+      min_replicas: 3
+      max_replicas: 10
+      target_cpu_utilization: 70
+      target_memory_utilization: 80
+
+    # High availability settings
+    high_availability:
+      enabled: true
+      load_balancer: "nginx"
+      health_check_interval: 30
+      failure_threshold: 3
+      success_threshold: 2
+
+    # Security settings
+    security:
+      ssl_enabled: true
+      ssl_cert_path: "/etc/ssl/certs/autonomous-system.crt"
+      ssl_key_path: "/etc/ssl/private/autonomous-system.key"
+      rate_limiting: true
+      max_requests_per_minute: 1000
+      ip_whitelist: []
+
+    # Monitoring and alerting
+    monitoring:
+      prometheus_enabled: true
+      grafana_enabled: true
+      alerting_enabled: true
+      log_aggregation: "elasticsearch"
+      metrics_retention_days: 90
+
+    # Backup and disaster recovery
+    backup:
+      enabled: true
+      schedule: "0 2 * * *"  # Daily at 2 AM
+      retention_days: 30
+      backup_storage: "s3"
+      s3_bucket: "autonomous-system-backups"
+      s3_region: "us-east-1"
+
+# Health check configuration
+health_checks:
+  # System resource thresholds
+  thresholds:
+    cpu_usage:
+      warning: 70.0
+      critical: 90.0
+    memory_usage:
+      warning: 80.0
+      critical: 95.0
+    disk_usage:
+      warning: 85.0
+      critical: 95.0
+    response_time:
+      warning: 2000.0  # ms
+      critical: 5000.0  # ms
+
+  # Health check intervals
+  intervals:
+    system_resources: 30  # seconds
+    service_health: 60   # seconds
+    database_health: 30  # seconds
+    api_health: 60       # seconds
+
+  # Self-healing configuration
+  self_healing:
+    enabled: true
+    max_attempts: 3
+    cooldown_period: 300  # seconds
+    healing_actions:
+      database_connection: "restart_service"
+      api_timeout: "scale_up"
+      memory_overflow: "restart_service"
+      disk_full: "cleanup_logs"
+
+# Rollback configuration
+rollback:
+  # Automatic rollback triggers
+  triggers:
+    health_check_failure: true
+    response_time_degradation: true
+    error_rate_increase: true
+    resource_exhaustion: true
+
+  # Rollback strategies
+  strategies:
+    restart_previous:
+      description: "Restart previous version of services"
+      timeout: 300  # seconds
+      max_attempts: 3
+
+    restore_backup:
+      description: "Restore from deployment backup"
+      timeout: 600  # seconds
+      max_attempts: 2
+
+    scale_down:
+      description: "Scale down to previous configuration"
+      timeout: 180  # seconds
+      max_attempts: 1
+
+# Notification settings
+notifications:
+  # Deployment notifications
+  deployment:
+    on_start: true
+    on_success: true
+    on_failure: true
+    on_rollback: true
+
+  # Health check notifications
+  health:
+    on_warning: true
+    on_critical: true
+    on_recovery: true
+
+  # Channels
+  channels:
+    email:
+      enabled: true
+      recipients:
+        - "devops@example.com"
+        - "oncall@example.com"
+
+    slack:
+      enabled: true
+      webhook_url: "https://hooks.slack.com/services/..."
+      channel: "#deployments"
+
+    webhook:
+      enabled: true
+      url: "https://api.example.com/webhooks/deployment"
+      headers:
+        Authorization: "Bearer ${WEBHOOK_TOKEN}"
+
+# Performance optimization
+performance:
+  # Resource allocation
+  resources:
+    cpu_reservation: 0.5
+    memory_reservation: 0.7
+    disk_reservation: 0.8
+
+  # Caching strategy
+  caching:
+    enabled: true
+    redis_ttl: 3600  # seconds
+    memory_cache_size: "1GB"
+    cache_invalidation: "lazy"
+
+  # Database optimization
+  database:
+    connection_pool_size: 20
+    max_connections: 100
+    query_timeout: 30  # seconds
+    slow_query_threshold: 1000  # ms
+
+  # API optimization
+  api:
+    rate_limiting: true
+    compression: true
+    caching: true
+    timeout: 30  # seconds
+    max_concurrent_requests: 1000
+
+# Security configuration
+security:
+  # Authentication and authorization
+  auth:
+    jwt_secret: "${JWT_SECRET}"
+    jwt_expiry: 3600  # seconds
+    refresh_token_expiry: 86400  # seconds
+    password_policy:
+      min_length: 12
+      require_special_chars: true
+      require_numbers: true
+      require_uppercase: true
+
+  # Network security
+  network:
+    firewall_enabled: true
+    allowed_ports: [80, 443, 8000, 8080, 9000]
+    vpn_required: false
+    ip_whitelist: []
+
+  # Data security
+  data:
+    encryption_at_rest: true
+    encryption_in_transit: true
+    data_retention_days: 90
+    pii_handling: "masked"
+    audit_logging: true
+
+# Logging configuration
+logging:
+  # Log levels
+  levels:
+    root: "INFO"
+    autonomous_system: "INFO"
+    api: "INFO"
+    database: "WARNING"
+    security: "INFO"
+
+  # Log formats
+  formats:
+    console: "colored"
+    file: "json"
+    syslog: "json"
+
+  # Log rotation
+  rotation:
+    max_size: "100MB"
+    backup_count: 5
+    retention_days: 30
+
+  # Log destinations
+  destinations:
+    console: true
+    file: true
+    syslog: false
+    remote: false
+
+# Testing configuration
+testing:
+  # Pre-deployment tests
+  pre_deployment:
+    unit_tests: true
+    integration_tests: true
+    security_tests: true
+    performance_tests: false
+
+  # Post-deployment tests
+  post_deployment:
+    smoke_tests: true
+    health_checks: true
+    performance_validation: true
+    user_acceptance_tests: false
+
+  # Test timeouts
+  timeouts:
+    unit_tests: 300  # seconds
+    integration_tests: 600  # seconds
+    smoke_tests: 180  # seconds
+    health_checks: 120  # seconds

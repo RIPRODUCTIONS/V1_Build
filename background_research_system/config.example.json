@@ -1,0 +1,72 @@
+{
+  "api_keys": {
+    "spokeo": "YOUR_SPOKEO_API_KEY_HERE",
+    "whitepages": "YOUR_WHITEPAGES_API_KEY_HERE",
+    "been_verified": "YOUR_BEENVERIFIED_API_KEY_HERE",
+    "intelius": "YOUR_INTELIUS_API_KEY_HERE",
+    "people_finders": "YOUR_PEOPLEFINDERS_API_KEY_HERE",
+    "true_people_search": "FREE_SERVICE_NO_KEY_NEEDED",
+    "fast_people_search": "FREE_SERVICE_NO_KEY_NEEDED",
+    "radaris": "YOUR_RADARIS_API_KEY_HERE",
+    "google_search": "YOUR_GOOGLE_SEARCH_API_KEY_HERE",
+    "google_cx": "YOUR_GOOGLE_CUSTOM_SEARCH_ENGINE_ID_HERE",
+    "newsapi": "YOUR_NEWSAPI_API_KEY_HERE",
+    "pacer": "YOUR_PACER_API_KEY_HERE",
+    "property_api": "YOUR_PROPERTY_API_KEY_HERE"
+  },
+  "rate_limits": {
+    "spokeo": 60,
+    "whitepages": 100,
+    "been_verified": 50,
+    "intelius": 40,
+    "people_finders": 30,
+    "true_people_search": 120,
+    "fast_people_search": 120,
+    "radaris": 50,
+    "public_records": 30,
+    "web_scraping": 120,
+    "news_api": 100
+  },
+  "compliance": {
+    "fcra_mode": false,
+    "retention_days": 365,
+    "audit_enabled": true,
+    "data_encryption": true,
+    "privacy_protection": true,
+    "opt_out_required": true
+  },
+  "search_settings": {
+    "max_results_per_source": 100,
+    "timeout_seconds": 30,
+    "retry_attempts": 3,
+    "parallel_workers": 5,
+    "respect_robots_txt": true
+  },
+  "data_quality": {
+    "confidence_threshold_high": 0.8,
+    "confidence_threshold_medium": 0.6,
+    "confidence_threshold_low": 0.4,
+    "cross_reference_min_sources": 2,
+    "verification_required": true
+  },
+  "logging": {
+    "level": "INFO",
+    "file_path": "research_system.log",
+    "max_file_size_mb": 100,
+    "backup_count": 5,
+    "audit_log_enabled": true
+  },
+  "database": {
+    "path": "research_database.db",
+    "backup_enabled": true,
+    "backup_interval_hours": 24,
+    "max_connections": 10
+  },
+  "web_scraping": {
+    "user_agent": "Legal Research Tool v1.0",
+    "delay_between_requests": 2,
+    "max_pages_per_site": 10,
+    "javascript_rendering": true,
+    "proxy_enabled": false
+  }
+}

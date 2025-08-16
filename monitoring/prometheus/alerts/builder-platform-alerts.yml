@@ -1,0 +1,60 @@
+groups:
+  - name: builder-platform-automations
+    rules:
+      - alert: HighAutomationFailureRate
+        expr: rate(celery_task_total{status="failure"}[5m]) / clamp_min(rate(celery_task_total[5m]), 1) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+          service: builder-platform
+          component: automations
+        annotations:
+          summary: High automation failure rate detected
+          description: Automation failure rate is {{ $value | humanizePercentage }} over the last 5 minutes
+
+      - alert: CriticalAutomationFailure
+        expr: increase(celery_task_total{task_name=~"(personal.*|investigation.*)",status="failure"}[5m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+          service: builder-platform
+          component: automations
+        annotations:
+          summary: Critical automation task failed
+          description: Critical task {{ $labels.task_name }} has failed
+
+      - alert: AutomationQueueBacklog
+        expr: celery_queue_depth > 100
+        for: 5m
+        labels:
+          severity: warning
+          service: builder-platform
+          component: queue
+        annotations:
+          summary: Large queue backlog detected
+          description: Queue {{ $labels.queue }} has {{ $value }} pending tasks
+
+      - alert: SlowAutomationPerformance
+        expr: histogram_quantile(0.95, rate(celery_task_duration_seconds_bucket[5m])) > 60
+        for: 5m
+        labels:
+          severity: warning
+          service: builder-platform
+          component: performance
+        annotations:
+          summary: Slow automation performance detected
+          description: 95th percentile task duration is {{ $value }}s
+
+  - name: builder-platform-infrastructure
+    rules:
+      - alert: ApiNoTraffic
+        expr: absent(sum(rate(http_requests_total[10m])))
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: No API traffic in last 10m
+          description: Prometheus is not scraping or API is down
+
+
+

@@ -1,0 +1,430 @@
+# Kali Linux Automation Platform Configuration
+# Master configuration file for ALL 600+ tools
+
+# Platform Configuration
+platform:
+  name: "Kali Linux Automation Platform"
+  version: "1.0.0"
+  description: "Complete automation framework for all Kali Linux cybersecurity tools"
+
+# Tool Categories Configuration
+tools:
+  information_gathering:
+    enabled: true
+    max_concurrent_scans: 3
+    default_timeout: 1800
+    tools:
+      - nmap
+      - masscan
+      - theharvester
+      - amass
+      - subfinder
+      - gobuster
+      - dirb
+      - dnsrecon
+      - dnsenum
+      - fierce
+      - whatweb
+      - wafw00f
+      - netdiscover
+      - arpscan
+      - nbtscan
+      - enum4linux
+      - smbclient
+      - showmount
+      - snmpwalk
+      - smtpuserenum
+      - sslyze
+      - sslscan
+      - testssl
+
+  vulnerability_assessment:
+    enabled: true
+    max_concurrent_scans: 2
+    default_timeout: 3600
+    tools:
+      - openvas
+      - nessus
+      - nikto
+      - w3af
+      - wpscan
+      - joomscan
+      - skipfish
+      - uniscan
+      - arachni
+      - lynis
+      - sqlmap
+      - sqlninja
+      - commix
+      - fimap
+      - owasp_zap
+      - burp_suite
+
+  wireless_attacks:
+    enabled: true
+    max_concurrent_scans: 1
+    default_timeout: 1800
+    tools:
+      - aircrack_ng
+      - reaver
+      - bully
+      - wifite
+      - fern_wifi_cracker
+      - kismet
+      - wash
+      - pixiewps
+      - hcxdumptool
+      - hcxtools
+      - cowpatty
+      - pyrit
+      - bluetooth_scanner
+      - spooftooph
+      - bluez_utils
+
+  exploitation:
+    enabled: true
+    max_concurrent_scans: 1
+    default_timeout: 3600
+    tools:
+      - metasploit
+      - searchsploit
+      - exploitdb
+      - empire
+      - covenant
+      - powersploit
+      - mimikatz
+      - bloodhound
+      - crackmapexec
+      - responder
+
+  password_attacks:
+    enabled: true
+    max_concurrent_scans: 2
+    default_timeout: 7200
+    tools:
+      - hashcat
+      - john
+      - hydra
+      - medusa
+      - crunch
+
+  web_application_security:
+    enabled: true
+    max_concurrent_scans: 2
+    default_timeout: 3600
+    tools:
+      - owasp_zap
+      - burp_suite
+      - nikto
+      - wpscan
+      - sqlmap
+      - commix
+      - fimap
+
+  forensics:
+    enabled: true
+    max_concurrent_scans: 1
+    default_timeout: 7200
+    tools:
+      - volatility
+      - sleuth_kit
+      - autopsy
+      - wireshark
+      - tcpdump
+      - binwalk
+      - exiftool
+      - strings
+      - file
+
+  reverse_engineering:
+    enabled: true
+    max_concurrent_scans: 1
+    default_timeout: 3600
+    tools:
+      - ghidra
+      - radare2
+      - ida_pro
+      - objdump
+      - readelf
+      - capstone
+      - yara
+
+  post_exploitation:
+    enabled: true
+    max_concurrent_scans: 1
+    default_timeout: 1800
+    tools:
+      - mimikatz
+      - bloodhound
+      - empire
+      - covenant
+      - powersploit
+
+  sniffing_spoofing:
+    enabled: true
+    max_concurrent_scans: 1
+    default_timeout: 1800
+    tools:
+      - wireshark
+      - tcpdump
+      - ettercap
+      - responder
+      - bettercap
+      - mitmf
+
+  mobile_security:
+    enabled: true
+    max_concurrent_scans: 1
+    default_timeout: 3600
+    tools:
+      - mobsf
+      - apktool
+      - drozer
+      - frida
+      - objection
+
+  osint:
+    enabled: true
+    max_concurrent_scans: 2
+    default_timeout: 1800
+    tools:
+      - spiderfoot
+      - maltego
+      - recon_ng
+      - theharvester
+      - amass
+      - subfinder
+      - maigret
+      - holehe
+      - shodan
+      - haveibeenpwned
+
+# Workflow Configuration
+workflows:
+  osint_investigation:
+    enabled: true
+    phases:
+      - target_identification
+      - social_media_analysis
+      - domain_analysis
+      - email_analysis
+      - correlation_analysis
+    estimated_duration: 120
+    risk_level: low
+
+  penetration_test:
+    enabled: true
+    phases:
+      - reconnaissance
+      - vulnerability_assessment
+      - exploitation
+      - post_exploitation
+      - reporting
+    estimated_duration: 480
+    risk_level: high
+
+  forensics_investigation:
+    enabled: true
+    phases:
+      - evidence_collection
+      - memory_analysis
+      - disk_analysis
+      - network_analysis
+      - timeline_analysis
+    estimated_duration: 360
+    risk_level: medium
+
+  threat_hunting:
+    enabled: true
+    phases:
+      - baseline_establishment
+      - anomaly_detection
+      - ioc_analysis
+      - threat_intelligence
+      - incident_response
+    estimated_duration: 240
+    risk_level: medium
+
+  red_team_engagement:
+    enabled: true
+    phases:
+      - initial_access
+      - persistence
+      - privilege_escalation
+      - lateral_movement
+      - exfiltration
+    estimated_duration: 600
+    risk_level: critical
+
+  vulnerability_assessment:
+    enabled: true
+    phases:
+      - network_discovery
+      - service_enumeration
+      - web_application_scanning
+      - database_scanning
+      - report_generation
+    estimated_duration: 180
+    risk_level: medium
+
+  malware_analysis:
+    enabled: true
+    phases:
+      - static_analysis
+      - dynamic_analysis
+      - network_analysis
+      - reverse_engineering
+      - threat_intelligence
+    estimated_duration: 300
+    risk_level: high
+
+# Performance Configuration
+performance:
+  max_concurrent_investigations: 3
+  max_memory_usage: "8GB"
+  max_cpu_usage: 80
+  disk_space_threshold: "10GB"
+
+# Security Configuration
+security:
+  api_key_required: true
+  jwt_secret: "change_this_in_production"
+  rate_limiting:
+    enabled: true
+    max_requests_per_minute: 100
+  encryption:
+    enabled: true
+    algorithm: "AES-256"
+
+# Reporting Configuration
+reporting:
+  auto_generate: true
+  formats:
+    - html
+    - pdf
+    - json
+    - xml
+  include_evidence: true
+  include_recommendations: true
+  executive_summary: true
+
+# Monitoring Configuration
+monitoring:
+  enabled: true
+  metrics_collection: true
+  alerting:
+    enabled: true
+    email_notifications: false
+    slack_notifications: false
+  logging:
+    level: "INFO"
+    max_file_size: "100MB"
+    max_files: 10
+
+# Database Configuration
+database:
+  type: "postgresql"
+  host: "localhost"
+  port: 5432
+  name: "kali_automation"
+  user: "kali_user"
+  password: "change_this_in_production"
+
+# Redis Configuration
+redis:
+  host: "localhost"
+  port: 6379
+  password: null
+  database: 0
+
+# API Configuration
+api:
+  host: "0.0.0.0"
+  port: 8001
+  cors_enabled: true
+  rate_limiting: true
+  authentication: true
+
+# Web Interface Configuration
+web_interface:
+  enabled: true
+  host: "0.0.0.0"
+  port: 8080
+  ssl_enabled: false
+  theme: "dark"
+
+# Evidence Management
+evidence:
+  auto_collect: true
+  storage_path: "/kali-automation/evidence"
+  retention_days: 90
+  compression: true
+  encryption: true
+
+# Integration Configuration
+integrations:
+  virustotal:
+    enabled: false
+    api_key: ""
+  shodan:
+    enabled: false
+    api_key: ""
+  censys:
+    enabled: false
+    api_key: ""
+  alienvault_otx:
+    enabled: false
+    api_key: ""
+  abuseipdb:
+    enabled: false
+    api_key: ""
+
+# Notification Configuration
+notifications:
+  email:
+    enabled: false
+    smtp_server: ""
+    smtp_port: 587
+    username: ""
+    password: ""
+    from_address: ""
+    to_addresses: []
+  slack:
+    enabled: false
+    webhook_url: ""
+    channel: ""
+  webhook:
+    enabled: false
+    url: ""
+    headers: {}
+
+# Backup Configuration
+backup:
+  enabled: true
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  retention_days: 30
+  compression: true
+  encryption: true
+  storage_path: "/kali-automation/backups"
+
+# Update Configuration
+updates:
+  auto_check: true
+  check_interval_hours: 24
+  auto_update: false
+  update_notifications: true
+
+# Compliance Configuration
+compliance:
+  gdpr:
+    enabled: false
+    data_retention_days: 30
+  hipaa:
+    enabled: false
+    phi_handling: false
+  sox:
+    enabled: false
+    audit_logging: false
+  pci_dss:
+    enabled: false
+    card_data_handling: false

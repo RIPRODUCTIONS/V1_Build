@@ -1,84 +1,134 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+import uuid
+from datetime import UTC
+from typing import Any
 
-from fastapi import APIRouter, Request, Header
-from fastapi.responses import Response, StreamingResponse
-
+from app.agent.celery_app import celery_app
 from app.db import SessionLocal
+from app.middleware.auth import validate_api_key
 from app.tasks.investigation_tasks import (
-    run_osint_dossier,
+    run_apt_attribution,
     run_finance_triage,
     run_forensics_timeline,
-    run_malware_dynamic,
-    run_apt_attribution,
-    run_sca_scan,
     run_investigations_autopilot,
+    run_malware_dynamic,
+    run_osint_dossier,
+    run_sca_scan,
 )
-from app.agent.celery_app import celery_app
+from fastapi import APIRouter, Depends, Header, Request
+from fastapi.responses import Response, StreamingResponse
 
-
-router = APIRouter(prefix="/investigations", tags=["investigations"])
+router = APIRouter(prefix="/investigations", tags=["investigations"], dependencies=[Depends(validate_api_key)])
 
 
 @router.post("/osint/run")
-def start_osint(payload: Dict[str, Any], x_api_key: str | None = Header(default=None)) -> Dict[str, Any]:
+def start_osint(payload: dict[str, Any], x_api_key: str | None = Header(default=None)) -> dict[str, Any]:
     _enforce_api_key(x_api_key)
     data = dict(payload or {})
-    # Attach task_id later in Celery; for now, pass None; persistence updated on completion when task reports back
-    job = run_osint_dossier.delay({**data, "task_id": None})
-    _record("osint", job.id, payload, task_id=job.id)
-    return {"status": "queued", "task_id": job.id}
+    try:
+        job = run_osint_dossier.delay({**data, "task_id": None})
+        _record("osint", job.id, payload)
+        return {"status": "queued", "task_id": job.id}
+    except Exception:
+        # Fallback to synchronous execution if broker is unavailable
+        result = run_osint_dossier.apply(args=[{**data, "task_id": None}]).result
+        tid = str(uuid.uuid4())
+        _record("osint", tid, payload)
+        _update(tid, "completed", result)
+        return {"status": "completed", "task_id": tid, "result": result}
 
 
 @router.post("/finance/run")
-def start_finance(payload: Dict[str, Any], x_api_key: str | None = Header(default=None)) -> Dict[str, Any]:
+def start_finance(payload: dict[str, Any], x_api_key: str | None = Header(default=None)) -> dict[str, Any]:
     _enforce_api_key(x_api_key)
-    job = run_finance_triage.delay({**(payload or {}), "task_id": None})
-    _record("finance", job.id, payload, task_id=job.id)
-    return {"status": "queued", "task_id": job.id}
+    try:
+        job = run_finance_triage.delay({**(payload or {}), "task_id": None})
+        _record("finance", job.id, payload)
+        return {"status": "queued", "task_id": job.id}
+    except Exception:
+        result = run_finance_triage.apply(args=[{**(payload or {}), "task_id": None}]).result
+        tid = str(uuid.uuid4())
+        _record("finance", tid, payload)
+        _update(tid, "completed", result)
+        return {"status": "completed", "task_id": tid, "result": result}
 
 
 @router.post("/autopilot/run")
-def start_autopilot(payload: Dict[str, Any] | None = None, x_api_key: str | None = Header(default=None)) -> Dict[str, Any]:
+def start_autopilot(payload: dict[str, Any] | None = None, x_api_key: str | None = Header(default=None)) -> dict[str, Any]:
     _enforce_api_key(x_api_key)
-    job = run_investigations_autopilot.delay({**(payload or {}), "task_id": None})
-    _record("autopilot", job.id, payload or {}, task_id=job.id)
-    return {"status": "queued", "task_id": job.id}
+    try:
+        job = run_investigations_autopilot.delay({**(payload or {}), "task_id": None})
+        _record("autopilot", job.id, payload or {})
+        return {"status": "queued", "task_id": job.id}
+    except Exception:
+        result = run_investigations_autopilot.apply(args=[{**(payload or {}), "task_id": None}]).result
+        tid = str(uuid.uuid4())
+        _record("autopilot", tid, payload or {})
+        _update(tid, "completed", result)
+        return {"status": "completed", "task_id": tid, "result": result}
 @router.post("/forensics/timeline/run")
-def start_forensics_timeline(payload: Dict[str, Any], x_api_key: str | None = Header(default=None)) -> Dict[str, Any]:
+def start_forensics_timeline(payload: dict[str, Any], x_api_key: str | None = Header(default=None)) -> dict[str, Any]:
     _enforce_api_key(x_api_key)
-    job = run_forensics_timeline.delay({**(payload or {}), "task_id": None})
-    _record("forensics_timeline", job.id, payload, task_id=job.id)
-    return {"status": "queued", "task_id": job.id}
+    try:
+        job = run_forensics_timeline.delay({**(payload or {}), "task_id": None})
+        _record("forensics_timeline", job.id, payload)
+        return {"status": "queued", "task_id": job.id}
+    except Exception:
+        result = run_forensics_timeline.apply(args=[{**(payload or {}), "task_id": None}]).result
+        tid = str(uuid.uuid4())
+        _record("forensics_timeline", tid, payload)
+        _update(tid, "completed", result)
+        return {"status": "completed", "task_id": tid, "result": result}
 
 
 @router.post("/malware/dynamic/run")
-def start_malware_dynamic(payload: Dict[str, Any], x_api_key: str | None = Header(default=None)) -> Dict[str, Any]:
+def start_malware_dynamic(payload: dict[str, Any], x_api_key: str | None = Header(default=None)) -> dict[str, Any]:
     _enforce_api_key(x_api_key)
-    job = run_malware_dynamic.delay({**(payload or {}), "task_id": None})
-    _record("malware_dynamic", job.id, payload, task_id=job.id)
-    return {"status": "queued", "task_id": job.id}
+    try:
+        job = run_malware_dynamic.delay({**(payload or {}), "task_id": None})
+        _record("malware_dynamic", job.id, payload)
+        return {"status": "queued", "task_id": job.id}
+    except Exception:
+        result = run_malware_dynamic.apply(args=[{**(payload or {}), "task_id": None}]).result
+        tid = str(uuid.uuid4())
+        _record("malware_dynamic", tid, payload)
+        _update(tid, "completed", result)
+        return {"status": "completed", "task_id": tid, "result": result}
 
 
 @router.post("/threat/apt_attribution/run")
-def start_apt_attribution(payload: Dict[str, Any], x_api_key: str | None = Header(default=None)) -> Dict[str, Any]:
+def start_apt_attribution(payload: dict[str, Any], x_api_key: str | None = Header(default=None)) -> dict[str, Any]:
     _enforce_api_key(x_api_key)
-    job = run_apt_attribution.delay({**(payload or {}), "task_id": None})
-    _record("apt_attribution", job.id, payload, task_id=job.id)
-    return {"status": "queued", "task_id": job.id}
+    try:
+        job = run_apt_attribution.delay({**(payload or {}), "task_id": None})
+        _record("apt_attribution", job.id, payload)
+        return {"status": "queued", "task_id": job.id}
+    except Exception:
+        result = run_apt_attribution.apply(args=[{**(payload or {}), "task_id": None}]).result
+        tid = str(uuid.uuid4())
+        _record("apt_attribution", tid, payload)
+        _update(tid, "completed", result)
+        return {"status": "completed", "task_id": tid, "result": result}
 
 
 @router.post("/supplychain/sca/run")
-def start_sca(payload: Dict[str, Any], x_api_key: str | None = Header(default=None)) -> Dict[str, Any]:
+def start_sca(payload: dict[str, Any], x_api_key: str | None = Header(default=None)) -> dict[str, Any]:
     _enforce_api_key(x_api_key)
-    job = run_sca_scan.delay({**(payload or {}), "task_id": None})
-    _record("sca_scan", job.id, payload, task_id=job.id)
-    return {"status": "queued", "task_id": job.id}
+    try:
+        job = run_sca_scan.delay({**(payload or {}), "task_id": None})
+        _record("sca_scan", job.id, payload)
+        return {"status": "queued", "task_id": job.id}
+    except Exception:
+        result = run_sca_scan.apply(args=[{**(payload or {}), "task_id": None}]).result
+        tid = str(uuid.uuid4())
+        _record("sca_scan", tid, payload)
+        _update(tid, "completed", result)
+        return {"status": "completed", "task_id": tid, "result": result}
 
 
 @router.get("/recent")
-def recent(limit: int = 20) -> Dict[str, Any]:
+def recent(limit: int = 20) -> dict[str, Any]:
     from app.models import InvestigationRun
 
     db = SessionLocal()
@@ -109,8 +159,9 @@ def recent(limit: int = 20) -> Dict[str, Any]:
 @router.get("/{task_id}", response_model=None)
 def get_investigation(task_id: str, x_api_key: str | None = Header(default=None)):
     _enforce_api_key(x_api_key, read_only=True)
-    from app.models import InvestigationRun
     import json as _json
+
+    from app.models import InvestigationRun
     db = SessionLocal()
     try:
         rec = db.query(InvestigationRun).filter(InvestigationRun.task_id == task_id).first()
@@ -143,15 +194,15 @@ async def stream_investigation(task_id: str, request: Request, x_api_key: str | 
     token = request.query_params.get("token")
     _enforce_api_key(token or x_api_key, read_only=True)
     async def event_generator():
-        import json as _json
         import asyncio as _aio
+        import json as _json
         last_state: str | None = None
         while True:
             if await request.is_disconnected():
                 break
             result = celery_app.AsyncResult(task_id)
             state = result.state
-            payload: Dict[str, Any] = {"task_id": task_id, "state": state}
+            payload: dict[str, Any] = {"task_id": task_id, "state": state}
             status = "pending"
             if state == "SUCCESS":
                 try:
@@ -183,22 +234,23 @@ def get_osint_report(task_id: str, x_api_key: str | None = Header(default=None))
     _enforce_api_key(x_api_key, read_only=True)
     # Minimal: synthesize from stored parameters and current plan re-run for the PDF
     # In a full implementation, we would persist the full result and render from that
+    import json as _json
+
     from app.ai.investigation_planner import plan_osint
     from app.models import InvestigationRun
-    import json as _json
 
     db = SessionLocal()
     try:
         run = db.query(InvestigationRun).filter(InvestigationRun.task_id == task_id, InvestigationRun.kind == "osint").first()
         if not run:
             return Response(status_code=404)
-        subject = {}
         try:
             params = _json.loads(run.parameters_json or "{}")
-            subject = (params or {}).get("subject") or {}
+            _sub = (params or {}).get("subject")
+            subj: dict[str, Any] = _sub if isinstance(_sub, dict) else {}
         except Exception:
-            subject = {}
-        plan = plan_osint(subject)
+            subj = {}
+        plan = plan_osint(subj)
         summary = None
         try:
             import json as __json
@@ -208,7 +260,7 @@ def get_osint_report(task_id: str, x_api_key: str | None = Header(default=None))
         # Lazy import report generator to avoid hard dependency in tests
         try:
             from app.reports.osint_report import build_osint_report  # type: ignore
-            pdf_bytes = build_osint_report(subject, plan, summary)
+            pdf_bytes = build_osint_report(subj, plan, summary)
             return Response(content=pdf_bytes, media_type="application/pdf")
         except Exception:
             # Report generator not available; return 501
@@ -220,8 +272,9 @@ def get_osint_report(task_id: str, x_api_key: str | None = Header(default=None))
 @router.get("/forensics/report/{task_id}")
 def get_forensics_report(task_id: str, x_api_key: str | None = Header(default=None)) -> Response:
     _enforce_api_key(x_api_key, read_only=True)
-    from app.models import InvestigationRun
     import json as _json
+
+    from app.models import InvestigationRun
     db = SessionLocal()
     try:
         run = db.query(InvestigationRun).filter(InvestigationRun.task_id == task_id, InvestigationRun.kind == "forensics_timeline").first()
@@ -245,8 +298,9 @@ def get_forensics_report(task_id: str, x_api_key: str | None = Header(default=No
 @router.get("/malware/report/{task_id}")
 def get_malware_report(task_id: str, x_api_key: str | None = Header(default=None)) -> Response:
     _enforce_api_key(x_api_key, read_only=True)
-    from app.models import InvestigationRun
     import json as _json
+
+    from app.models import InvestigationRun
     db = SessionLocal()
     try:
         run = db.query(InvestigationRun).filter(InvestigationRun.task_id == task_id, InvestigationRun.kind == "malware_dynamic").first()
@@ -270,8 +324,9 @@ def get_malware_report(task_id: str, x_api_key: str | None = Header(default=None
 @router.get("/autopilot/report/{task_id}")
 def get_autopilot_report(task_id: str, x_api_key: str | None = Header(default=None)) -> Response:
     _enforce_api_key(x_api_key, read_only=True)
-    from app.models import InvestigationRun
     import json as _json
+
+    from app.models import InvestigationRun
     db = SessionLocal()
     try:
         run = db.query(InvestigationRun).filter(InvestigationRun.task_id == task_id, InvestigationRun.kind == "autopilot").first()
@@ -296,8 +351,9 @@ def get_autopilot_report(task_id: str, x_api_key: str | None = Header(default=No
 @router.get("/osint/entities/{task_id}.json")
 def get_osint_entities_json(task_id: str, x_api_key: str | None = Header(default=None)) -> Response:
     _enforce_api_key(x_api_key, read_only=True)
-    from app.models import InvestigationRun
     import json as _json
+
+    from app.models import InvestigationRun
     db = SessionLocal()
     try:
         run = (
@@ -320,10 +376,11 @@ def get_osint_entities_json(task_id: str, x_api_key: str | None = Header(default
 @router.get("/osint/timeline/{task_id}.csv")
 def get_osint_timeline_csv(task_id: str, x_api_key: str | None = Header(default=None)) -> Response:
     _enforce_api_key(x_api_key, read_only=True)
-    from app.models import InvestigationRun
+    import csv as _csv
     import json as _json
     from io import StringIO
-    import csv as _csv
+
+    from app.models import InvestigationRun
     db = SessionLocal()
     try:
         run = (
@@ -351,8 +408,9 @@ def get_osint_timeline_csv(task_id: str, x_api_key: str | None = Header(default=
 @router.get("/malware/iocs/{task_id}.json")
 def get_malware_iocs_json(task_id: str, x_api_key: str | None = Header(default=None)) -> Response:
     _enforce_api_key(x_api_key, read_only=True)
-    from app.models import InvestigationRun
     import json as _json
+
+    from app.models import InvestigationRun
     db = SessionLocal()
     try:
         run = (
@@ -375,10 +433,11 @@ def get_malware_iocs_json(task_id: str, x_api_key: str | None = Header(default=N
 @router.get("/forensics/events/{task_id}.csv")
 def get_forensics_events_csv(task_id: str, x_api_key: str | None = Header(default=None)) -> Response:
     _enforce_api_key(x_api_key, read_only=True)
-    from app.models import InvestigationRun
+    import csv as _csv
     import json as _json
     from io import StringIO
-    import csv as _csv
+
+    from app.models import InvestigationRun
     db = SessionLocal()
     try:
         run = (
@@ -403,9 +462,10 @@ def get_forensics_events_csv(task_id: str, x_api_key: str | None = Header(defaul
         db.close()
 
 
-def _record(kind: str, task_id: str, params: Dict[str, Any], task_id_override: str | None = None) -> None:
-    from app.models import InvestigationRun
+def _record(kind: str, task_id: str, params: dict[str, Any], task_id_override: str | None = None) -> None:
     import json as _json
+
+    from app.models import InvestigationRun
     db = SessionLocal()
     try:
         rec = InvestigationRun(
@@ -420,10 +480,10 @@ def _record(kind: str, task_id: str, params: Dict[str, Any], task_id_override: s
         db.close()
 
 
-def _update(task_id: str, status: str, result_obj: Dict[str, Any] | None) -> None:
-    from app.models import InvestigationRun
+def _update(task_id: str, status: str, result_obj: dict[str, Any] | None) -> None:
     import json as _json
-    from datetime import datetime as _dt
+
+    from app.models import InvestigationRun
     db = SessionLocal()
     try:
         rec = db.query(InvestigationRun).filter(InvestigationRun.task_id == task_id).first()
@@ -431,7 +491,8 @@ def _update(task_id: str, status: str, result_obj: Dict[str, Any] | None) -> Non
             rec.status = status
             if result_obj is not None:
                 rec.result_summary_json = _json.dumps(result_obj)
-            rec.updated_at = _dt.utcnow()
+            from datetime import datetime
+            rec.updated_at = datetime.now(UTC)
             db.add(rec)
             db.commit()
     finally:
@@ -440,11 +501,20 @@ def _update(task_id: str, status: str, result_obj: Dict[str, Any] | None) -> Non
 
 def _enforce_api_key(x_api_key: str | None, read_only: bool = False) -> None:
     import os as _os
-    if (_os.getenv("SECURE_MODE", "false").lower() == "true"):
-        expected = _os.getenv("INTERNAL_API_KEY")
-        if not expected or x_api_key != expected:
-            # Late import to avoid FastAPI dependency at import time in tests
-            from fastapi import HTTPException
-            raise HTTPException(status_code=401, detail="unauthorized")
+    from fastapi import HTTPException
+    secure_mode = _os.getenv("SECURE_MODE", "false").lower() == "true"
+    expected = _os.getenv("INTERNAL_API_KEY")
+    if secure_mode:
+        if not expected:
+            raise HTTPException(status_code=500, detail="server not configured: api key missing")
+        if not x_api_key:
+            raise HTTPException(status_code=401, detail="X-API-Key header required")
+        if x_api_key != expected:
+            raise HTTPException(status_code=401, detail="invalid api key")
+        return
+    if expected:
+        if not x_api_key or x_api_key != expected:
+            raise HTTPException(status_code=401, detail="invalid or missing api key")
+    # When no expected key and not secure, allow
 
 

@@ -60,7 +60,7 @@ async def demo_contact_form(body: Dict[str, Any], settings=Depends(get_settings)
     except Exception:
         pass
     execr = MVPWebExecutor()
-    return await execr.execute_contact_form(url, form_data)
+    return await execr.execute_contact_form(str(url or ""), form_data)
 
 
 @router.get("/ui", response_class=HTMLResponse)

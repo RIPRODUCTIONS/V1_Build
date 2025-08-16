@@ -1,0 +1,46 @@
+# Simplified Kali Linux automation platform
+version: '3.8'
+
+services:
+  kali-automation:
+    build:
+      context: .
+      dockerfile: Dockerfile.kali
+    volumes:
+      - ./results:/kali-automation/results
+      - ./configs:/kali-automation/configs
+      - ./evidence:/kali-automation/evidence
+      - /dev/net/tun:/dev/net/tun
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - KALI_AUTOMATION_HOME=/kali-automation
+      - PYTHONPATH=/kali-automation
+    networks:
+      - kali-network
+    privileged: true  # Required for some network tools
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+      - NET_RAW
+      - SYS_PTRACE
+      - DAC_READ_SEARCH
+    devices:
+      - /dev/net/tun
+      - /dev/bus/usb
+    ports:
+      - "8001:8001"  # Main orchestrator
+      - "8002:8002"  # Tool management
+      - "8003:8003"  # Results viewer
+      - "8004:8004"  # API endpoint
+      - "8005:8005"  # Monitoring
+    restart: unless-stopped
+    command: ["python3", "kali_orchestrator.py"]
+
+networks:
+  kali-network:
+    driver: bridge
+
+volumes:
+  kali_results:
+  kali_configs:
+  evidence_storage:

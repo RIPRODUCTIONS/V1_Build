@@ -4,6 +4,7 @@ import json
 import os
 from datetime import datetime, timezone
 from typing import Any
+from .events import EventContext
 
 import redis.asyncio as redis
 
@@ -27,13 +28,13 @@ async def publish_event(event: BusEvent) -> None:
         await r.aclose()
 
 
-async def publish_calendar_created(user_id: str, payload: dict[str, Any], context: dict[str, Any] | None = None) -> None:
+async def publish_calendar_created(user_id: str, payload: dict[str, Any], context: EventContext | None = None) -> None:
     evt: BusEvent = {
         "type": "calendar.event.created",
         "user_id": user_id,
         "ts": datetime.now(timezone.utc).isoformat(),
         "payload": payload,
-        "context": context or {},
+        "context": (context or {}),
     }
     await publish_event(evt)
 

@@ -1,139 +1,60 @@
-# Builder Investigations Stack (Secure)
+# Builder System Runbook (Concise)
 
-## One-command local stack
+## Start stack
 
-1. Export a strong API key:
-
-```bash
-export INTERNAL_API_KEY=$(python3 - <<'PY'
-import secrets
-print(secrets.token_hex(16))
-PY
-)
+```
+make up
 ```
 
-2. Start services:
+- API: http://127.0.0.1:8000/healthz
+- Web: http://127.0.0.1:3000/dashboard
 
-```bash
-docker-compose up --build
+## Agents
+
+```
+make agents-registry
+make agents-run
 ```
 
-Services:
-- API: http://localhost:8000 (SECURE_MODE enabled, pass `X-API-Key: $INTERNAL_API_KEY`)
-- Web: http://localhost:3000 (auto-injects API key for requests and SSE)
-- Redis: redis://localhost:6379
+Update agent provider/model in Web dashboard (Agents section) or POST `/ai/agents/{name}/config`.
 
-## Secure mode
+## Coverage expansion
 
-All investigations and self-build endpoints require `X-API-Key` when `SECURE_MODE=true`.
-
-## Reports and artifacts
-
-- OSINT PDF: `/investigations/osint/report/{task_id}`
-- Forensics PDF: `/investigations/forensics/report/{task_id}`
-- Malware PDF: `/investigations/malware/report/{task_id}`
-- Autopilot PDF: `/investigations/autopilot/report/{task_id}`
-- OSINT entities JSON: `/investigations/osint/entities/{task_id}.json`
-- OSINT timeline CSV: `/investigations/osint/timeline/{task_id}.csv`
-- Malware IOCs JSON: `/investigations/malware/iocs/{task_id}.json`
-- Forensics events CSV: `/investigations/forensics/events/{task_id}.csv`
-
-## Self-build (admin)
-
-- Run scan: `POST /assistant/self_build/scan` (secured)
-- UI: `/admin/self-build`
-- Approve/apply proposals via UI or API.
-
-## Google Integrations (Calendar)
-
-1. Environment
-- Set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `INTEGRATION_VAULT_KEY`, and `GOOGLE_CALENDAR_SYNC=true` in your environment or `.env`.
-
-2. Seed Tokens (OAuth Playground)
-- Use OAuth 2.0 Playground (Settings → Use your own OAuth credentials) with your Client ID/Secret.
-- Scope: `https://www.googleapis.com/auth/calendar`.
-- Exchange code, get access/refresh tokens.
-- Run `backend/scripts/setup_integrations.py` and paste tokens for user id `1`.
-
-3. Test & Sync
-- Create test event: `POST /integrations/google/calendar/test_event/1`
-- Create custom event: `POST /integrations/google/calendar/create/1` with JSON payload:
-  `{ "summary": "Title", "start_iso": "2025-08-15T09:00:00", "end_iso": "2025-08-15T09:30:00", "timezone": "America/Chicago" }`
-- Sync: `POST /integrations/sync/1`
-
-4. Automations
-- Metrics: `GET /automations/metrics`
-- Admin tasks (dev): `GET /admin/tasks` with header `X-CI-Token: <CI_CLEANUP_TOKEN>`
-# Builder
-
-A clean, well-structured foundation for AI project scaffolding. Centralized env, consistent tooling, and clear entry points.
-
-## Quick start
-
-```bash
-# create and activate venv, install safe deps
-make venv
-make safe-install
-
-# run health check
-make health
+```
+make expand-coverage
 ```
 
-## Layout
+Enable hourly via env: `COVERAGE_EXPAND_ENABLED=true`.
 
-- `src/builder`: Typed Python package for scaffolding and orchestration
-- `scripts/`: Operational scripts and automation entrypoints
-- `toolkits/`: Symlinked, space-free pointers to external tool/resource dirs
-- `.venv/`: Project virtual environment
+## Health and self-heal
 
-## Environment
+```
+make health-check
+```
 
-Paths are defined in `.env` and also exposed via `toolkits/` symlinks. Update `.env` if locations change.
+- Security headers enforced (CSP, XFO, XCTO, Referrer, Permissions)
+- Self-heal loop runs automatically; read-only status at `/health/selfheal_status`
+- Alerts (optional): set `ALERT_WEBHOOK_URL`, `SLACK_WEBHOOK_URL`, or `EMAIL_*` env vars
 
-### Backend `.env` keys
+## Desktop
 
-- `DATABASE_URL` (default sqlite:///./dev.db)
-- `JWT_SECRET`, `JWT_ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES`
-- `ADMIN_USERNAME`, `ADMIN_PASSWORD`
-- `SENTRY_DSN` (optional)
-- `REDIS_URL` (e.g., redis://127.0.0.1:6379/0)
-- `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND` (e.g., redis://127.0.0.1:6379/1 and /2)
-- `OTEL_EXPORTER_OTLP_ENDPOINT` (optional)
-- `ALLOWED_ORIGINS` (comma separated, e.g. http://localhost:3000)
-- `CI_ENV` (true/false), `CI_CLEANUP_TOKEN` (secret for cleanup)
+```
+cd apps/desktop && npm install && WEB_URL=http://127.0.0.1:3000 API_URL=http://127.0.0.1:8000 npm run dev
+```
 
-### Web `.env` keys
+Renderer APIs: `window.builder.runResearch(topic)`, `getPersonalRun(id)`, `runAgent(goal, agent)`.
 
-- `NEXT_PUBLIC_API_BASE_URL` (e.g. http://127.0.0.1:8000)
-- `NEXT_PUBLIC_WEB_ORIGIN` (e.g. http://localhost:3000)
+## iPhone (Expo)
 
-## Testing with cleanup
+```
+cd apps/mobile && npm install
+API_URL=http://YOUR-MAC-IP:8000 npx expo start
+```
 
-Run API and web locally, then run Playwright. To enable auto-clean after tests:
+Open Expo Go, ensure phone can reach your Mac IP.
 
-1. Set API envs while running the API:
-   - `CI_ENV=true`
-   - `CI_CLEANUP_TOKEN=<secret>`
-2. Set Playwright envs:
-   - `API_BASE_URL=http://127.0.0.1:8000`
-   - `CI_ENV=true`
-   - `CI_CLEANUP_TOKEN=<secret>`
-3. Execute tests from `apps/web`:
-   - `npm run test`
+## Security Gates & Branch Protection
 
-The teardown calls `DELETE /admin/cleanup/all` with `X-CI-Token` to clear test data.
-
-### Notes
-
-- Cleanup endpoints are rate-limited: 5 requests/min/IP. The 6th within a minute returns `429 {"detail":"Rate limit exceeded"}`.
-- `ALLOWED_ORIGINS` should be a comma-separated list of valid http/https origins (scheme + host). Invalid entries are ignored. If unset, defaults to `http://localhost:3000`.
-- Example local `.env` values:
-  - API: `DATABASE_URL=sqlite:///./dev.db`, `ALLOWED_ORIGINS=http://localhost:3000`, `CI_ENV=true`, `CI_CLEANUP_TOKEN=local-secret`
-  - Web: `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000`
-
-
-## Coding standards
-
-- Black, Ruff, Mypy configured via `pyproject.toml`
-- Keep functions short, explicit names, early returns, handle edge cases first
-- Add concise docstrings for non-trivial functions
+- Required status checks: backend (mypy), web, precommit, security
+- Require PR reviews; dismiss stale approvals on new commits
+- CODEOWNERS enforce review on critical paths: `backend/app/**`, `apps/web/**`, `apps/desktop/**`, `apps/mobile/**`, `.github/workflows/**`, `docker-compose.yml`

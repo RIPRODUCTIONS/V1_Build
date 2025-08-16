@@ -1,0 +1,19 @@
+FROM mcr.microsoft.com/playwright/python:v1.54.0-jammy
+
+WORKDIR /app
+
+COPY requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -U pip \
+    && pip install --no-cache-dir -r /app/requirements.txt \
+    && pip install --no-cache-dir playwright
+
+COPY app /app/app
+COPY scripts /app/scripts
+
+ENV PYTHONUNBUFFERED=1
+
+# Run a Celery worker dedicated to webexec queue (Playwright installed)
+CMD ["bash", "-lc", "celery -A app.agent.celery_app worker --loglevel=INFO -Q webexec"]
+
+
+

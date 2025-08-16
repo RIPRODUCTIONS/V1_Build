@@ -1,5 +1,7 @@
 # ruff: noqa: I001
 import asyncio
+import time
+from prometheus_client import Histogram
 
 from app.core.config import Settings
 from app.reliability.circuit_breaker import CircuitBreaker
@@ -15,6 +17,7 @@ class LLMRouter:
         self.cb_primary = CircuitBreaker(settings.LLM_CB_FAIL_THRESHOLD, settings.LLM_CB_RESET_S)
 
         # Local-first selection
+        self.primary: LMStudioProvider | OllamaProvider | VLLMProvider | OpenAIProvider
         if self.s.LLM_PRIMARY == "lmstudio":
             self.primary = LMStudioProvider(self.s)
         elif self.s.LLM_PRIMARY == "ollama":
@@ -27,7 +30,7 @@ class LLMRouter:
             raise ValueError("Unsupported LLM_PRIMARY")
 
         # Configure fallback provider
-        self.fallback = None
+        self.fallback: LMStudioProvider | OllamaProvider | VLLMProvider | OpenAIProvider | None = None
         if self.s.LLM_FALLBACK == "lmstudio":
             self.fallback = LMStudioProvider(self.s)
         elif self.s.LLM_FALLBACK == "ollama":
@@ -39,19 +42,33 @@ class LLMRouter:
         # if 'none' or unknown, keep None
 
     async def chat(self, prompt: str, system: str | None = None) -> str:
+        provider_name = _provider_name(self.primary)
         if not self.cb_primary.is_open:
             for attempt in range(self.s.LLM_RETRIES + 1):
                 try:
+                    _t0 = time.perf_counter()
                     resp = await self.primary.chat(prompt, system)
+                    _dt = time.perf_counter() - _t0
+                    _label_observe(LLM_REQUEST_DURATION, _dt, {"provider": provider_name, "outcome": "ok"})
                     self.cb_primary.record_success()
                     return resp
                 except Exception:
+                    try:
+                        LLM_REQUEST_DURATION.observe(0.0, {"provider": provider_name, "outcome": "error"})
+                    except TypeError:
+                        # Fallback for environments where monkey-patch is not applied yet
+                        _label_observe(LLM_REQUEST_DURATION, 0.0, {"provider": provider_name, "outcome": "error"})
                     if attempt >= self.s.LLM_RETRIES:
                         self.cb_primary.record_failure()
                     await asyncio.sleep(0.3 * (attempt + 1))
 
         if self.fallback:
-            return await self.fallback.chat(prompt, system)
+            fb_name = _provider_name(self.fallback)
+            _t0 = time.perf_counter()
+            resp = await self.fallback.chat(prompt, system)
+            _dt = time.perf_counter() - _t0
+            _label_observe(LLM_REQUEST_DURATION, _dt, {"provider": fb_name, "outcome": "ok"})
+            return resp
 
         raise RuntimeError("All LLM providers failed (no fallback or circuit open)")
 
@@ -90,3 +107,31 @@ def _rank_model_names(names: list[str], policy: str) -> list[str]:
         return base
 
     return sorted(names, key=score, reverse=True)
+
+
+# Prometheus metrics
+# Use native prometheus_client histogram with exemplar-like label mapping
+LLM_REQUEST_DURATION = Histogram(
+    "llm_request_duration_seconds",
+    "Duration of LLM requests",
+    labelnames=("provider", "outcome"),
+    buckets=(0.05, 0.1, 0.2, 0.5, 1.0, 2.0, 5.0, 10.0),
+)
+
+
+def _label_observe(hist: Histogram, value: float, labels: dict[str, str]) -> None:
+    try:
+        hist.labels(**labels).observe(value)
+    except Exception:
+        pass
+
+
+# Monkey-patch observe with labels dict for brevity above
+def _observe_with_dict(self: Histogram, value: float, labels: dict[str, str]) -> None:  # type: ignore[override]
+    self.labels(**labels).observe(value)
+
+setattr(LLM_REQUEST_DURATION, "observe", _observe_with_dict)  # type: ignore[attr-defined]
+
+
+def _provider_name(obj: object) -> str:
+    return obj.__class__.__name__.replace("Provider", "").lower()

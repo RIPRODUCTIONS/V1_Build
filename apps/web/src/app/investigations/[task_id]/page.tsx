@@ -34,17 +34,30 @@ export default function InvestigationDetailPage({ params }: { params: { task_id:
 
   useEffect(() => {
     load();
-    const es = new EventSource(sseUrl(`/api/investigations/stream/${taskId}`));
-    es.onmessage = (e) => {
-      try {
-        const data = JSON.parse(e.data);
-        setLive(data);
-      } catch {}
+    let es: EventSource | null = null;
+    let backoff = 1000;
+    let closed = false;
+    const open = () => {
+      if (closed) return;
+      es = new EventSource(sseUrl(`/api/investigations/stream/${taskId}`));
+      es.onmessage = (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          setLive(data);
+          backoff = 1000; // reset on success
+        } catch {}
+      };
+      es.onerror = () => {
+        if (es) es.close();
+        setTimeout(() => open(), Math.min(10000, backoff));
+        backoff = Math.min(10000, backoff * 2);
+      };
     };
-    es.onerror = () => {
-      es.close();
+    open();
+    return () => {
+      closed = true;
+      if (es) es.close();
     };
-    return () => es.close();
   }, [taskId]);
 
   const runAgain = async () => {

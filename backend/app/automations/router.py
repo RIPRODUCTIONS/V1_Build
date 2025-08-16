@@ -1,17 +1,15 @@
 from __future__ import annotations
 
-from typing import Annotated, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from typing import Annotated
 
+from app.automations.models import AutomationRule, RuleExecution
+from app.db import get_db
+from app.dependencies.auth import get_current_user
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
+from sqlalchemy import case, func
 from sqlalchemy.orm import Session
-from sqlalchemy import func, case
-
-from app.db import get_db
-from app.automations.models import AutomationRule, RuleExecution
-from app.dependencies.auth import get_current_user
-
 
 router = APIRouter(prefix="/automations", tags=["automations"])
 
@@ -19,9 +17,9 @@ router = APIRouter(prefix="/automations", tags=["automations"])
 class RuleCreate(BaseModel):
     id: str
     name: str
-    description: Optional[str] = None
+    description: str | None = None
     trigger_type: str
-    event_pattern: Optional[str] = None
+    event_pattern: str | None = None
     conditions: dict = Field(default_factory=dict)
     actions: list[dict] = Field(default_factory=list)
     enabled: bool = True
@@ -40,8 +38,8 @@ def list_rules(
 def automation_health(db: Annotated[Session, Depends(get_db)]):
     """Basic health metrics for automation system."""
     try:
-        from app.core.config import get_settings
         import redis
+        from app.core.config import get_settings
 
         settings = get_settings()
         r = redis.from_url(settings.REDIS_URL)
@@ -51,7 +49,7 @@ def automation_health(db: Annotated[Session, Depends(get_db)]):
         except Exception:
             lag = 0
 
-        one_hour_ago = datetime.utcnow() - timedelta(hours=1)
+        one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
         recent = db.query(RuleExecution).filter(RuleExecution.executed_at >= one_hour_ago).all()
         total = len(recent)
         failed = sum(1 for e in recent if e.status == "failed")
@@ -70,7 +68,7 @@ def automation_health(db: Annotated[Session, Depends(get_db)]):
                 "error_rate_1h": round(error_rate, 2),
                 "active_rules": active_rules,
             },
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
     except Exception as e:  # pragma: no cover
         return {"status": "error", "error": str(e)}
@@ -78,7 +76,7 @@ def automation_health(db: Annotated[Session, Depends(get_db)]):
 
 @router.get("/metrics")
 def automation_metrics(db: Annotated[Session, Depends(get_db)]):
-    since = datetime.utcnow() - timedelta(hours=24)
+    since = datetime.now(timezone.utc) - timedelta(hours=24)
     rows = (
         db.query(
             RuleExecution.rule_id,
@@ -144,7 +142,7 @@ def toggle_rule(
     row = db.get(AutomationRule, rule_id)
     if not row or (row.user_id not in (None, str(user_id))):
         raise HTTPException(status_code=404, detail="rule not found")
-    row.enabled = not bool(row.enabled)
+    row.enabled = not bool(row.enabled)  # type: ignore[assignment]
     db.commit()
     db.refresh(row)
     return {"id": row.id, "enabled": row.enabled}

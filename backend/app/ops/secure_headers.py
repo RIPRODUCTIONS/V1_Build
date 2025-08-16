@@ -21,6 +21,9 @@ class SecureHeadersMiddleware(BaseHTTPMiddleware):
             "Content-Security-Policy",
             "default-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'",
         )
+        # HSTS only when TLS is used
+        if str(getattr(request.url, 'scheme', 'http')).lower() == 'https':
+            resp.headers.setdefault("Strict-Transport-Security", "max-age=31536000")
         return resp
 
 

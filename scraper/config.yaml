@@ -1,0 +1,18 @@
+airflow:
+  api_version: v1
+  dag_id: automated_web_scraper
+  url: http://localhost:8080
+database:
+  database: scraper_db
+  host: localhost
+  port: 5432
+  username: scraper_user
+logging:
+  level: INFO
+  output_dir: ./output
+scraping:
+  max_concurrent: 5
+  retry_attempts: 3
+  retry_delay: 5
+  timeout: 30000
+  wait_for_network_idle: true

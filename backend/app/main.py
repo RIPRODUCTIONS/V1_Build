@@ -1,4 +1,5 @@
 import os
+import logging
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -17,6 +18,7 @@ from app.ops.cursor_bridge import router as cursor_bridge
 from app.ops.metrics import setup_metrics
 from app.ops.internal_guard import InternalTokenGuard
 from app.ops.secure_headers import SecureHeadersMiddleware
+from app.ops.limits import BodySizeLimitMiddleware, RequestTimeoutMiddleware, RateLimitMiddleware, RedisRateLimitMiddleware
 from contextlib import suppress
 from app.routers.admin import router as admin_router
 from app.routers.agent import router as agent_router
@@ -25,6 +27,7 @@ from app.routers.auth import router as auth_router
 from app.routers.auto_reply import router as auto_reply_router
 from app.routers.content import router as content_router
 from app.routers.health import router as health_router
+from app.routers.alerts import router as alerts_router
 from app.routers.leads import router as leads_router
 from app.routers.physical import router as physical_router
 from app.routers.predictive import router as predictive_router
@@ -43,6 +46,7 @@ from app.routers.runs import router as runs_router
 from app.ai.router import router as ai_router
 from app.selfheal.router import router as selfheal_router
 from app.selfheal.services import SelfHealingCore
+from app.agent.agent_registry import load_agent_configs_from_db
 from app.integrations.router import router as integrations_router
 from app.integrations.webhooks import router as webhook_router
 from app.automations.router import router as automations_router
@@ -128,6 +132,49 @@ def _fail_fast_if_missing_secrets() -> None:
             )
 
 
+def _warn_if_migrations_pending() -> None:
+    """Best-effort warning if DB is behind Alembic heads in prod.
+
+    Never raises; only logs a warning when we can confidently detect drift.
+    """
+    try:
+        env = os.getenv("ENV", "").lower()
+        if env not in {"production", "prod", "staging"}:
+            return
+        current_rev: str | None = None
+        try:
+            from sqlalchemy import text  # local import to keep module load light
+
+            with engine.connect() as conn:
+                try:
+                    current_rev = conn.execute(text("SELECT version_num FROM alembic_version")).scalar_one_or_none()
+                except Exception:
+                    current_rev = None
+        except Exception:
+            return
+
+        # Load declared heads from Alembic scripts
+        try:
+            from alembic.config import Config  # type: ignore
+            from alembic.script import ScriptDirectory  # type: ignore
+
+            ini_path = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "alembic.ini"))
+            cfg = Config(ini_path)
+            script = ScriptDirectory.from_config(cfg)
+            heads = set(script.get_heads())
+        except Exception:
+            heads = set()
+
+        if not current_rev:
+            logging.warning("[migrations] No alembic_version found; database may need initial migration.")
+            return
+        if heads and current_rev not in heads:
+            logging.warning("[migrations] Database revision %s is not at head(s) %s; run Alembic upgrade.", current_rev, ",".join(sorted(heads)))
+    except Exception:
+        # Never block startup due to this check
+        pass
+
+
 def create_app() -> FastAPI:
     # Best-effort: load secrets from AWS if configured (prod only)
     try:
@@ -156,7 +203,13 @@ def create_app() -> FastAPI:
     if allowed_origins_env:
         candidates = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
     else:
-        candidates = ["http://localhost:3000"]
+        candidates = [
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            # Expo/React Native dev server defaults
+            "http://localhost:19006",
+            "http://127.0.0.1:19006",
+        ]
 
     def _valid_origin(o: str) -> bool:
         try:
@@ -167,7 +220,10 @@ def create_app() -> FastAPI:
 
     allowed_origins = [o for o in candidates if _valid_origin(o)]
     if not allowed_origins:
-        allowed_origins = ["http://localhost:3000"]
+        allowed_origins = [
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+        ]
     app.add_middleware(
         CORSMiddleware,
         allow_origins=allowed_origins,
@@ -177,12 +233,31 @@ def create_app() -> FastAPI:
     )
     # Security toggle: protect /cursor and /ops routes when SECURE_MODE is set
     app.add_middleware(InternalTokenGuard)
+    # Request hardening: size, timeout, and simple in-memory rate limiting
+    app.add_middleware(BodySizeLimitMiddleware, max_bytes=int(os.getenv("MAX_REQUEST_BYTES", "2000000")))
+    app.add_middleware(RequestTimeoutMiddleware, timeout_seconds=float(os.getenv("REQUEST_TIMEOUT_S", "15")))
+    rl_redis_url = os.getenv("RL_REDIS_URL")
+    if rl_redis_url:
+        app.add_middleware(
+            RedisRateLimitMiddleware,
+            redis_url=rl_redis_url,
+            max_requests=int(os.getenv("RL_MAX_REQUESTS", "60")),
+            window_seconds=int(os.getenv("RL_WINDOW_S", "60")),
+        )
+    else:
+        app.add_middleware(
+            RateLimitMiddleware,
+            max_requests=int(os.getenv("RL_MAX_REQUESTS", "60")),
+            window_seconds=int(os.getenv("RL_WINDOW_S", "60")),
+        )
     app.add_middleware(SecureHeadersMiddleware)
     _wire_instrumentation(app)
+    _warn_if_migrations_pending()
 
     # Mount health under /api for consistent probes and also legacy root paths
     app.include_router(health_router, prefix="/api")
     app.include_router(health_router)
+    app.include_router(alerts_router)
     app.include_router(auto_reply_router, prefix="/api")
     app.include_router(auto_reply_router)
     app.include_router(auth_router)
@@ -230,7 +305,9 @@ def create_app() -> FastAPI:
     app.include_router(prototype_router)
     app.include_router(automation_router)
     app.include_router(cursor_bridge)
-    Base.metadata.create_all(bind=engine)
+    # In production, avoid create_all; rely on Alembic migrations
+    if os.getenv("ENV", "development").lower() not in {"production", "prod"}:
+        Base.metadata.create_all(bind=engine)
     # Seed initial templates (idempotent)
     try:
         from app.db import SessionLocal
@@ -244,6 +321,9 @@ def create_app() -> FastAPI:
             db.close()
     except Exception:
         pass
+    # Load persisted agent configs into registry
+    with suppress(Exception):
+        load_agent_configs_from_db()
 
     # Legacy healthz route for back-compat with tests and external probes
     @app.get("/healthz")

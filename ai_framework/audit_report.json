@@ -1,0 +1,703 @@
+{
+  "timestamp": "2025-08-14T23:15:41.688868",
+  "duplicate_systems": [
+    {
+      "name": "ai_framework",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/ai_framework",
+      "size": 543795,
+      "files": 54,
+      "type": "New AI Agent System"
+    },
+    {
+      "name": "autonomous_system",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/autonomous_system",
+      "size": 799348,
+      "files": 59,
+      "type": "Existing Autonomous System"
+    },
+    {
+      "name": "backend",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend",
+      "size": 349624387,
+      "files": 23431,
+      "type": "Backend System"
+    },
+    {
+      "name": "kali_automation",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/kali_automation",
+      "size": 409716,
+      "files": 22,
+      "type": "Cybersecurity Tools"
+    }
+  ],
+  "integration_points": [
+    {
+      "system": "ai_framework",
+      "type": "FastAPI",
+      "file": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/ai_framework/api/main.py",
+      "endpoints": "Multiple REST endpoints"
+    },
+    {
+      "system": "autonomous_system",
+      "type": "API",
+      "file": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/autonomous_system/api/fastapi_app.py",
+      "endpoints": "Multiple endpoints"
+    },
+    {
+      "type": "SQLite",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/dev.db",
+      "size": 294912
+    },
+    {
+      "type": "SQLite",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/dev.db",
+      "size": 995328
+    },
+    {
+      "type": "SQLite",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/dev-e2e3.db",
+      "size": 81920
+    },
+    {
+      "type": "SQLite",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/background_research_system/research_database.db",
+      "size": 65536
+    },
+    {
+      "type": "SQLite",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/local.sqlite",
+      "size": 57344
+    },
+    {
+      "type": "Database Config",
+      "file": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/.env",
+      "config_type": "Environment/Config"
+    },
+    {
+      "type": "Database Config",
+      "file": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/.venv/lib/python3.13/site-packages/sqlalchemy/testing/config.py",
+      "config_type": "Environment/Config"
+    },
+    {
+      "type": "Database Config",
+      "file": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/.venv/lib/python3.13/site-packages/sqlalchemy/testing/config.py",
+      "config_type": "Environment/Config"
+    },
+    {
+      "type": "Database Config",
+      "file": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/.venv-backend/lib/python3.13/site-packages/sqlalchemy/testing/config.py",
+      "config_type": "Environment/Config"
+    },
+    {
+      "type": "Docker Integration",
+      "file": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/scraper/requirements.txt",
+      "service": "Docker"
+    },
+    {
+      "type": "OpenAI Integration",
+      "file": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/requirements.txt",
+      "service": "OpenAI"
+    },
+    {
+      "type": "OpenAI Integration",
+      "file": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/ai_framework/requirements.txt",
+      "service": "OpenAI"
+    },
+    {
+      "type": "Anthropic Integration",
+      "file": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/ai_framework/requirements.txt",
+      "service": "Anthropic"
+    },
+    {
+      "type": "Docker Integration",
+      "file": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/ai_framework/requirements.txt",
+      "service": "Docker"
+    },
+    {
+      "type": "OpenAI Integration",
+      "file": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/background_research_system/requirements.txt",
+      "service": "OpenAI"
+    },
+    {
+      "type": "Anthropic Integration",
+      "file": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/background_research_system/requirements.txt",
+      "service": "Anthropic"
+    },
+    {
+      "type": "OpenAI Integration",
+      "file": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/autonomous_system/requirements.txt",
+      "service": "OpenAI"
+    },
+    {
+      "type": "Anthropic Integration",
+      "file": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/autonomous_system/requirements.txt",
+      "service": "Anthropic"
+    },
+    {
+      "type": "Docker Integration",
+      "file": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/autonomous_system/requirements.txt",
+      "service": "Docker"
+    },
+    {
+      "type": "Docker Integration",
+      "file": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/automation/requirements.txt",
+      "service": "Docker"
+    }
+  ],
+  "cybersecurity_tools": [
+    {
+      "name": "Kali Automation",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/kali_automation",
+      "type": "Penetration Testing",
+      "integration_status": "Needs integration with AI Framework"
+    },
+    {
+      "name": "Security - security.yml",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/.github/workflows/security.yml",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - it_security.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/ai_framework/agents/it_security.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - web_application_security.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/kali_automation/tools/web_application_security.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - mobile_security.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/kali_automation/tools/mobile_security.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - security.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/.venv/lib/python3.13/site-packages/authlib/common/security.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - test_security_headers.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/tests/unit/security/test_security_headers.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - security_manager.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/app/personal/security_manager.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - security.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/app/core/security.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - security.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/app/integrations/security.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - security_compliance.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/app/audit/security_compliance.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - security.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/app/operator/security.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - security.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/app/automation/skills/security.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - auth_manager.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/autonomous_system/security/auth_manager.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - _auth.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/.venv/lib/python3.13/site-packages/grpc/_auth.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - authentication.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/.venv/lib/python3.13/site-packages/starlette/authentication.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - auth.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/.venv/lib/python3.13/site-packages/botocore/auth.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - auth.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/.venv/lib/python3.13/site-packages/requests/auth.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - _auth.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/.venv/lib/python3.13/site-packages/httpx/_auth.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - oauth2.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/.venv/lib/python3.13/site-packages/fastapi/security/oauth2.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - auth.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/.venv/lib/python3.13/site-packages/pip/_vendor/requests/auth.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - auth.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/.venv/lib/python3.13/site-packages/pip/_internal/network/auth.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - auth.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/.venv/lib/python3.13/site-packages/botocore/crt/auth.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - authentication.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/.venv/lib/python3.13/site-packages/starlette/middleware/authentication.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - auth_pb2.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/.venv/lib/python3.13/site-packages/google/api/auth_pb2.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - test_auth.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/tests/test_auth.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - _auth.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/.venv/lib/python3.13/site-packages/grpc/_auth.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - authentication.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/.venv/lib/python3.13/site-packages/starlette/authentication.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - auth.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/.venv/lib/python3.13/site-packages/botocore/auth.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - auth.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/.venv/lib/python3.13/site-packages/requests/auth.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - _auth.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/.venv/lib/python3.13/site-packages/httpx/_auth.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - auth.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/.venv/lib/python3.13/site-packages/authlib/oauth2/auth.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - authorization_server.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/.venv/lib/python3.13/site-packages/authlib/oauth1/rfc5849/authorization_server.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - client_auth.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/.venv/lib/python3.13/site-packages/authlib/oauth1/rfc5849/client_auth.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - authorization_server.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/.venv/lib/python3.13/site-packages/authlib/integrations/flask_oauth2/authorization_server.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - oauth2_session.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/.venv/lib/python3.13/site-packages/authlib/integrations/requests_client/oauth2_session.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - oauth1_session.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/.venv/lib/python3.13/site-packages/authlib/integrations/requests_client/oauth1_session.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - authorization_server.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/.venv/lib/python3.13/site-packages/authlib/integrations/django_oauth2/authorization_server.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - authorization_server.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/.venv/lib/python3.13/site-packages/authlib/integrations/flask_oauth1/authorization_server.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - oauth1_client.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/.venv/lib/python3.13/site-packages/authlib/integrations/httpx_client/oauth1_client.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - oauth2_client.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/.venv/lib/python3.13/site-packages/authlib/integrations/httpx_client/oauth2_client.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - authorization_server.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/.venv/lib/python3.13/site-packages/authlib/integrations/django_oauth1/authorization_server.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - authorization_server.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/.venv/lib/python3.13/site-packages/authlib/oauth2/rfc6749/authorization_server.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - authenticate_client.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/.venv/lib/python3.13/site-packages/authlib/oauth2/rfc6749/authenticate_client.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - auth.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/.venv/lib/python3.13/site-packages/authlib/oauth2/rfc7523/auth.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - authorization_server.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/.venv/lib/python3.13/site-packages/authlib/oauth2/rfc9101/authorization_server.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - authorization_code.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/.venv/lib/python3.13/site-packages/authlib/oauth2/rfc6749/grants/authorization_code.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - oauth2.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/.venv/lib/python3.13/site-packages/fastapi/security/oauth2.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - auth.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/.venv/lib/python3.13/site-packages/pip/_vendor/requests/auth.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - auth.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/.venv/lib/python3.13/site-packages/pip/_internal/network/auth.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - auth.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/.venv/lib/python3.13/site-packages/safety/tool/auth.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - auth.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/.venv/lib/python3.13/site-packages/botocore/crt/auth.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - authentication.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/.venv/lib/python3.13/site-packages/starlette/middleware/authentication.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - auth_pb2.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/.venv/lib/python3.13/site-packages/google/api/auth_pb2.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - test_twitter_auth.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/.venv/lib/python3.13/site-packages/nltk/test/unit/test_twitter_auth.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - test_auth_middleware.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/tests/unit/security/test_auth_middleware.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - test_auth_flow.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/tests/unit/security/test_auth_flow.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - auth.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/app/routers/auth.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - auth.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/app/middleware/auth.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - auth.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend/app/dependencies/auth.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - _auth.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/.venv-backend/lib/python3.13/site-packages/grpc/_auth.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - authentication.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/.venv-backend/lib/python3.13/site-packages/starlette/authentication.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - auth.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/.venv-backend/lib/python3.13/site-packages/botocore/auth.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - auth.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/.venv-backend/lib/python3.13/site-packages/requests/auth.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - _auth.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/.venv-backend/lib/python3.13/site-packages/httpx/_auth.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - oauth2.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/.venv-backend/lib/python3.13/site-packages/fastapi/security/oauth2.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - auth.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/.venv-backend/lib/python3.13/site-packages/pip/_vendor/requests/auth.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - auth.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/.venv-backend/lib/python3.13/site-packages/pip/_internal/network/auth.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - auth.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/.venv-backend/lib/python3.13/site-packages/botocore/crt/auth.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - authentication.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/.venv-backend/lib/python3.13/site-packages/starlette/middleware/authentication.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Security - auth_pb2.py",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/.venv-backend/lib/python3.13/site-packages/google/api/auth_pb2.py",
+      "type": "Security Configuration",
+      "integration_status": "Needs review"
+    },
+    {
+      "name": "Monitoring System",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/monitoring",
+      "type": "System Monitoring",
+      "integration_status": "Needs integration with AI Framework"
+    }
+  ],
+  "port_conflicts": [
+    {
+      "port": 8000,
+      "status": "In use",
+      "response": 404
+    }
+  ],
+  "consolidation_plan": [
+    {
+      "priority": "HIGH",
+      "action": "Consolidate AI Agents",
+      "description": "Merge all agent implementations into ai_framework",
+      "steps": [
+        "Move unique agents from autonomous_system to ai_framework",
+        "Update agent imports and dependencies",
+        "Remove duplicate agent files",
+        "Ensure all agents use same base classes"
+      ]
+    },
+    {
+      "priority": "HIGH",
+      "action": "Consolidate Backend Systems",
+      "description": "Merge all backend functionality into single FastAPI app",
+      "steps": [
+        "Identify unique features in each backend",
+        "Merge into ai_framework FastAPI app",
+        "Update routing and dependencies",
+        "Remove duplicate backend code"
+      ]
+    },
+    {
+      "priority": "HIGH",
+      "action": "Integrate Cybersecurity Tools",
+      "description": "Connect kali_automation and security tools to AI Framework",
+      "steps": [
+        "Create cybersecurity agent department in AI Framework",
+        "Integrate kali_automation tools as agents",
+        "Connect monitoring systems",
+        "Create unified security dashboard"
+      ]
+    },
+    {
+      "priority": "MEDIUM",
+      "action": "Consolidate Databases",
+      "description": "Merge all databases into single system",
+      "steps": [
+        "Audit all database schemas",
+        "Create unified database design",
+        "Migrate data from duplicate databases",
+        "Update all connections to use unified DB"
+      ]
+    },
+    {
+      "priority": "MEDIUM",
+      "action": "Unified Monitoring",
+      "description": "Create single monitoring system for all components",
+      "steps": [
+        "Integrate existing monitoring into AI Framework",
+        "Create unified dashboard for all systems",
+        "Connect all logging and metrics",
+        "Create unified alerting system"
+      ]
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": "CRITICAL",
+      "recommendation": "Immediate system consolidation required",
+      "reason": "Found 4 duplicate systems",
+      "action": "Start consolidation plan immediately"
+    },
+    {
+      "priority": "HIGH",
+      "recommendation": "Integrate cybersecurity tools with AI Framework",
+      "reason": "Security tools are isolated and not connected",
+      "action": "Create cybersecurity agent department"
+    },
+    {
+      "priority": "MEDIUM",
+      "recommendation": "Resolve port conflicts",
+      "reason": "Multiple systems may be trying to use same ports",
+      "action": "Standardize port usage across all systems"
+    },
+    {
+      "priority": "HIGH",
+      "recommendation": "Create unified deployment system",
+      "reason": "Multiple deployment configurations found",
+      "action": "Consolidate into single docker-compose setup"
+    },
+    {
+      "priority": "MEDIUM",
+      "recommendation": "Standardize configuration management",
+      "reason": "Multiple config files and formats found",
+      "action": "Create unified config system using environment variables"
+    },
+    {
+      "priority": "MEDIUM",
+      "recommendation": "Create unified testing framework",
+      "reason": "Multiple test directories and frameworks found",
+      "action": "Consolidate all tests into single pytest framework"
+    }
+  ],
+  "duplicate_backends": [
+    {
+      "name": "AI Framework API",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/ai_framework/api/main.py",
+      "system": "ai_framework",
+      "framework": "FastAPI"
+    },
+    {
+      "name": "Autonomous System API - fastapi_app",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/autonomous_system/api/fastapi_app.py",
+      "system": "autonomous_system",
+      "framework": "Unknown"
+    },
+    {
+      "name": "Main Backend",
+      "path": "/Users/x/Desktop/AI COMPLETE AUTOMATION /V1 of builder/backend",
+      "system": "main_backend",
+      "framework": "Unknown"
+    }
+  ]
+}

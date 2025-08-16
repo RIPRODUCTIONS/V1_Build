@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "../.."
+		}
+	],
+	"settings": {
+		"typescript.tsserver.useSeparateSyntaxServer": true,
+		"typescript.tsserver.log": "off",
+		"eslint.trace.server": "off",
+		"typescript.tsdk": "node_modules/typescript/lib",
+		"mypy-type-checker.importStrategy": "fromEnvironment"
+	}
+}

@@ -220,7 +220,11 @@ class MVPWebExecutor:
                         break
                 status = "completed" if executed == len(steps) else "partial"
                 # Collect any per-step _result payloads for caller
-                results: List[Dict[str, Any]] = [s.get("_result") for s in steps if isinstance(s, dict) and s.get("_result")]
+                # Ensure we only return dict results and drop any None
+                results: List[Dict[str, Any]] = [
+                    r for r in (s.get("_result") for s in steps if isinstance(s, dict))
+                    if isinstance(r, dict)
+                ]
                 return {"executed_steps": executed, "status": status, "results": results}
             # Fallback
             return {"executed_steps": len(steps), "status": "disabled"}

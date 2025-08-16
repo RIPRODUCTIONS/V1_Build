@@ -19,7 +19,10 @@ class PersonalCalendarAutomation:
             user_id = str(parameters.get("user_id", "1"))
             cal = GoogleCalendarIntegration()
             now = datetime.now(timezone.utc)
-            items = await cal._list_events(user_id, await cal.get_credentials(user_id) or cal.get_credentials, now, now + timedelta(days=7))
+            creds = await cal.get_credentials(user_id)
+            if not creds:
+                return {"success": False, "detail": {"status": "missing_creds"}}
+            items = await cal._list_events(user_id, creds, now, now + timedelta(days=7))
             if isinstance(items, dict) and items.get("status") == "error":
                 return {"success": False, "detail": items}
             events: List[Dict[str, Any]] = items if isinstance(items, list) else []

@@ -1,24 +1,18 @@
-FROM python:3.12-slim
+FROM mcr.microsoft.com/playwright/python:v1.54.0-jammy
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends build-essential gcc \
-    && rm -rf /var/lib/apt/lists/*
-
-# Avoid compiling aiohttp C extensions in constrained CI
 ENV AIOHTTP_NO_EXTENSIONS=1
 
 WORKDIR /app
 
 COPY requirements.txt /app/requirements.txt
-RUN python -m venv /app/.venv \
-    && /app/.venv/bin/pip install -U pip \
-    && /app/.venv/bin/pip install -r /app/requirements.txt
+RUN pip install --no-cache-dir -U pip \
+    && pip install --no-cache-dir -r /app/requirements.txt \
+    && pip install --no-cache-dir playwright
 
 COPY app /app/app
 COPY scripts /app/scripts
 
-# Keep PATH minimal and predictable
-ENV PATH="/app/.venv/bin:$PATH"
+ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8000
 

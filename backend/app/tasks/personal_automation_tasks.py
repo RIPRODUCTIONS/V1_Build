@@ -17,7 +17,10 @@ def execute_personal_research(task_data: Dict[str, Any]) -> Dict[str, Any]:
 
     async def _run() -> Dict[str, Any]:
         assistant = PersonalResearchAssistant()
-        return await assistant.execute(task_data or {})
+        try:
+            return await assistant.execute(task_data or {})
+        except ModuleNotFoundError as e:
+            return {"success": False, "reason": str(e)}
 
     return asyncio.run(_run())
 
@@ -28,7 +31,10 @@ def execute_personal_shopping(task_data: Dict[str, Any]) -> Dict[str, Any]:
 
     async def _run() -> Dict[str, Any]:
         assistant = PersonalShoppingAssistant()
-        return await assistant.execute(task_data or {})
+        try:
+            return await assistant.execute(task_data or {})
+        except ModuleNotFoundError as e:
+            return {"success": False, "reason": str(e)}
 
     return asyncio.run(_run())
 

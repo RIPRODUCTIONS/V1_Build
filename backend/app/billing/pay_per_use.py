@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any
 
-from sqlalchemy.orm import Session
 from app.core.config import get_settings
-
-from app.models import UserCredits, AutomationUsage
+from app.models import AutomationUsage, UserCredits
+from sqlalchemy.orm import Session
 
 
 class PayPerUseBilling:
@@ -24,7 +23,7 @@ class PayPerUseBilling:
             self.db.refresh(wallet)
         return wallet
 
-    def create_prepaid_credits(self, user_id: int, amount_usd: float) -> Dict[str, Any]:
+    def create_prepaid_credits(self, user_id: int, amount_usd: float) -> dict[str, Any]:
         amount = max(0.0, float(amount_usd))
         # Attempt Stripe charge if configured
         charged = False
@@ -55,7 +54,7 @@ class PayPerUseBilling:
         elif amount >= 20:
             bonus = 0.0  # no bonus for small packs by default
         wallet.credits_balance += amount + bonus
-        wallet.last_purchase = datetime.utcnow()
+        wallet.last_purchase = datetime.now(timezone.utc)
         self.db.add(wallet)
         self.db.commit()
         self.db.refresh(wallet)
@@ -66,7 +65,7 @@ class PayPerUseBilling:
             "stripe": {"charged": charged},
         }
 
-    def charge_for_automation(self, user_id: int, template_id: str, cost_usd: float) -> Dict[str, Any]:
+    def charge_for_automation(self, user_id: int, template_id: str, cost_usd: float) -> dict[str, Any]:
         cost = max(0.0, float(cost_usd))
         wallet = self.get_or_create_wallet(user_id)
         if wallet.credits_balance < cost:

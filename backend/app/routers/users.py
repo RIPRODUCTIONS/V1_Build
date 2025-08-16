@@ -40,7 +40,7 @@ def register(payload: RegisterRequest, db: Annotated[Session, Depends(get_db)]) 
     db.add(user)
     db.commit()
     db.refresh(user)
-    return user
+    return UserOut.model_validate(user)
 
 
 @router.post("/login")

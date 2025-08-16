@@ -1,0 +1,81 @@
+groups:
+  - name: builder-api.rules
+    rules:
+      - alert: ApiHighErrorRate
+        expr: |
+          (sum(rate(http_requests_total{status=~"5.."}[5m])) by (job))
+            /
+          clamp_min(sum(rate(http_requests_total[5m])) by (job), 1) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API 5xx error rate > 1% (5m)"
+          description: "Elevated 5xx rate detected on {{ $labels.job }}"
+
+      - alert: ApiHighLatencyP95
+        expr: |
+          histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API p95 latency > 1s (5m)"
+          description: "High p95 latency detected"
+
+      - alert: ApiNoTraffic
+        expr: |
+          absent(sum(rate(http_requests_total[10m])))
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "No API traffic in last 10m"
+          description: "Prometheus is not scraping or API is down"
+
+  - name: builder-platform-automations
+    rules:
+      - alert: HighAutomationFailureRate
+        expr: rate(celery_task_total{status="failure"}[5m]) / clamp_min(rate(celery_task_total[5m]), 1) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+          service: builder-platform
+          component: automations
+        annotations:
+          summary: "High automation failure rate detected"
+          description: "Automation failure rate is {{ $value | humanizePercentage }} over the last 5 minutes"
+
+      - alert: CriticalAutomationFailure
+        expr: increase(celery_task_total{task_name=~"(personal.*|investigation.*)",status="failure"}[5m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+          service: builder-platform
+          component: automations
+        annotations:
+          summary: "Critical automation task failed"
+          description: "Critical task {{ $labels.task_name }} has failed"
+
+      - alert: AutomationQueueBacklog
+        expr: celery_queue_depth > 100
+        for: 5m
+        labels:
+          severity: warning
+          service: builder-platform
+          component: queue
+        annotations:
+          summary: "Large queue backlog detected"
+          description: "Queue {{ $labels.queue }} has {{ $value }} pending tasks"
+
+      - alert: SlowAutomationPerformance
+        expr: histogram_quantile(0.95, rate(celery_task_duration_seconds_bucket[5m])) > 60
+        for: 5m
+        labels:
+          severity: warning
+          service: builder-platform
+          component: performance
+        annotations:
+          summary: "Slow automation performance detected"
+          description: "95th percentile task duration is {{ $value }}s"
+

@@ -16,7 +16,7 @@ class PersonalEmailAutomation:
     async def execute(self, parameters: Dict[str, Any]) -> Dict[str, Any]:
         """Manage personal Gmail account using Gmail API (graceful if not configured)."""
         try:
-            user_id = int(parameters.get("user_id", 1))
+            user_id = str(parameters.get("user_id", "1"))
             gmail = GmailIntegration()
             # last 24h
             q = parameters.get("query") or "newer_than:1d"
@@ -45,7 +45,7 @@ class PersonalEmailAutomation:
 
     async def _categorize_emails(self, emails: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
         # Placeholder categorization by ID hash to buckets
-        buckets = {"bills": [], "newsletters": [], "personal": [], "work": [], "actionable": []}
+        buckets: Dict[str, List[Dict[str, Any]]] = {"bills": [], "newsletters": [], "personal": [], "work": [], "actionable": []}
         for m in emails:
             mid = str(m.get("id", ""))
             if not mid:

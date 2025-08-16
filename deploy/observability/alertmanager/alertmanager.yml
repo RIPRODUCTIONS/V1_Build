@@ -1,0 +1,17 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: "api-receiver"
+  group_by: ['alertname']
+  group_wait: 10s
+  group_interval: 1m
+  repeat_interval: 1h
+
+receivers:
+  - name: "api-receiver"
+    webhook_configs:
+      - url: "http://api:8000/alerts/prometheus"
+        send_resolved: true
+
+

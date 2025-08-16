@@ -7,10 +7,10 @@ Create Date: 2025-08-12
 
 from __future__ import annotations
 
-from alembic import op
-import sqlalchemy as sa
 from datetime import datetime
 
+import sqlalchemy as sa
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "3f_seed_automation_rules"
@@ -104,7 +104,7 @@ def upgrade() -> None:
                 ],
                 "enabled": True,
                 "is_template": True,
-                "created_at": datetime.utcnow(),
+                "created_at": datetime.now(timezone.utc),
             },
             {
                 "id": "builtin_daily_summary",
@@ -126,7 +126,7 @@ def upgrade() -> None:
                 ],
                 "enabled": False,
                 "is_template": True,
-                "created_at": datetime.utcnow(),
+                "created_at": datetime.now(timezone.utc),
             },
             {
                 "id": "builtin_email_to_task",
@@ -156,7 +156,7 @@ def upgrade() -> None:
                 ],
                 "enabled": False,
                 "is_template": True,
-                "created_at": datetime.utcnow(),
+                "created_at": datetime.now(timezone.utc),
             },
         ],
     )

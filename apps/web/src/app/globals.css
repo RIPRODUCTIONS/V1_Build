@@ -1,3 +1,75 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --atomic-bg: #0d1421;
+  --atomic-surface: #1b2433;
+  --atomic-border: #2b3648;
+  --proton-red: #ff4136;
+  --neutron-gray: #b0b0b0;
+  --electron-blue: #0074d9;
+  --quark-grad: linear-gradient(90deg, #2ecc40, #0074d9, #ff4136);
+  --ok: #00e676;
+  --info: #2979ff;
+  --warn: #ffc107;
+  --err: #ff4136;
+  --shell-k: #fff3e0;
+  --shell-l: #e3f2fd;
+  --shell-m: #e8f5e8;
+  --shell-n: #fff9c4;
+  --shell-o: #fce4ec;
+  --shell-p: #f3e5f5;
+  --shell-q: #e0f2f1;
+  --font-head: "Orbitron", system-ui, sans-serif;
+  --font-body: Inter, system-ui, sans-serif;
+}
+
+@keyframes orbit {
+  from {
+    transform: rotate(0);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes glow {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes burst {
+  0% {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.3);
+    opacity: 0;
+  }
+}
+
+html,
+body {
+  background: var(--atomic-bg);
+  color: #e5eef7;
+}
+
+.atomic-surface {
+  background: var(--atomic-surface);
+  border-color: var(--atomic-border);
+}
+.atomic-ring {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.atomic-electron {
+  background: var(--electron-blue);
+  box-shadow: 0 0 6px rgba(0, 116, 217, 0.7);
+}

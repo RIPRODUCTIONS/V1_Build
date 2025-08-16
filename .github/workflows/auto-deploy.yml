@@ -1,0 +1,95 @@
+name: Auto Deploy Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  schedule:
+    - cron: "0 */6 * * *"
+
+jobs:
+  auto-build-deploy:
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: ${{ secrets.DOCKER_IMAGE }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps (backend)
+        run: |
+          cd ai_framework
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install -U pip
+          pip install -r requirements.txt
+
+      - name: Lint & Test (smoke)
+        run: |
+          cd ai_framework
+          source .venv/bin/activate
+          python -c "print('lint placeholder')"
+          python -c "from core.db import init_db; init_db(); print('db ok')"
+      - name: Quality gates
+        run: |
+          cd ai_framework
+          source .venv/bin/activate
+          pip install black isort mypy bandit
+          black --check .
+          isort --check-only .
+          mypy .
+          bandit -r .
+
+      - name: Build Docker image
+        run: |
+          docker build -t ${IMAGE_NAME:-atomic/backend:latest} -f backend/Dockerfile .
+
+      - name: Push Docker image
+        if: ${{ secrets.DOCKER_REGISTRY_LOGIN != '' && secrets.DOCKER_REGISTRY_PASS != '' }}
+        env:
+          REGISTRY_LOGIN: ${{ secrets.DOCKER_REGISTRY_LOGIN }}
+          REGISTRY_PASS: ${{ secrets.DOCKER_REGISTRY_PASS }}
+        run: |
+          echo "$REGISTRY_PASS" | docker login -u "$REGISTRY_LOGIN" --password-stdin
+          docker push ${IMAGE_NAME:-atomic/backend:latest}
+
+      - name: Deploy (SSH)
+        if: ${{ secrets.DEPLOY_HOST != '' && secrets.DEPLOY_KEY != '' }}
+        uses: appleboy/ssh-action@v0.1.10
+        env:
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          IMAGE_NAME: ${{ secrets.DOCKER_IMAGE }}
+          API_KEY: ${{ secrets.API_KEY }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          REDIS_URL: ${{ secrets.REDIS_URL }}
+          DB_URL: ${{ secrets.DB_URL }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ env.DEPLOY_USER || 'ubuntu' }}
+          key: ${{ secrets.DEPLOY_KEY }}
+          script: |
+            set -euo pipefail
+            IMAGE_NAME="${IMAGE_NAME:-atomic/backend:latest}"
+            REDIS_URL="${REDIS_URL:-redis://localhost:6379/0}"
+            echo "Using image: $IMAGE_NAME"
+            # Run DB migrations on target
+            docker run --rm \
+              -e DB_URL="$DB_URL" \
+              "$IMAGE_NAME" \
+              python3 ai_framework/migrate_to_postgres.py
+            docker pull "$IMAGE_NAME"
+            docker rm -f atomic-backend || true
+            docker run -d --name atomic-backend -p 8001:8001 \
+              -e API_KEY="$API_KEY" \
+              -e JWT_SECRET="$JWT_SECRET" \
+              -e REDIS_URL="$REDIS_URL" \
+              -e DB_URL="$DB_URL" \
+              "$IMAGE_NAME"
+
+

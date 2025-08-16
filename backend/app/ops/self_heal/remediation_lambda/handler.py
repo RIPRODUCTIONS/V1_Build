@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import os
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import Any
 
 import boto3
 
 
 def _now() -> datetime:
-    return datetime.now(tz=UTC)
+    return datetime.now(tz=timezone.utc)
 
 
 def handler(event: dict[str, Any], _context: Any) -> dict[str, Any]:

@@ -18,12 +18,13 @@ class TokenResponse(BaseModel):
 @router.post("/token", response_model=TokenResponse)
 def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> TokenResponse:
     settings = get_settings()
-    if not (
-        form_data.username == settings.admin_username
-        and form_data.password == settings.admin_password
-    ):
+    submitted = (form_data.username or "").strip()
+    accepted_usernames = {settings.admin_username}
+    if settings.admin_email:
+        accepted_usernames.add(settings.admin_email)
+    if not (submitted in accepted_usernames and form_data.password == settings.admin_password):
         raise HTTPException(status_code=400, detail="Incorrect username or password")
-    token = create_access_token(subject=form_data.username)
+    token = create_access_token(subject=submitted)
     return TokenResponse(access_token=token)
 
 

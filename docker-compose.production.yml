@@ -1,0 +1,65 @@
+version: "3.8"
+
+services:
+  ai-framework:
+    build:
+      context: .
+      dockerfile: Dockerfile.production
+    ports:
+      - "8001:8001"
+    environment:
+      - DB_URL=postgresql+psycopg2://ai_framework_user:${DB_PASSWORD}@postgres:5432/ai_framework_prod
+      - REDIS_URL=redis://redis:6379/1
+      - API_KEY=${MASTER_API_KEY}
+      - ENABLE_SCHEDULER=1
+      - ENABLE_KALI_INTEGRATION=1
+      - ENABLE_ALERTS=1
+      - ENABLE_SCALE700=1
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15
+    environment:
+      - POSTGRES_DB=ai_framework_prod
+      - POSTGRES_USER=ai_framework_user
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+    volumes:
+      - grafana_data:/var/lib/grafana
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+
+

@@ -1,19 +1,15 @@
 from __future__ import annotations
 
-from __future__ import annotations
-
+import logging
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List
-import logging
-
-from sqlalchemy import or_
-from sqlalchemy.orm import Session
+from typing import Any, cast
 
 from app.automations.actions import ActionExecutor
 from app.automations.metrics import automation_rule_executions, automation_rule_latency
 from app.automations.models import AutomationRule, RuleExecution
-
+from sqlalchemy import or_
+from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +19,7 @@ class RuleEngine:
         self.db = db
         self.action_executor = ActionExecutor()
 
-    async def evaluate_event(self, event: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def evaluate_event(self, event: dict[str, Any]) -> list[dict[str, Any]]:
         """Evaluate all DB rules against an incoming event dict.
 
         Event schema expected: {"type", "user_id", "ts", "payload": {...}}
@@ -32,7 +28,7 @@ class RuleEngine:
         event_type = str(event.get("type", ""))
         logger.info("Evaluating event type=%s user=%s", event_type, user_id)
 
-        rules: List[AutomationRule] = (
+        rules: list[AutomationRule] = (
             self.db.query(AutomationRule)
             .filter(
                 or_(AutomationRule.user_id == user_id, AutomationRule.user_id == "system"),
@@ -43,14 +39,28 @@ class RuleEngine:
         )
         logger.info("Loaded %d rules for evaluation", len(rules))
 
-        executions: List[Dict[str, Any]] = []
+        executions: list[dict[str, Any]] = []
         for rule in rules:
             try:
-                if self.check_conditions(rule.conditions or {}, event):
+                conditions_obj: dict[str, Any] = {}
+                try:
+                    # SQLAlchemy JSON column may be proxied; coerce to dict
+                    raw = getattr(rule, "conditions", {})
+                    conditions_obj = raw if isinstance(raw, dict) else {}
+                except Exception:
+                    conditions_obj = {}
+                if self.check_conditions(conditions_obj, event):
                     # Execute sequentially; extend later to parallel if needed
-                    results: List[Dict[str, Any]] = []
-                    for action in rule.actions or []:
-                        with automation_rule_latency.labels(rule_name=rule.id).time():
+                    results: list[dict[str, Any]] = []
+                    actions_list: list[dict[str, Any]] = []
+                    try:
+                        raw_actions = getattr(rule, "actions", None)
+                        if isinstance(raw_actions, list):
+                            actions_list = [a for a in raw_actions if isinstance(a, dict)]
+                    except Exception:
+                        actions_list = []
+                    for action in actions_list:
+                        with automation_rule_latency.labels(rule_name=str(rule.id)).time():
                             res = await self.action_executor.execute(
                                 action_type=action.get("type", ""),
                                 params=action.get("params", {}),
@@ -62,23 +72,24 @@ class RuleEngine:
                                 db=self.db,
                             )
                         results.append(res)
-                    self.log_execution(rule_id=rule.id, event_id=event.get("id") or "", status="success", result={"actions": results})
-                    rule.execution_count = (rule.execution_count or 0) + 1
-                    rule.last_executed = datetime.utcnow()
+                    self.log_execution(rule_id=str(rule.id), event_id=str(event.get("id") or ""), status="success", result={"actions": results})
+                    rule_t = cast(Any, rule)
+                    rule_t.execution_count = ((getattr(rule, "execution_count", 0) or 0) + 1)
+                    rule_t.last_executed = datetime.now(timezone.utc)
                     self.db.commit()
-                    automation_rule_executions.labels(rule_name=rule.id, status="success").inc()
+                    automation_rule_executions.labels(rule_name=str(rule.id), status="success").inc()
                     executions.append({"rule": rule.id, "status": "success", "results": results})
                 else:
                     automation_rule_executions.labels(rule_name=rule.id, status="skipped").inc()
                     executions.append({"rule": rule.id, "status": "skipped", "reason": "conditions_not_met"})
             except Exception as e:
-                self.log_execution(rule_id=rule.id, event_id=event.get("id") or "", status="failed", error=str(e))
-                automation_rule_executions.labels(rule_name=rule.id, status="failed").inc()
+                self.log_execution(rule_id=str(rule.id), event_id=str(event.get("id") or ""), status="failed", error=str(e))
+                automation_rule_executions.labels(rule_name=str(rule.id), status="failed").inc()
                 executions.append({"rule": rule.id, "status": "failed", "error": str(e)})
 
         return executions
 
-    def check_conditions(self, conditions: Dict[str, Any], event: Dict[str, Any]) -> bool:
+    def check_conditions(self, conditions: dict[str, Any], event: dict[str, Any]) -> bool:
         if not conditions:
             return True
         if "any" in conditions:
@@ -87,7 +98,7 @@ class RuleEngine:
             return all(self.evaluate_single_condition(c, event) for c in conditions.get("all", []))
         return self.evaluate_single_condition(conditions, event)
 
-    def evaluate_single_condition(self, condition: Dict[str, Any], event: Dict[str, Any]) -> bool:
+    def evaluate_single_condition(self, condition: dict[str, Any], event: dict[str, Any]) -> bool:
         try:
             payload = event.get("payload", {})
             # Text contains
@@ -117,7 +128,8 @@ class RuleEngine:
                 return bool(payload.get("from_vip", False)) == bool(condition["from_vip"])
             # Time window
             if "time_range" in condition and payload.get("timestamp"):
-                from datetime import time as dtime, datetime as dt
+                from datetime import datetime as dt
+                from datetime import time as dtime
 
                 ev_time = dt.fromisoformat(str(payload["timestamp"]).replace("Z", "+00:00")).time()
                 start_s = condition["time_range"].get("start", "00:00")
@@ -130,7 +142,7 @@ class RuleEngine:
         except Exception:
             return False
 
-    def log_execution(self, rule_id: str, event_id: str, status: str, result: Dict[str, Any] | None = None, error: str | None = None) -> None:
+    def log_execution(self, rule_id: str, event_id: str, status: str, result: dict[str, Any] | None = None, error: str | None = None) -> None:
         exec_row = RuleExecution(
             id=str(uuid.uuid4()),
             rule_id=rule_id,
@@ -138,7 +150,7 @@ class RuleEngine:
             status=status,
             result=result,
             error=error,
-            executed_at=datetime.utcnow(),
+            executed_at=datetime.now(timezone.utc),
         )
         self.db.add(exec_row)
         self.db.commit()

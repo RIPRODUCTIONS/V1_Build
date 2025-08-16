@@ -75,14 +75,14 @@ async def list_recent(limit: int = 20) -> list[dict[str, Any]]:
     r = aioredis.from_url(s.REDIS_URL, decode_responses=True)
     try:
         run_ids = await r.zrevrange(_recent_key(), 0, max(0, limit - 1))
-        results: list[dict[str, Any]] = []
+        out: list[dict[str, Any]] = []
         for rid in run_ids:
             st_raw = await r.get(_key(rid))
             meta_raw = await r.get(_meta_key(rid))
             status_obj = json.loads(st_raw) if st_raw else {"status": "queued", "detail": {}}
             meta_obj = json.loads(meta_raw) if meta_raw else {}
-            results.append({"run_id": rid, **status_obj, "meta": meta_obj})
-        return results
+            out.append({"run_id": rid, **status_obj, "meta": meta_obj})
+        return out
     except Exception:
         # Build from in-memory fallback
         results: list[dict[str, Any]] = []

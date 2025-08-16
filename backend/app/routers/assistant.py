@@ -1,19 +1,18 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
-from fastapi import APIRouter, Header
-
-from app.integrations.hub import IntegrationHub
 from app.integrations.google_workspace import (
-    GoogleCalendarIntegration,
     GmailIntegration,
+    GoogleCalendarIntegration,
     GoogleDriveIntegration,
 )
+from app.integrations.hub import IntegrationHub
+from app.middleware.auth import validate_api_key
+from fastapi import APIRouter, Depends, Header
 
-
-router = APIRouter(prefix="/assistant", tags=["assistant"])
+router = APIRouter(prefix="/assistant", tags=["assistant"], dependencies=[Depends(validate_api_key)])
 hub = IntegrationHub()
 hub.register("google_calendar", GoogleCalendarIntegration())
 hub.register("gmail", GmailIntegration())
@@ -21,11 +20,11 @@ hub.register("google_drive", GoogleDriveIntegration())
 
 
 def _now_iso(offset_minutes: int = 0) -> str:
-    return (datetime.now(timezone.utc) + timedelta(minutes=offset_minutes)).isoformat()
+    return (datetime.now(UTC) + timedelta(minutes=offset_minutes)).isoformat()
 
 
 @router.post("/execute")
-async def execute(intent: str, user_id: str = "1") -> Dict[str, Any]:
+async def execute(intent: str, user_id: str = "1") -> dict[str, Any]:
     """
     Natural-language assistant: routes to Google actions.
 
@@ -35,7 +34,7 @@ async def execute(intent: str, user_id: str = "1") -> Dict[str, Any]:
     - "add calendar event 'Standup' tomorrow 10:00-10:30 America/Chicago"
     """
     intent_lc = intent.lower()
-    out: Dict[str, Any] = {"intent": intent, "results": []}
+    out: dict[str, Any] = {"intent": intent, "results": []}
 
     # Heuristics (fast path). If OpenAI key is present we could enhance, but keep robust fallback.
     try:
@@ -77,15 +76,16 @@ async def execute(intent: str, user_id: str = "1") -> Dict[str, Any]:
 def self_build_scan(x_api_key: str | None = Header(default=None)) -> dict:
     _enforce_api_key(x_api_key)
     """Analyze recent runs and propose next templates automatically."""
-    from app.db import SessionLocal
-    from app.models import InvestigationRun, SystemInsight, AutoTemplateProposal
-    from datetime import datetime, timedelta
     import json as _json
+    from datetime import datetime, timedelta
+
     from app.ai.system_brain import propose_new_templates
+    from app.db import SessionLocal
+    from app.models import AutoTemplateProposal, InvestigationRun, SystemInsight
 
     db = SessionLocal()
     try:
-        since = datetime.utcnow() - timedelta(days=7)
+        since = datetime.now(UTC) - timedelta(days=7)
         runs = (
             db.query(InvestigationRun)
             .filter(InvestigationRun.created_at >= since)
@@ -178,9 +178,10 @@ def approve_self_build_proposal(proposal_id: int, x_api_key: str | None = Header
 @router.post("/self_build/proposals/{proposal_id}/apply")
 def apply_self_build_proposal(proposal_id: int, x_api_key: str | None = Header(default=None)) -> dict:
     _enforce_api_key(x_api_key)
-    from app.db import SessionLocal
-    from app.models import AutoTemplateProposal, AutomationTemplate
     import json as _json
+
+    from app.db import SessionLocal
+    from app.models import AutomationTemplate, AutoTemplateProposal
     db = SessionLocal()
     try:
         r = db.query(AutoTemplateProposal).filter(AutoTemplateProposal.id == proposal_id).first()
@@ -209,6 +210,34 @@ def apply_self_build_proposal(proposal_id: int, x_api_key: str | None = Header(d
         return {"status": "ok", "template_id": tpl.id}
     finally:
         db.close()
+
+
+@router.post("/expand_coverage")
+def trigger_expand_coverage(payload: dict[str, Any] | None = None, x_api_key: str | None = Header(default=None)) -> dict[str, Any]:
+    # Centralized API key validation
+    import asyncio as _aio
+    try:
+        _aio.get_event_loop().run_until_complete(validate_api_key(x_api_key))
+    except RuntimeError:
+        loop = _aio.new_event_loop()
+        try:
+            loop.run_until_complete(validate_api_key(x_api_key))
+        finally:
+            loop.close()
+    import os as _os
+
+    from app.tasks.coverage_tasks import expand_coverage
+    body = payload or {}
+    # Allow forcing synchronous execution via env for reliability
+    if _os.getenv("COVERAGE_FORCE_SYNC", "false").lower() in {"1", "true", "yes"}:
+        res = expand_coverage(body)
+        return {"status": "completed", "result": res}
+    try:
+        job = expand_coverage.delay(body)
+        return {"status": "queued", "task_id": job.id}
+    except Exception:
+        res = expand_coverage(body)
+        return {"status": "completed", "result": res}
 
 
 def _enforce_api_key(x_api_key: str | None, read_only: bool = False) -> None:
@@ -249,12 +278,12 @@ def _coerce_time_window(text: str) -> tuple[str, str, str | None]:
     tz = "America/Chicago"
     # naive: if "tomorrow" present, schedule 10:00-10:30 local; else +15min window
     if "tomorrow" in text.lower():
-        d = datetime.now(timezone.utc) + timedelta(days=1)
-        start = d.replace(hour=15, minute=0, second=0, microsecond=0)  # 10:00 -05:00 in UTC approx
-        end = start + timedelta(minutes=30)
-        return start.isoformat(), end.isoformat(), tz
-    start = _now_iso(15)
-    end = _now_iso(45)
-    return start, end, tz
+        d = datetime.now(UTC) + timedelta(days=1)
+        start_dt = d.replace(hour=15, minute=0, second=0, microsecond=0)  # 10:00 -05:00 in UTC approx
+        end_dt = start_dt + timedelta(minutes=30)
+        return start_dt.isoformat(), end_dt.isoformat(), tz
+    start_dt = datetime.now(UTC) + timedelta(minutes=15)
+    end_dt = datetime.now(UTC) + timedelta(minutes=45)
+    return start_dt.isoformat(), end_dt.isoformat(), tz
 
 

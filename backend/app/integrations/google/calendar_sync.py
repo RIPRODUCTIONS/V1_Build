@@ -1,23 +1,21 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Tuple
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
 
 import httpx
-from sqlalchemy.orm import Session
-
-from app.db import SessionLocal
-from app.integrations.sync_models import CalendarSyncToken
-from app.integrations.security import CredentialVault
-from app.integrations.google_workspace import OAuth2Credentials
 from app.automations.event_bus import publish_calendar_created
+from app.db import SessionLocal
+from app.integrations.google_workspace import OAuth2Credentials
+from app.integrations.security import CredentialVault
+from app.integrations.sync_models import CalendarSyncToken
+from sqlalchemy.orm import Session
 
 
 @dataclass(slots=True)
 class CalendarDelta:
-    added_or_updated: List[dict]
-    deleted: List[str]
+    added_or_updated: list[dict]
+    deleted: list[str]
     next_sync_token: str | None
 
 
@@ -28,8 +26,7 @@ class CalendarIncrementalSync:
     Persists per-user per-calendar tokens; handles invalidation.
     """
 
-    def __init__(self) -> None:
-        self.vault = CredentialVault.from_env()
+    vault: CredentialVault = field(default_factory=CredentialVault.from_env)
 
     def _get_session(self) -> Session:
         return SessionLocal()
@@ -55,7 +52,7 @@ class CalendarIncrementalSync:
         creds = self._get_creds(user_id)
         if not creds:
             return None
-        params = {
+        params: dict[str, str | int | float | bool | None] = {
             "singleEvents": True,
             "orderBy": "startTime",
             "maxResults": 100,
@@ -81,8 +78,9 @@ class CalendarIncrementalSync:
                     row = CalendarSyncToken(user_id=user_id, calendar_id=calendar_id, sync_token=token)
                     db.add(row)
                 else:
-                    row.sync_token = token
-                    row.updated_at = datetime.utcnow()
+                    # Assign to ORM attributes; mypy may not follow SQLA types
+                    row.sync_token = token  # type: ignore[assignment]
+                    row.updated_at = datetime.now(UTC)  # type: ignore[assignment]
                 db.commit()
                 db.close()
             return token
@@ -105,8 +103,8 @@ class CalendarIncrementalSync:
             db.close()
             await self.setup_incremental_sync(user_id, calendar_id)
             return None
-        params = {"syncToken": row.sync_token}
-        headers = {"Authorization": f"Bearer {self._get_creds(user_id).access_token}"}
+        params: dict[str, str | int | float | bool | None] = {"syncToken": str(row.sync_token)}
+        headers = {"Authorization": f"Bearer {creds.access_token}"}
         async with httpx.AsyncClient(timeout=20) as client:
             r = await client.get(
                 f"https://www.googleapis.com/calendar/v3/calendars/{calendar_id}/events",
@@ -115,7 +113,7 @@ class CalendarIncrementalSync:
             )
             if r.status_code == 410:
                 # Token invalidated: caller must reinitialize
-                row.sync_token = None
+                row.sync_token = None  # type: ignore[assignment]
                 db.commit()
                 db.close()
                 return None
@@ -124,8 +122,8 @@ class CalendarIncrementalSync:
                 return None
             data = r.json()
             items = data.get("items", [])
-            added_or_updated: List[dict] = []
-            deleted: List[str] = []
+            added_or_updated: list[dict] = []
+            deleted: list[str] = []
             for it in items:
                 if it.get("status") == "cancelled" or it.get("cancelled"):
                     if it.get("id"):
@@ -134,8 +132,8 @@ class CalendarIncrementalSync:
                 added_or_updated.append(it)
             next_token = data.get("nextSyncToken")
             if next_token:
-                row.sync_token = next_token
-                row.updated_at = datetime.utcnow()
+                row.sync_token = next_token  # type: ignore[assignment]
+                row.updated_at = datetime.now(UTC)  # type: ignore[assignment]
                 db.commit()
             db.close()
             return CalendarDelta(added_or_updated=added_or_updated, deleted=deleted, next_sync_token=next_token)
@@ -144,7 +142,7 @@ class CalendarIncrementalSync:
         """
         Process delta events and emit to bus for automations.
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         for ev in delta.added_or_updated:
             payload = {
                 "source": "google_calendar",

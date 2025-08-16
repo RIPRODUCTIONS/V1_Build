@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api";
 
 type Run = { run_id: string; status: string; detail?: any };
 
@@ -8,19 +9,19 @@ export default function AutomationRuns() {
   const [runs, setRuns] = useState<Record<string, Run>>({});
   const [stream, setStream] = useState<EventSource | null>(null);
 
-  async function poll(id: string) {
-    const r = await fetch(`/api/automation/runs/${id}`).then((x) => x.json());
-    setRuns((prev) => ({ ...prev, [id]: r }));
-  }
+	async function poll(id: string) {
+		const r = await apiFetch<Run>(`/automation/runs/${id}`);
+		setRuns((prev) => ({ ...prev, [id]: r }));
+	}
 
-  useEffect(() => {
+	useEffect(() => {
     const t = setInterval(() => ids.forEach((id) => poll(id)), 1000);
     return () => clearInterval(t);
   }, [ids]);
 
   useEffect(() => {
     if (!ids[0]) return;
-    // Bind to first run for demo streaming
+		// Bind to first run for demo streaming
     const base = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://127.0.0.1:8000';
     const es = new EventSource(`${base}/operator/runs/${ids[0]}/stream`);
     es.onmessage = (ev) => {
@@ -41,15 +42,14 @@ export default function AutomationRuns() {
         <button
           className="border px-3 py-1 rounded"
           onClick={async () => {
-            const r = await fetch("/api/automation/submit", {
-              method: "POST",
-              headers: { "content-type": "application/json" },
-              body: JSON.stringify({
-                intent: "lead.intake",
-                payload: { lead: { name: "Alice" } },
-                idempotency_key: crypto.randomUUID(),
-              }),
-            }).then((x) => x.json());
+				const r = await apiFetch<{ run_id: string; status: string }>("/automation/submit", {
+					method: "POST",
+					body: JSON.stringify({
+						intent: "lead.intake",
+						payload: { lead: { name: "Alice" } },
+						idempotency_key: crypto.randomUUID(),
+					}),
+				});
             setIds((prev) => [r.run_id, ...prev]);
           }}
         >
@@ -58,15 +58,14 @@ export default function AutomationRuns() {
         <button
           className="border px-3 py-1 rounded"
           onClick={async () => {
-            const r = await fetch("/api/automation/submit", {
-              method: "POST",
-              headers: { "content-type": "application/json" },
-              body: JSON.stringify({
-                intent: "agent.prototype",
-                payload: { name: "Demo", prompt: "Hello world" },
-                idempotency_key: crypto.randomUUID(),
-              }),
-            }).then((x) => x.json());
+				const r = await apiFetch<{ run_id: string; status: string }>("/automation/submit", {
+					method: "POST",
+					body: JSON.stringify({
+						intent: "agent.prototype",
+						payload: { name: "Demo", prompt: "Hello world" },
+						idempotency_key: crypto.randomUUID(),
+					}),
+				});
             setIds((prev) => [r.run_id, ...prev]);
           }}
         >

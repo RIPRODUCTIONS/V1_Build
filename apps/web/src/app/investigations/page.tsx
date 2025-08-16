@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api";
 
 type RunItem = { id: number; kind: string; status: string; created_at?: string; task_id?: string };
 
@@ -13,7 +14,7 @@ export default function InvestigationsPage() {
 
   const loadRecent = async () => {
     try {
-      const res = await fetch(`/api/investigations/recent`).then((x) => x.json());
+      const res = await apiFetch<{ items: any[] }>(`/investigations/recent`);
       setRecent((res.items || []).map((r: any) => ({...r})));
     } catch {}
   };
@@ -35,11 +36,10 @@ export default function InvestigationsPage() {
       const body = {
         subject: { name: subjectName.trim(), location: subjectLocation.trim() || undefined },
       };
-      const res = await fetch(`/api/investigations/osint/run`, {
+      const res = await apiFetch<{ task_id?: string }>(`/investigations/osint/run`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
-      }).then((x) => x.json());
+      });
       if (res?.task_id) setMessage(`Queued: ${res.task_id}`);
       await loadRecent();
     } catch (e: any) {
@@ -52,7 +52,7 @@ export default function InvestigationsPage() {
   const runForensicsTimeline = async () => {
     setRunningFx("forensics");
     try {
-      const res = await fetch(`/api/investigations/forensics/timeline/run`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ source: "evidence.dd" }) }).then((x) => x.json());
+      const res = await apiFetch<{ task_id?: string }>(`/investigations/forensics/timeline/run`, { method: "POST", body: JSON.stringify({ source: "evidence.dd" }) });
       if (res?.task_id) setMessage(`Forensics queued: ${res.task_id}`);
       await loadRecent();
     } catch (e: any) {
@@ -65,7 +65,7 @@ export default function InvestigationsPage() {
   const runMalwareDynamic = async () => {
     setRunningFx("malware");
     try {
-      const res = await fetch(`/api/investigations/malware/dynamic/run`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sample: "sample.exe" }) }).then((x) => x.json());
+      const res = await apiFetch<{ task_id?: string }>(`/investigations/malware/dynamic/run`, { method: "POST", body: JSON.stringify({ sample: "sample.exe" }) });
       if (res?.task_id) setMessage(`Malware queued: ${res.task_id}`);
       await loadRecent();
     } catch (e: any) {
@@ -78,7 +78,7 @@ export default function InvestigationsPage() {
   const runAptAttribution = async () => {
     setRunningFx("apt");
     try {
-      const res = await fetch(`/api/investigations/threat/apt_attribution/run`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ candidate_groups: ["APT28", "APT29", "APT1"], evidence: { infrastructure: true } }) }).then((x) => x.json());
+      const res = await apiFetch<{ task_id?: string }>(`/investigations/threat/apt_attribution/run`, { method: "POST", body: JSON.stringify({ candidate_groups: ["APT28", "APT29", "APT1"], evidence: { infrastructure: true } }) });
       if (res?.task_id) setMessage(`APT queued: ${res.task_id}`);
       await loadRecent();
     } catch (e: any) {
@@ -91,7 +91,7 @@ export default function InvestigationsPage() {
   const runSca = async () => {
     setRunningFx("sca");
     try {
-      const res = await fetch(`/api/investigations/supplychain/sca/run`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ project: "backend/" }) }).then((x) => x.json());
+      const res = await apiFetch<{ task_id?: string }>(`/investigations/supplychain/sca/run`, { method: "POST", body: JSON.stringify({ project: "backend/" }) });
       if (res?.task_id) setMessage(`SCA queued: ${res.task_id}`);
       await loadRecent();
     } catch (e: any) {
@@ -104,7 +104,7 @@ export default function InvestigationsPage() {
   const runAutopilot = async () => {
     setRunningFx("autopilot");
     try {
-      const res = await fetch(`/api/investigations/autopilot/run`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) }).then((x) => x.json());
+      const res = await apiFetch<{ task_id?: string }>(`/investigations/autopilot/run`, { method: "POST", body: JSON.stringify({}) });
       if (res?.task_id) setMessage(`Autopilot queued: ${res.task_id}`);
       await loadRecent();
     } catch (e: any) {

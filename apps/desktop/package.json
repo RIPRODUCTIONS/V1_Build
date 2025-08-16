@@ -1,0 +1,39 @@
+{
+  "name": "builder-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "main": "main.js",
+  "description": "Desktop shell for Builder (wraps web UI and triggers local agents)",
+  "author": "ATOMIC <TPRIPPY@GMAIL.COM>",
+  "scripts": {
+    "dev": "electron .",
+    "start": "electron .",
+    "build": "electron-builder -m"
+  },
+  "build": {
+    "appId": "com.atomic.desktop",
+    "productName": "Atomic Desktop",
+    "afterPack": "./scripts/after-pack.js",
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "icon.icns",
+      "hardenedRuntime": true,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.inherit.plist",
+      "gatekeeperAssess": false
+    }
+  },
+  "dependencies": {
+    "electron-store": "9.0.0",
+    "keytar": "7.9.0",
+    "electron-updater": "^6.1.7"
+  },
+  "devDependencies": {
+    "electron": "28.2.7",
+    "electron-builder": "24.13.3"
+  }
+}

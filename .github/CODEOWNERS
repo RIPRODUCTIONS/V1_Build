@@ -1,3 +1,9 @@
 platform/** @RIPRODUCTIONS
 deploy/** @RIPRODUCTIONS
 backend/app/routers/life.py @RIPRODUCTIONS
+backend/app/** @RIPRODUCTIONS
+apps/web/** @RIPRODUCTIONS
+apps/desktop/** @RIPRODUCTIONS
+apps/mobile/** @RIPRODUCTIONS
+docker-compose.yml @RIPRODUCTIONS
+.github/workflows/** @RIPRODUCTIONS

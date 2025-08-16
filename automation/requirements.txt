@@ -1,0 +1,252 @@
+# Python libraries for Kali tools automation
+# Core automation and orchestration
+python-nmap==0.7.1
+scapy==2.5.0
+impacket==0.11.0
+pwntools==4.11.0
+requests==2.31.0
+beautifulsoup4==4.12.2
+selenium==4.15.0
+paramiko==3.3.0
+cryptography==41.0.5
+pillow==10.0.1
+matplotlib==3.8.1
+numpy==1.25.2
+pandas==2.1.2
+celery==5.3.4
+redis==5.0.1
+sqlalchemy==2.0.23
+psycopg2-binary==2.9.7
+pymongo==4.5.0
+elasticsearch==8.10.0
+
+# OSINT and reconnaissance tools
+python-whois==0.8.0
+dnspython==2.4.2
+pymetasploit3==1.0.3
+python-masscan==0.1.6
+shodan==1.30.1
+censys==2.2.11
+theHarvester==4.5.1
+waybackpy==3.0.6
+webdriver-manager==4.0.1
+python-docx==0.8.11
+openpyxl==3.1.2
+PyPDF2==3.0.1
+python-magic==0.4.27
+
+# Security and forensics tools
+yara-python==4.3.1
+volatility3==2.5.0
+binwalk==2.3.4
+capstone==5.0.1
+keystone-engine==0.9.2
+unicorn==2.0.1
+angr==9.2.74
+pefile==2023.2.7
+lief==0.13.2
+r2pipe==1.8.0
+frida==16.1.4
+objection==1.11.0
+drozer==3.0.0
+adb-shell==0.4.4
+
+# Web application security
+sqlmap==1.7.2
+commix==3.7
+xsser==1.8.2
+nikto==2.1.5
+w3af==2.1.0
+wpscan==3.8.22
+joomscan==0.0.4
+skipfish==2.10b
+uniscan==6.2
+arachni==1.6.1.2
+
+# Wireless and network tools
+aircrack-ng==1.6.4
+reaver==1.6.6
+bully==1.2.0
+wifite==2.6.5
+fern-wifi-cracker==2.0.0
+kismet==2023.1.0
+wash==2.6.6
+pixiewps==1.4.2
+hcxdumptool==6.3.4
+hcxtools==6.3.4
+cowpatty==4.6.2
+pyrit==0.5.0
+
+# Password and hash tools
+cupp==3.0.0
+cewl==5.5.2
+mentalist==1.0.0
+hashcat==6.2.6
+john==1.9.0
+hydra==9.4.0
+medusa==2.2.0
+patator==0.9.0
+
+# Social engineering tools
+set==8.0.3
+beef==0.6.0
+king-phisher==1.15.0
+gophish==0.12.1
+evilginx2==3.0.0
+
+# Exploitation frameworks
+metasploit-framework==6.3.4
+empire==4.0.0
+covenant==0.6.0
+powersploit==3.0.0
+mimikatz==2.2.0
+bloodhound==4.3.0
+crackmapexec==5.4.0
+responder==3.1.3.0
+
+# Reverse engineering tools
+ghidra==10.3.2
+radare2==5.8.0
+ida-free==7.7.0
+x64dbg==2023.8.14
+ollydbg==2.0.1
+immunity-debugger==1.85.0
+windbg==10.0.22621.2428
+
+# Forensics tools
+autopsy==4.19.4
+sleuthkit==4.12.0
+plaso==20231030
+bulk-extractor==1.6.0
+regripper==2.8.0
+volatility==2.6.1
+rekall==1.7.0
+magnet-ram-capture==1.0.0
+
+# Reporting and documentation
+dradis==4.12.0
+magictree==1.3.0
+faraday==4.8.0
+serpico==1.1.0
+pandoc==3.1.6
+jinja2==3.1.2
+markdown==3.5.1
+rst2pdf==0.100
+
+# Machine learning and AI
+scikit-learn==1.3.0
+tensorflow==2.14.0
+torch==2.1.0
+transformers==4.35.0
+opencv-python==4.8.1.78
+pytesseract==0.3.10
+spacy==3.7.2
+nltk==3.8.1
+
+# Configuration and utilities
+pyyaml==6.0.1
+python-dotenv==1.0.0
+click==8.1.7
+rich==13.6.0
+colorama==0.4.6
+tqdm==4.66.1
+progressbar2==4.2.0
+tabulate==0.9.0
+
+# Monitoring and logging
+prometheus-client==0.19.0
+structlog==23.2.0
+loguru==0.7.2
+sentry-sdk==1.38.0
+elastic-apm==6.19.0
+
+# Testing and development
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+pytest-mock==3.12.0
+black==23.11.0
+flake8==6.1.0
+mypy==1.7.1
+bandit==1.7.5
+
+# Documentation
+sphinx==7.2.6
+sphinx-rtd-theme==1.3.0
+myst-parser==2.0.0
+sphinx-autodoc-typehints==1.25.0
+
+# Additional security tools
+yara-python==4.3.1
+pefile==2023.2.7
+capstone==5.0.1
+keystone-engine==0.9.2
+unicorn==2.0.1
+angr==9.2.74
+lief==0.13.2
+r2pipe==1.8.0
+frida==16.1.4
+objection==1.11.0
+drozer==3.0.0
+adb-shell==0.4.4
+
+# API integrations
+virustotal-api==1.1.11
+threatcrowd==1.0.0
+alienvault-otx==2.1.0
+abuseipdb==1.0.0
+ipinfo==2.0.0
+maxmind-geolite2==1.5.0
+ip2location==8.10.0
+ipapi==1.0.0
+
+# Cloud and infrastructure
+boto3==1.34.0
+azure-mgmt-compute==30.3.0
+google-cloud-compute==1.14.0
+kubernetes==28.1.0
+docker==6.1.3
+ansible==8.7.0
+terraform==1.6.0
+
+# Database tools
+neo4j==5.14.1
+networkx==3.2.1
+graphviz==0.20.1
+pydot==1.4.2
+matplotlib==3.8.1
+seaborn==0.13.0
+plotly==5.17.0
+bokeh==3.3.0
+
+# Time and date handling
+python-dateutil==2.8.2
+pytz==2023.3
+arrow==1.3.0
+pendulum==2.1.2
+
+# File and data processing
+pathlib2==2.3.7
+watchdog==3.0.0
+filelock==3.13.1
+send2trash==1.8.2
+zipfile36==0.1.3
+rarfile==4.0
+py7zr==0.20.8
+
+# Network and communication
+aiohttp==3.9.1
+websockets==12.0
+asyncio-mqtt==0.16.1
+paho-mqtt==1.6.1
+zeroconf==0.131.0
+netifaces==0.11.0
+psutil==5.9.6
+
+# Encryption and security
+pycryptodome==3.19.0
+cryptography==41.0.5
+bcrypt==4.1.2
+passlib==1.7.4
+python-jose==3.3.0
+PyJWT==2.8.0

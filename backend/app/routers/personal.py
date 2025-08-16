@@ -1,62 +1,104 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Annotated
+import asyncio
+import json
+import secrets
+import urllib.parse as _url
+from datetime import UTC
+from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Request, UploadFile, File
-from fastapi.responses import StreamingResponse
-from sqlalchemy.orm import Session
-
-from app.db import get_db, SessionLocal
+from app.agent.celery_app import celery_app
+from app.db import SessionLocal, get_db
+from app.middleware.auth import validate_api_key
+from app.personal.personal_config import get_personal_config
 from app.tasks.personal_automation_tasks import (
+    execute_personal_email,
+    execute_personal_finance,
     execute_personal_research,
     execute_personal_shopping,
     execute_personal_social,
-    execute_personal_email,
-    execute_personal_finance,
 )
-from app.agent.celery_app import celery_app
 from celery.result import AsyncResult
-from app.personal.personal_config import get_personal_config
-import asyncio
-import json
-import os
-import secrets
-import urllib.parse as _url
+from fastapi import APIRouter, Depends, File, Header, Request, UploadFile
+from fastapi.responses import StreamingResponse
+from sqlalchemy.orm import Session
+
+router = APIRouter(prefix="/personal", tags=["personal"], dependencies=[Depends(validate_api_key)])
 
 
-router = APIRouter(prefix="/personal", tags=["personal"])
+def _enforce_api_key(x_api_key: str | None, read_only: bool = False) -> None:
+    # Router-level dependency already enforces API key. Avoid running event loop here.
+    return None
 
 
 @router.post("/run/{template_id}")
-def run_personal(template_id: str, payload: Dict[str, Any], db: Annotated[Session, Depends(get_db)]) -> Dict[str, Any]:
+def run_personal(template_id: str, payload: dict[str, Any], db: Annotated[Session, Depends(get_db)], x_api_key: str | None = Header(default=None)) -> dict[str, Any]:
+    _enforce_api_key(x_api_key)
+    import uuid as _uuid
+    def _fallback_apply(task_func, params: dict[str, Any]) -> dict[str, Any]:
+        # Execute synchronously and persist result immediately
+        try:
+            result = task_func.apply(args=[params or {}]).result
+            tid = str(_uuid.uuid4())
+            _record_personal_run(template_id, tid, params)
+            safe_result: dict[str, Any]
+            if isinstance(result, dict):
+                safe_result = result
+            else:
+                safe_result = {"result": str(result)}
+            _update_personal_run(tid, "completed", safe_result)
+            return {"status": "completed", "task_id": tid, "result": safe_result}
+        except Exception as exc:
+            tid = str(_uuid.uuid4())
+            _record_personal_run(template_id, tid, params)
+            _update_personal_run(tid, "error", {"error": str(exc)})
+            return {"status": "error", "task_id": tid, "error": str(exc)}
+
     if template_id == "research_assistant":
-        job = execute_personal_research.delay(payload)
-        _record_personal_run(template_id, job.id, payload)
-        return {"status": "queued", "task_id": job.id}
+        try:
+            job = execute_personal_research.delay(payload)
+            _record_personal_run(template_id, job.id, payload)
+            return {"status": "queued", "task_id": job.id}
+        except Exception:
+            return _fallback_apply(execute_personal_research, payload)
     if template_id == "shopping_assistant":
-        job = execute_personal_shopping.delay(payload)
-        _record_personal_run(template_id, job.id, payload)
-        return {"status": "queued", "task_id": job.id}
+        try:
+            job = execute_personal_shopping.delay(payload)
+            _record_personal_run(template_id, job.id, payload)
+            return {"status": "queued", "task_id": job.id}
+        except Exception:
+            return _fallback_apply(execute_personal_shopping, payload)
     if template_id == "social_media_manager":
-        job = execute_personal_social.delay(payload)
-        _record_personal_run(template_id, job.id, payload)
-        return {"status": "queued", "task_id": job.id}
+        try:
+            job = execute_personal_social.delay(payload)
+            _record_personal_run(template_id, job.id, payload)
+            return {"status": "queued", "task_id": job.id}
+        except Exception:
+            return _fallback_apply(execute_personal_social, payload)
     if template_id == "personal_email_manager":
-        job = execute_personal_email.delay(payload)
-        _record_personal_run(template_id, job.id, payload)
-        return {"status": "queued", "task_id": job.id}
+        try:
+            job = execute_personal_email.delay(payload)
+            _record_personal_run(template_id, job.id, payload)
+            return {"status": "queued", "task_id": job.id}
+        except Exception:
+            return _fallback_apply(execute_personal_email, payload)
     if template_id == "personal_finance_tracker":
-        job = execute_personal_finance.delay(payload)
-        _record_personal_run(template_id, job.id, payload)
-        return {"status": "queued", "task_id": job.id}
+        try:
+            job = execute_personal_finance.delay(payload)
+            _record_personal_run(template_id, job.id, payload)
+            return {"status": "queued", "task_id": job.id}
+        except Exception:
+            return _fallback_apply(execute_personal_finance, payload)
     return {"status": "unsupported", "template_id": template_id}
 
 
 @router.get("/result/{task_id}")
-def get_result(task_id: str) -> Dict[str, Any]:
+def get_result(task_id: str, request: Request, x_api_key: str | None = Header(default=None)) -> dict[str, Any]:
+    token = request.query_params.get("token")
+    _enforce_api_key(token or x_api_key, read_only=True)
     result: AsyncResult = celery_app.AsyncResult(task_id)
     state = result.state
-    response: Dict[str, Any] = {"task_id": task_id, "state": state}
+    response: dict[str, Any] = {"task_id": task_id, "state": state}
     if state == "SUCCESS":
         try:
             _res = result.get(timeout=0)
@@ -81,7 +123,9 @@ def get_result(task_id: str) -> Dict[str, Any]:
 
 
 @router.get("/config")
-def get_personal_integration_config() -> Dict[str, Any]:
+def get_personal_integration_config(request: Request, x_api_key: str | None = Header(default=None)) -> dict[str, Any]:
+    token = request.query_params.get("token")
+    _enforce_api_key(token or x_api_key, read_only=True)
     cfg = get_personal_config()
     return {
         "twitter_enabled": bool(cfg.twitter_enabled),
@@ -95,7 +139,9 @@ def get_personal_integration_config() -> Dict[str, Any]:
 
 
 @router.get("/stream/{task_id}")
-async def stream_personal_task(task_id: str, request: Request) -> StreamingResponse:
+async def stream_personal_task(task_id: str, request: Request, x_api_key: str | None = Header(default=None)) -> StreamingResponse:
+    token = request.query_params.get("token")
+    _enforce_api_key(token or x_api_key, read_only=True)
     async def event_generator():
         last_state: str | None = None
         while True:
@@ -103,7 +149,7 @@ async def stream_personal_task(task_id: str, request: Request) -> StreamingRespo
                 break
             result: AsyncResult = celery_app.AsyncResult(task_id)
             state = result.state
-            payload: Dict[str, Any] = {"task_id": task_id, "state": state}
+            payload: dict[str, Any] = {"task_id": task_id, "state": state}
             status = "pending"
             if state == "SUCCESS":
                 try:
@@ -131,7 +177,9 @@ async def stream_personal_task(task_id: str, request: Request) -> StreamingRespo
 
 
 @router.get("/runs")
-def list_personal_runs(limit: int = 20) -> Dict[str, Any]:
+def list_personal_runs(request: Request, limit: int = 20, x_api_key: str | None = Header(default=None)) -> dict[str, Any]:
+    token = request.query_params.get("token")
+    _enforce_api_key(token or x_api_key, read_only=True)
     from app.models import PersonalRun
 
     db = SessionLocal()
@@ -158,9 +206,10 @@ def list_personal_runs(limit: int = 20) -> Dict[str, Any]:
         db.close()
 
 
-def _record_personal_run(template_id: str, task_id: str, params: Dict[str, Any]) -> None:
-    from app.models import PersonalRun
+def _record_personal_run(template_id: str, task_id: str, params: dict[str, Any]) -> None:
     import json as _json
+
+    from app.models import PersonalRun
 
     db = SessionLocal()
     try:
@@ -176,10 +225,10 @@ def _record_personal_run(template_id: str, task_id: str, params: Dict[str, Any])
         db.close()
 
 
-def _update_personal_run(task_id: str, status: str, result_obj: Dict[str, Any] | None) -> None:
-    from app.models import PersonalRun
+def _update_personal_run(task_id: str, status: str, result_obj: dict[str, Any] | None) -> None:
     import json as _json
-    from datetime import datetime as _dt
+
+    from app.models import PersonalRun
 
     db = SessionLocal()
     try:
@@ -187,7 +236,8 @@ def _update_personal_run(task_id: str, status: str, result_obj: Dict[str, Any] |
         if rec:
             rec.status = status
             rec.result_summary_json = _json.dumps(result_obj or {})
-            rec.updated_at = _dt.utcnow()
+            from datetime import datetime
+            rec.updated_at = datetime.now(UTC)
             db.add(rec)
             db.commit()
     finally:
@@ -195,7 +245,8 @@ def _update_personal_run(task_id: str, status: str, result_obj: Dict[str, Any] |
 
 
 @router.post("/finance/import_csv")
-async def import_finance_csv(file: UploadFile = File(...)) -> Dict[str, Any]:
+async def import_finance_csv(file: UploadFile = File(...), x_api_key: str | None = Header(default=None)) -> dict[str, Any]:
+    _enforce_api_key(x_api_key)
     import csv
     from io import StringIO
 
@@ -207,8 +258,8 @@ async def import_finance_csv(file: UploadFile = File(...)) -> Dict[str, Any]:
     reader = csv.DictReader(StringIO(text))
     transactions = []
     total_spent = 0.0
-    per_category: Dict[str, float] = {}
-    def _cat(row: Dict[str, Any]) -> str:
+    per_category: dict[str, float] = {}
+    def _cat(row: dict[str, Any]) -> str:
         d = (row.get("description") or row.get("merchant") or "").lower()
         if any(k in d for k in ["uber", "lyft", "gas", "shell", "chevron"]):
             return "transport"
@@ -246,10 +297,11 @@ async def import_finance_csv(file: UploadFile = File(...)) -> Dict[str, Any]:
 
 
 @router.post("/social/oauth/store/{provider}")
-def store_social_oauth(provider: str, payload: Dict[str, Any]) -> Dict[str, Any]:
-    from app.models import SocialAuth
+def store_social_oauth(provider: str, payload: dict[str, Any]) -> dict[str, Any]:
+    from datetime import datetime
+
     from app.db import SessionLocal
-    from datetime import datetime, timezone
+    from app.models import SocialAuth
 
     db = SessionLocal()
     try:
@@ -263,7 +315,7 @@ def store_social_oauth(provider: str, payload: Dict[str, Any]) -> Dict[str, Any]
         if payload.get("expires_in"):
             try:
                 _ = int(payload["expires_in"])  # seconds
-                rec.expires_at = datetime.now(timezone.utc).replace(tzinfo=None)
+                rec.expires_at = datetime.now(UTC).replace(tzinfo=None)
             except Exception:
                 pass
         db.add(rec)
@@ -274,7 +326,8 @@ def store_social_oauth(provider: str, payload: Dict[str, Any]) -> Dict[str, Any]
 
 
 @router.delete("/social/oauth/{provider}")
-def disconnect_social_oauth(provider: str, user_id: int | None = None) -> Dict[str, Any]:
+def disconnect_social_oauth(provider: str, user_id: int | None = None, x_api_key: str | None = Header(default=None)) -> dict[str, Any]:
+    _enforce_api_key(x_api_key)
     from app.models import SocialAuth
     db = SessionLocal()
     try:
@@ -289,7 +342,9 @@ def disconnect_social_oauth(provider: str, user_id: int | None = None) -> Dict[s
 
 
 @router.get("/social/oauth/status")
-def oauth_status(user_id: int | None = None) -> Dict[str, Any]:
+def oauth_status(request: Request, user_id: int | None = None, x_api_key: str | None = Header(default=None)) -> dict[str, Any]:
+    token = request.query_params.get("token")
+    _enforce_api_key(token or x_api_key, read_only=True)
     from app.models import SocialAuth
     db = SessionLocal()
     try:
@@ -304,7 +359,7 @@ def oauth_status(user_id: int | None = None) -> Dict[str, Any]:
 
 
 @router.get("/social/oauth/twitter/start")
-def twitter_oauth_start() -> Dict[str, Any]:
+def twitter_oauth_start() -> dict[str, Any]:
     cfg = get_personal_config()
     if not (cfg.twitter_client_id and cfg.twitter_redirect_uri):
         return {"status": "disabled"}
@@ -325,7 +380,7 @@ def twitter_oauth_start() -> Dict[str, Any]:
 
 
 @router.get("/social/oauth/twitter/callback")
-def twitter_oauth_callback(code: str | None = None, state: str | None = None) -> Dict[str, Any]:
+def twitter_oauth_callback(code: str | None = None, state: str | None = None) -> dict[str, Any]:
     cfg = get_personal_config()
     if not code:
         return {"status": "error", "detail": "missing code"}
@@ -337,7 +392,7 @@ def twitter_oauth_callback(code: str | None = None, state: str | None = None) ->
 
 
 @router.get("/social/oauth/linkedin/start")
-def linkedin_oauth_start() -> Dict[str, Any]:
+def linkedin_oauth_start() -> dict[str, Any]:
     cfg = get_personal_config()
     if not (cfg.linkedin_client_id and cfg.linkedin_redirect_uri):
         return {"status": "disabled"}
@@ -355,7 +410,7 @@ def linkedin_oauth_start() -> Dict[str, Any]:
 
 
 @router.get("/social/oauth/linkedin/callback")
-def linkedin_oauth_callback(code: str | None = None, state: str | None = None) -> Dict[str, Any]:
+def linkedin_oauth_callback(code: str | None = None, state: str | None = None) -> dict[str, Any]:
     cfg = get_personal_config()
     if not code:
         return {"status": "error", "detail": "missing code"}

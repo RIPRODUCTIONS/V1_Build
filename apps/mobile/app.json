@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "Builder Mobile",
+    "slug": "builder-mobile",
+    "scheme": "builder",
+    "version": "0.1.0",
+    "sdkVersion": "51.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.builder.mobile",
+      "infoPlist": {
+        "NSAppTransportSecurity": { "NSAllowsArbitraryLoads": true }
+      }
+    },
+    "android": {
+      "package": "com.builder.mobile"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "local-dev"
+      }
+    }
+  }
+}
+
+

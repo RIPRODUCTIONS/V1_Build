@@ -49,7 +49,11 @@ class GoogleCalendarIntegration(OAuth2Integration):
         except Exception:
             return None
 
-    async def refresh(self, user_id: str, creds: OAuth2Credentials) -> OAuth2Credentials:
+    async def refresh(self, creds: OAuth2Credentials) -> OAuth2Credentials:
+        # Base method required by OAuth2Integration; not user-specific here
+        return creds
+
+    async def refresh_for_user(self, user_id: str, creds: OAuth2Credentials) -> OAuth2Credentials:
         # Basic token refresh flow
         if not self.settings.GOOGLE_CLIENT_ID or not self.settings.GOOGLE_CLIENT_SECRET or not creds.refresh_token:
             return creds
@@ -86,7 +90,7 @@ class GoogleCalendarIntegration(OAuth2Integration):
         return {"Authorization": f"Bearer {creds.access_token}"}
 
     async def _list_events(self, user_id: str, creds: OAuth2Credentials, time_min: datetime, time_max: datetime) -> list[dict] | Dict[str, Any]:
-        params = {
+        params: Dict[str, str | int | float | bool | None] = {
             "timeMin": time_min.isoformat(),
             "timeMax": time_max.isoformat(),
             "singleEvents": True,
@@ -101,7 +105,7 @@ class GoogleCalendarIntegration(OAuth2Integration):
             )
             self.metric_requests.labels("GET", "/events", str(r.status_code)).inc()
             if r.status_code == 401 and creds.refresh_token:
-                creds = await self.refresh(user_id, creds)
+                creds = await self.refresh_for_user(user_id, creds)
                 r = await client.get(
                     "https://www.googleapis.com/calendar/v3/calendars/primary/events",
                     headers=await self._auth_headers(creds),
@@ -149,7 +153,7 @@ class GoogleCalendarIntegration(OAuth2Integration):
             )
             self.metric_requests.labels("POST", "/events", str(r.status_code)).inc()
             if r.status_code == 401 and creds.refresh_token:
-                creds = await self.refresh(user_id, creds)
+                creds = await self.refresh_for_user(user_id, creds)
                 r = await client.post(
                     "https://www.googleapis.com/calendar/v3/calendars/primary/events",
                     headers=await self._auth_headers(creds),
@@ -185,7 +189,7 @@ class GoogleCalendarIntegration(OAuth2Integration):
         if isinstance(items, dict) and items.get("status") == "error":
             return items
         normalized: list[UnifiedEvent] = []
-        for it in items:
+        for it in items if isinstance(items, list) else []:
             start = it.get("start", {}).get("dateTime") or it.get("start", {}).get("date")
             ts = datetime.fromisoformat(start.replace("Z", "+00:00")) if start else now
             ned = NormalizedEventData(title=it.get("summary"), description=it.get("description"), participants=[], tags=["calendar"])
@@ -477,7 +481,7 @@ class GoogleDriveIntegration(IntegrationBase):
 
         headers = {"Authorization": f"Bearer {access_token}"}
         url = "https://www.googleapis.com/drive/v3/files"
-        params = {"pageSize": 10, "fields": "files(id,name,modifiedTime)"}
+        params: Dict[str, str | int | float | bool | None] = {"pageSize": 10, "fields": "files(id,name,modifiedTime)"}
         metric_requests = Counter(
             "gdrive_requests_total",
             "Total Google Drive API requests",
@@ -600,7 +604,7 @@ class GooglePeopleIntegration(IntegrationBase):
         except Exception:
             return {"status": "missing_creds"}
         headers = {"Authorization": f"Bearer {access_token}"}
-        params = {"personFields": "names,emailAddresses", "pageSize": page_size}
+        params: Dict[str, str | int | float | bool | None] = {"personFields": "names,emailAddresses", "pageSize": page_size}
         url = "https://people.googleapis.com/v1/people/me/connections"
         async with httpx.AsyncClient(timeout=10) as client:
             r = await client.get(url, headers=headers, params=params)

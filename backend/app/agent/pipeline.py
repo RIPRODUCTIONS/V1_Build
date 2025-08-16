@@ -70,20 +70,21 @@ def run_agent_pipeline(
     context: str,
     run_id: int | None = None,
 ) -> AgentRun:
+    run_obj: AgentRun | None
     if run_id is None:
-        run = AgentRun(owner_id=owner_id, lead_id=lead_id, status="running")
-        db.add(run)
+        run_obj = AgentRun(owner_id=owner_id, lead_id=lead_id, status="running")
+        db.add(run_obj)
         db.commit()
-        db.refresh(run)
+        db.refresh(run_obj)
     else:
-        run = db.get(AgentRun, run_id)
-        if run is None:
-            run = AgentRun(id=run_id, owner_id=owner_id, lead_id=lead_id, status="running")
-            db.add(run)
+        run_obj = db.get(AgentRun, run_id)
+        if run_obj is None:
+            run_obj = AgentRun(id=run_id, owner_id=owner_id, lead_id=lead_id, status="running")
+            db.add(run_obj)
         else:
-            run.status = "running"
+            run_obj.status = "running"
         db.commit()
-        db.refresh(run)
+        db.refresh(run_obj)
 
     # LangGraph-like steps (simplified deterministic pipeline)
     summary = research_agent(context)
@@ -119,16 +120,18 @@ def run_agent_pipeline(
         ("email_draft", draft),
         ("review", reviewed),
     ]
+    # At this point run_obj exists
+    run_id_val = run_obj.id
     for kind, content in artifacts_to_persist:
         if s3:
-            key = f"runs/{run.id}/{kind}-{uuid.uuid4().hex}.json"
+            key = f"runs/{run_id_val}/{kind}-{uuid.uuid4().hex}.json"
             data = json.dumps({"kind": kind, "content": content}).encode()
             s3.put_object(
                 Bucket=settings.s3_bucket, Key=key, Body=data, ContentType="application/json"
             )
             db.add(
                 Artifact(
-                    run_id=run.id,
+                    run_id=run_id_val,
                     kind=kind,
                     content=f"Stored in S3 at s3://{settings.s3_bucket}/{key}",
                     file_path=f"s3://{settings.s3_bucket}/{key}",
@@ -136,12 +139,13 @@ def run_agent_pipeline(
                 )
             )
         else:
-            db.add(Artifact(run_id=run.id, kind=kind, content=content, status="completed"))
+            db.add(Artifact(run_id=run_id_val, kind=kind, content=content, status="completed"))
 
-    run.status = "completed"
+    assert run_obj is not None
+    run_obj.status = "completed"
     db.commit()
-    db.refresh(run)
-    return run
+    db.refresh(run_obj)
+    return run_obj
 
 
 def research_agent(context: str) -> str:

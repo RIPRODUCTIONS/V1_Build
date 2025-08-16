@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import boto3
 from app.agent.celery_app import celery_app
@@ -56,7 +56,7 @@ def cleanup_old_artifacts(days: int = 30) -> int:
     """Delete artifacts older than `days` days. Removes S3 objects if file_path is s3://.
     Returns number of artifacts deleted.
     """
-    cutoff = datetime.utcnow() - timedelta(days=days)
+    cutoff = datetime.now(UTC) - timedelta(days=days)
     settings = get_settings()
     s3 = None
     if settings.s3_endpoint_url and settings.s3_access_key and settings.s3_secret_key:
@@ -90,11 +90,15 @@ def cleanup_old_artifacts(days: int = 30) -> int:
         db.close()
 
 
+from typing import Any
+
+
 @celery_app.task(name="system.autonomy.tick", autoretry_for=(Exception,), retry_backoff=True)
-def system_autonomy_tick() -> dict[str, any]:
+def system_autonomy_tick() -> dict[str, Any]:
+    from datetime import datetime, timedelta
+
     from app.db import SessionLocal
     from app.models import SystemAutonomy
-    from datetime import datetime, timedelta
     from app.tasks.investigation_tasks import run_investigations_autopilot
 
     db: Session = SessionLocal()
@@ -102,7 +106,7 @@ def system_autonomy_tick() -> dict[str, any]:
         cfg = db.query(SystemAutonomy).first()
         if not cfg or not cfg.enabled:
             return {"status": "disabled"}
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         if cfg.last_tick and now - cfg.last_tick < timedelta(minutes=cfg.run_interval_minutes):
             return {"status": "skipped", "next_in_minutes": cfg.run_interval_minutes}
         res = run_investigations_autopilot.apply(args=[["task_data"], {"subject": {"name": "Jane Doe"}, "task_id": None}]) if False else run_investigations_autopilot.apply(args=[{"subject": {"name": "Jane Doe"}, "task_id": None}])

@@ -1,0 +1,54 @@
+{
+  "dashboard": {
+    "title": "Builder Platform - Automation Monitoring",
+    "tags": ["builder", "automations", "celery"],
+    "time": { "from": "now-1h", "to": "now" },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Automation Success Rate",
+        "type": "stat",
+        "targets": [
+          { "expr": "rate(celery_task_total{status=\"success\"}[5m]) / rate(celery_task_total[5m]) * 100", "legendFormat": "Success Rate %" }
+        ],
+        "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 } }
+      },
+      {
+        "id": 2,
+        "title": "Task Duration (95th Percentile)",
+        "type": "timeseries",
+        "targets": [
+          { "expr": "histogram_quantile(0.95, rate(celery_task_duration_seconds_bucket[5m]))", "legendFormat": "95th percentile" },
+          { "expr": "histogram_quantile(0.50, rate(celery_task_duration_seconds_bucket[5m]))", "legendFormat": "50th percentile" }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Queue Backlog by Queue",
+        "type": "timeseries",
+        "targets": [ { "expr": "celery_queue_depth", "legendFormat": "{{queue}} queue" } ]
+      },
+      {
+        "id": 4,
+        "title": "Active Tasks by Type",
+        "type": "bargauge",
+        "targets": [ { "expr": "celery_active_tasks", "legendFormat": "{{task_name}}" } ]
+      },
+      {
+        "id": 5,
+        "title": "Failed Tasks (Last 24h)",
+        "type": "table",
+        "targets": [ { "expr": "increase(celery_task_total{status=\"failure\"}[24h])", "legendFormat": "{{task_name}}" } ]
+      },
+      {
+        "id": 6,
+        "title": "Task Throughput (per minute)",
+        "type": "timeseries",
+        "targets": [ { "expr": "rate(celery_task_total[1m]) * 60", "legendFormat": "{{task_name}}" } ]
+      }
+    ]
+  }
+}
+
+
+

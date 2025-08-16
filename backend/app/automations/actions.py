@@ -1,24 +1,20 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
-from typing import Any, Optional
 import uuid
-import re
+from datetime import datetime
 
 import httpx
 import jinja2
-
-from sqlalchemy.orm import Session
-
-from app.models import Task
 from app.automations.models import Notification
 from app.integrations.security import CredentialVault
+from app.models import Task
+from sqlalchemy.orm import Session
 
 
 class ActionExecutor:
     def __init__(self):
         self.jinja = jinja2.Environment(autoescape=True)
-        self.vault: Optional[CredentialVault] = None
+        self.vault: CredentialVault | None = None
         self._actions = {
             "create_task": self.create_task,
             "send_notification": self.send_notification,
@@ -50,23 +46,7 @@ class ActionExecutor:
         db.refresh(task)
         return {"task_id": task.id}
 
-    async def send_notification(self, params: dict, context: dict, db: Session) -> dict:
-        # Keep existing channel handling but default to in-app email log
-        channel = params.get("channel", "email")
-        message = params.get("message", "Automation notification")
-        subject = params.get("subject", None)
-        notif = Notification(
-            id=str(uuid.uuid4()),
-            user_id=str(context.get("user_id")),
-            channel=channel,
-            subject=subject,
-            message=message,
-            sent_at=datetime.utcnow(),
-            metadata={"rule_id": context.get("rule_id")},
-        )
-        db.add(notif)
-        db.commit()
-        return {"sent": True, "channel": channel, "notification_id": notif.id}
+    # Removed earlier duplicate send_notification to avoid redefinition; unified below
 
     async def aggregate_and_notify(self, params: dict, context: dict, db: Session) -> dict:
         user_id = context.get("user_id")
@@ -82,7 +62,7 @@ class ActionExecutor:
             return await self.send_sms(params, context, db)
         return await self.send_email(params, context, db)
 
-    def _get_vault(self) -> Optional[CredentialVault]:
+    def _get_vault(self) -> CredentialVault | None:
         if self.vault is None:
             try:
                 self.vault = CredentialVault.from_env()
@@ -99,7 +79,7 @@ class ActionExecutor:
             channel="email",
             subject=subject,
             message=message,
-            sent_at=datetime.utcnow(),
+            sent_at=datetime.now(timezone.utc),
             metadata={"rule_id": context.get("rule_id")},
         )
         db.add(notif)
@@ -126,7 +106,7 @@ class ActionExecutor:
             channel="slack",
             subject=None,
             message=message,
-            sent_at=datetime.utcnow(),
+            sent_at=datetime.now(timezone.utc),
             metadata={"rule_id": context.get("rule_id"), "note": "webhook_missing"},
         )
         db.add(notif)
@@ -141,7 +121,7 @@ class ActionExecutor:
             channel="sms",
             subject=None,
             message=params.get("message", ""),
-            sent_at=datetime.utcnow(),
+            sent_at=datetime.now(timezone.utc),
             metadata={"rule_id": context.get("rule_id")},
         )
         db.add(notif)

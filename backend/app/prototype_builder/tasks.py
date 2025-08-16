@@ -27,6 +27,16 @@ async def enqueue_build(name: str, prompt: str, repo_dir: str | None = None) -> 
     return run_id
 
 
+def app_run(coro):
+    import asyncio
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    return loop.run_until_complete(coro)
+
+
 @celery_app.task(name="app.prototype_builder.tasks._build_task", acks_late=True)
 def _build_task(run_id: str, name: str, prompt: str, repo_dir: str | None = None):
     logger.info("Prototype build started", extra={"run_id": run_id, "name": name})

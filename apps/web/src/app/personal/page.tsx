@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { buildAuthHeaders, sseUrl } from "@/lib/security";
 
 export default function PersonalDashboard() {
   const [summary, setSummary] = useState<any>(null);
@@ -20,23 +21,23 @@ export default function PersonalDashboard() {
   useEffect(() => {
     (async () => {
       try {
-        const s = await fetch(`/api/onboarding/status`).then((x) => x.json());
+        const s = await fetch(`/api/onboarding/status`, { headers: buildAuthHeaders() }).then((x) => x.json());
         setOnboarding(s);
       } catch {}
       try {
-        const m = await fetch(`/api/operator/metrics/summary`).then((x) => x.json());
+        const m = await fetch(`/api/operator/metrics/summary`, { headers: buildAuthHeaders() }).then((x) => x.json());
         setSummary(m);
       } catch {}
       try {
-        const c = await fetch(`/api/personal/config`).then((x) => x.json());
+        const c = await fetch(`/api/personal/config`, { headers: buildAuthHeaders() }).then((x) => x.json());
         setConfig(c);
       } catch {}
       try {
-        const s = await fetch(`/api/personal/social/oauth/status`).then((x) => x.json());
+        const s = await fetch(`/api/personal/social/oauth/status`, { headers: buildAuthHeaders() }).then((x) => x.json());
         setOauthStatus(s);
       } catch {}
       try {
-        const r = await fetch(`/api/personal/runs`).then((x) => x.json());
+        const r = await fetch(`/api/personal/runs`, { headers: buildAuthHeaders() }).then((x) => x.json());
         setRecentRuns(r.items || []);
       } catch {}
     })();
@@ -44,7 +45,7 @@ export default function PersonalDashboard() {
   useEffect(() => {
     const t = setInterval(async () => {
       try {
-        const r = await fetch(`/api/personal/runs`).then((x) => x.json());
+        const r = await fetch(`/api/personal/runs`, { headers: buildAuthHeaders() }).then((x) => x.json());
         setRecentRuns(r.items || []);
       } catch {}
     }, 5000);
@@ -53,7 +54,7 @@ export default function PersonalDashboard() {
 
   const followRun = (taskId: string, templateId?: string) => {
     try {
-      const es = new EventSource(`/api/personal/stream/${taskId}`);
+      const es = new EventSource(sseUrl(`/api/personal/stream/${taskId}`));
       es.onmessage = (evt) => {
         const data = JSON.parse(evt.data);
         const key = templateId || taskId;
@@ -72,9 +73,11 @@ export default function PersonalDashboard() {
   const runPersonalAutomation = async (templateId: string, parameters: any = {}) => {
     try {
       setRunning((r) => ({ ...r, [templateId]: true }));
+      // Immediately surface a placeholder result so E2E and users see progress
+      setLastResult((prev) => ({ ...prev, [templateId]: { status: "queued", state: "PENDING" } }));
       const r = await fetch(`/api/personal/run/${templateId}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...buildAuthHeaders() },
         body: JSON.stringify(parameters),
       }).then((x) => x.json());
       // Best-effort: record immediate ack
@@ -82,7 +85,7 @@ export default function PersonalDashboard() {
       const taskId = r?.task_id;
       if (taskId && typeof window !== "undefined") {
         try {
-          const es = new EventSource(`/api/personal/stream/${taskId}`);
+          const es = new EventSource(sseUrl(`/api/personal/stream/${taskId}`));
           es.onmessage = (evt) => {
             const data = JSON.parse(evt.data);
             setLastResult((prev) => ({ ...prev, [templateId]: data }));
@@ -97,7 +100,7 @@ export default function PersonalDashboard() {
           // Fallback to polling on SSE failure
           for (let i = 0; i < 20; i++) {
             await new Promise((res) => setTimeout(res, 1500));
-            const s = await fetch(`/api/personal/result/${taskId}`).then((x) => x.json());
+            const s = await fetch(`/api/personal/result/${taskId}`, { headers: buildAuthHeaders() }).then((x) => x.json());
             if (s?.status === "completed" || s?.status === "error") {
               setLastResult((prev) => ({ ...prev, [templateId]: s }));
               break;
@@ -149,8 +152,8 @@ export default function PersonalDashboard() {
                 <button
                   className="text-sm text-red-600 underline"
                   onClick={async () => {
-                    await fetch(`/api/personal/social/oauth/twitter`, { method: 'DELETE' });
-                    const s = await fetch(`/api/personal/social/oauth/status`).then((x) => x.json());
+                     await fetch(`/api/personal/social/oauth/twitter`, { method: 'DELETE', headers: buildAuthHeaders() });
+                     const s = await fetch(`/api/personal/social/oauth/status`, { headers: buildAuthHeaders() }).then((x) => x.json());
                     setOauthStatus(s);
                   }}
                 >Disconnect</button>
@@ -165,8 +168,8 @@ export default function PersonalDashboard() {
                 <button
                   className="text-sm text-red-600 underline"
                   onClick={async () => {
-                    await fetch(`/api/personal/social/oauth/linkedin`, { method: 'DELETE' });
-                    const s = await fetch(`/api/personal/social/oauth/status`).then((x) => x.json());
+                     await fetch(`/api/personal/social/oauth/linkedin`, { method: 'DELETE', headers: buildAuthHeaders() });
+                     const s = await fetch(`/api/personal/social/oauth/status`, { headers: buildAuthHeaders() }).then((x) => x.json());
                     setOauthStatus(s);
                   }}
                 >Disconnect</button>
@@ -243,16 +246,40 @@ export default function PersonalDashboard() {
             value={researchTopic}
             onChange={(e) => setResearchTopic(e.target.value)}
             placeholder="AI automation trends"
+            data-testid="research-topic"
           />
           <div className="mt-2">
             <button
               className="bg-blue-600 text-white px-3 py-1 rounded text-sm"
               onClick={() => runPersonalAutomation("research_assistant", { topic: researchTopic })}
               disabled={!!running["research_assistant"]}
+              data-testid="research-assistant-run"
             >Run</button>
           </div>
-          {lastResult["research_assistant"] && (
-            <pre className="mt-2 text-xs bg-gray-50 p-2 rounded overflow-x-auto">{JSON.stringify(lastResult["research_assistant"], null, 2)}</pre>
+          <pre data-testid="research-results" className="mt-2 text-xs bg-gray-50 p-2 rounded overflow-x-auto">{JSON.stringify(lastResult["research_assistant"] || { status: running["research_assistant"] ? "queued" : "idle" }, null, 2)}</pre>
+          {lastResult["research_assistant"]?.result?.research_data && Array.isArray(lastResult["research_assistant"].result.research_data) && (
+            <div className="mt-2 overflow-x-auto">
+              <table className="min-w-full text-xs border">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="px-2 py-1 text-left border">Title</th>
+                    <th className="px-2 py-1 text-left border">Authors</th>
+                    <th className="px-2 py-1 text-left border">Year</th>
+                    <th className="px-2 py-1 text-left border">Citations</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lastResult["research_assistant"].result.research_data.slice(0, 10).map((r: any, i: number) => (
+                    <tr key={i} className="odd:bg-white even:bg-gray-50">
+                      <td className="px-2 py-1 border truncate max-w-[260px]" title={r.title || ""}>{r.title || "—"}</td>
+                      <td className="px-2 py-1 border truncate max-w-[200px]" title={(r.authors || []).join?.(", ")}>{Array.isArray(r.authors) ? r.authors.join(", ") : (r.authors || "—")}</td>
+                      <td className="px-2 py-1 border">{r.year || "—"}</td>
+                      <td className="px-2 py-1 border">{r.citations ?? "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
         <div className="border rounded p-4 bg-white">
@@ -280,7 +307,31 @@ export default function PersonalDashboard() {
             >Run</button>
           </div>
           {lastResult["shopping_assistant"] && (
-            <pre className="mt-2 text-xs bg-gray-50 p-2 rounded overflow-x-auto">{JSON.stringify(lastResult["shopping_assistant"], null, 2)}</pre>
+            <>
+              <pre className="mt-2 text-xs bg-gray-50 p-2 rounded overflow-x-auto">{JSON.stringify(lastResult["shopping_assistant"], null, 2)}</pre>
+              {lastResult["shopping_assistant"].result?.products && Array.isArray(lastResult["shopping_assistant"].result.products) && (
+                <div className="mt-2 overflow-x-auto">
+                  <table className="min-w-full text-xs border">
+                    <thead className="bg-gray-100">
+                      <tr>
+                        <th className="px-2 py-1 text-left border">Name</th>
+                        <th className="px-2 py-1 text-left border">Price</th>
+                        <th className="px-2 py-1 text-left border">Rating</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {lastResult["shopping_assistant"].result.products.slice(0, 10).map((p: any, i: number) => (
+                        <tr key={i} className="odd:bg-white even:bg-gray-50">
+                          <td className="px-2 py-1 border truncate max-w-[260px]" title={p.name || ""}>{p.name || "—"}</td>
+                          <td className="px-2 py-1 border">{typeof p.price === "number" ? `$${p.price.toFixed(2)}` : (p.price || "—")}</td>
+                          <td className="px-2 py-1 border">{p.rating ?? "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
           )}
         </div>
         <div className="border rounded p-4 bg-white">
@@ -336,7 +387,7 @@ export default function PersonalDashboard() {
                 if (!f) return;
                 const body = new FormData();
                 body.append("file", f);
-                const res = await fetch(`/api/personal/finance/import_csv`, { method: "POST", body });
+                 const res = await fetch(`/api/personal/finance/import_csv`, { method: "POST", body });
                 const data = await res.json();
                 setLastResult((prev) => ({ ...prev, finance_csv: data }));
               }}
@@ -346,7 +397,29 @@ export default function PersonalDashboard() {
             <pre className="mt-2 text-xs bg-gray-50 p-2 rounded overflow-x-auto">{JSON.stringify(lastResult["personal_finance_tracker"], null, 2)}</pre>
           )}
           {lastResult["finance_csv"] && (
-            <pre className="mt-2 text-xs bg-gray-50 p-2 rounded overflow-x-auto">{JSON.stringify(lastResult["finance_csv"], null, 2)}</pre>
+            <>
+              <pre className="mt-2 text-xs bg-gray-50 p-2 rounded overflow-x-auto">{JSON.stringify(lastResult["finance_csv"], null, 2)}</pre>
+              {lastResult["finance_csv"].per_category && (
+                <div className="mt-2 overflow-x-auto">
+                  <table className="min-w-full text-xs border">
+                    <thead className="bg-gray-100">
+                      <tr>
+                        <th className="px-2 py-1 text-left border">Category</th>
+                        <th className="px-2 py-1 text-left border">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(lastResult["finance_csv"].per_category).map(([cat, total]: any, i: number) => (
+                        <tr key={i} className="odd:bg-white even:bg-gray-50">
+                          <td className="px-2 py-1 border">{cat}</td>
+                          <td className="px-2 py-1 border">{typeof total === "number" ? `$${total.toFixed(2)}` : total}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
           )}
         </div>
         {widgets.map((w) => (

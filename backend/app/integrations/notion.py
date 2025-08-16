@@ -26,7 +26,7 @@ class Notion:
         cursor = None
         async with httpx.AsyncClient(timeout=30.0) as c:
             while True:
-                body = {"start_cursor": cursor} if cursor else {}
+                body: dict[str, Any] = {"start_cursor": cursor} if cursor else {}
                 r = await c.post(f"{NOTION_API}/databases/{db_id}/query", headers=self.h, json=body)
                 r.raise_for_status()
                 data = r.json()

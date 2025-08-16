@@ -229,3 +229,13 @@ class SystemAutonomy(Base):
     run_interval_minutes: Mapped[int] = mapped_column(Integer, default=60, nullable=False)
     last_tick: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class AgentConfigKV(Base):
+    __tablename__ = "agent_config_kv"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(64), index=True)  # research|writer|reviewer|planner
+    provider: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    model: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)

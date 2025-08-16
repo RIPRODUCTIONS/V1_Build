@@ -1,0 +1,125 @@
+# Example configuration file for the modular web scraper
+# Copy this to config.yaml and modify as needed
+
+scraping:
+  # Scraping behavior settings
+  max_concurrent: 5                    # Maximum concurrent scraping operations
+  timeout: 30000                       # Request timeout in milliseconds
+  wait_for_network_idle: true          # Wait for network to be idle before parsing
+  retry_attempts: 3                    # Number of retry attempts for failed requests
+  retry_delay: 5                       # Delay between retries in seconds
+  user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+
+  # Default CSS selectors for common elements
+  selectors:
+    title: "h1, .title, .product-title"
+    price: ".price, .product-price, [data-price]"
+    description: ".description, .product-description, .summary"
+    url: "a[href], .product-link"
+    image: "img[src], .product-image img"
+
+  # Pagination selector (if applicable)
+  next_page_selector: ".next-page, .pagination-next, a[rel='next']"
+
+database:
+  # Database connection settings
+  host: "localhost"
+  port: 5432
+  database: "scraper_db"
+  username: "scraper_user"
+  password: ""                         # Set via environment variable DB_PASSWORD
+
+  # Connection pool settings
+  pool_size: 10
+  max_overflow: 20
+  pool_timeout: 30
+  pool_recycle: 3600
+
+airflow:
+  # Airflow integration settings
+  url: "http://localhost:8080"
+  dag_id: "automated_web_scraper"
+  api_version: "v1"
+  auth: ""                             # Set via environment variable AIRFLOW_AUTH
+
+  # DAG scheduling
+  schedule_interval: "0 3 * * *"       # Daily at 3:00 AM UTC
+  catchup: false
+  max_active_runs: 1
+
+logging:
+  # Logging configuration
+  level: "INFO"                        # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  output_dir: "./output"
+  log_file: "scraper.log"
+  max_file_size: "10MB"
+  backup_count: 5
+
+  # Log format
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  date_format: "%Y-%m-%d %H:%M:%S"
+
+output:
+  # Output settings
+  format: "json"                       # json, csv, xml
+  include_metadata: true               # Include scraping metadata in output
+  compress: false                      # Compress output files
+  timestamp_format: "%Y%m%d_%H%M%S"
+
+  # File naming
+  filename_template: "scraped_data_{timestamp}.{ext}"
+  backup_existing: true
+
+monitoring:
+  # Monitoring and metrics
+  enable_metrics: true
+  metrics_port: 9090
+  health_check_interval: 30
+  performance_tracking: true
+
+  # Alerting
+  enable_alerts: false
+  alert_email: ""
+  alert_webhook: ""
+
+security:
+  # Security settings
+  rate_limit: 100                      # Requests per minute
+  respect_robots_txt: true
+  follow_redirects: true
+  max_redirects: 5
+
+  # Authentication
+  use_proxy: false
+  proxy_list: []
+  rotate_user_agents: true
+
+  # Headers
+  custom_headers:
+    Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+    Accept-Language: "en-US,en;q=0.5"
+    Accept-Encoding: "gzip, deflate"
+    Connection: "keep-alive"
+
+# Example site-specific configurations
+sites:
+  example_com:
+    base_url: "https://example.com"
+    selectors:
+      title: "h1.page-title"
+      content: ".page-content"
+      author: ".author-name"
+    next_page: ".pagination .next"
+    max_pages: 10
+
+  product_site:
+    base_url: "https://products.example.com"
+    selectors:
+      title: ".product-title"
+      price: ".product-price"
+      description: ".product-description"
+      availability: ".stock-status"
+    pagination:
+      next_page: ".next-page"
+      max_pages: 50
+    rate_limit: 30  # Override global rate limit for this site

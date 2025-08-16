@@ -1,6 +1,8 @@
 # General
 .DS_Store
 .env
+.env.*
+*.env
 *.log
 
 # Python
@@ -21,6 +23,8 @@ apps/web/node_modules/
 apps/web/.next/
 apps/web/test-results/
 apps/web/.vercel/
+apps/desktop/node_modules/
+apps/mobile/node_modules/
 
 # Editors
 .vscode/
@@ -31,3 +35,8 @@ backups/
 
 # Local DB
 /dev.db
+node_modules
+*.save
+*.bak
+*.orig
+*~

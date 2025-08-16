@@ -1,25 +1,22 @@
 from __future__ import annotations
 
-from datetime import datetime
-from typing import List
-
-from fastapi import APIRouter, Depends
+from datetime import UTC, datetime
 
 from app.security.deps import require_scopes
-from app.security import deps as security_deps
 from app.security.scopes import ADMIN_TASKS
-from .models import SystemHealth, HealingResult, BuildResult
+from fastapi import APIRouter, Depends
 
+from .models import BuildResult, HealingResult, SystemHealth
 
 router = APIRouter(prefix="/selfheal", tags=["selfheal"])
 
 
 @router.get(
     "/health",
-    response_model=List[SystemHealth],
+    response_model=list[SystemHealth],
 )
 async def get_system_health(user=Depends(require_scopes({ADMIN_TASKS}))) -> list[SystemHealth]:
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
     # Stub with a couple of components; extend with real checks later
     return [
         SystemHealth(

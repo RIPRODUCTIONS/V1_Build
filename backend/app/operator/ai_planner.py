@@ -45,25 +45,6 @@ class AIPlanner:
             steps.append({"action": "navigate", "target": target_url, "description": "Navigate to target"})
         return {"steps": steps, "success_criteria": "completed", "estimated_duration": "1-3 minutes"}
 
-from __future__ import annotations
-
-from typing import Any, Dict
-
-
-class AIPlanner:
-    async def create_plan(self, task_description: str, target_url: str | None = None) -> Dict[str, Any]:
-        # Use a simple deterministic plan stub; integrate OpenAI later
-        steps: list[dict[str, Any]] = []
-        if target_url:
-            steps.append({
-                "action": "navigate",
-                "target": target_url,
-                "description": "Navigate to the website",
-            })
-        return {
-            "steps": steps,
-            "success_criteria": "Task completed",
-            "estimated_duration": "1-2 minutes",
-        }
+# Removed duplicate AIPlanner definition
 
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import os
 from datetime import datetime, timezone
-from typing import Any, Awaitable, Callable, Dict, List, Optional
+from typing import Any, Awaitable, Callable, Dict, List, Optional, cast
 
 import redis.asyncio as redis
 from app.core.config import get_settings
@@ -32,7 +32,9 @@ class SystemEventBus:
                 "ts": datetime.now(timezone.utc).isoformat(),
                 "data": data,
             }
-            return await r.xadd(STREAM_KEY, {"e": json.dumps(payload)})
+            # xadd returns bytes | int depending on client; coerce to str for typing
+            entry_id = await r.xadd(STREAM_KEY, {"e": json.dumps(payload)})
+            return str(entry_id)
         finally:
             await r.aclose()
 
@@ -60,14 +62,14 @@ class SystemEventBus:
                     for entry_id, fields in entries:
                         try:
                             # Idempotency: skip if already processed
-                            if await r.sismember(PROCESSED_SET, entry_id):
-                                await r.xack(STREAM_KEY, group, entry_id)
+                            if await cast(Awaitable[Any], r.sismember(PROCESSED_SET, entry_id)):
+                                await cast(Awaitable[Any], r.xack(STREAM_KEY, group, entry_id))
                                 continue
                             payload = json.loads(fields.get("e", "{}"))
                             et = payload.get("type")
                             for h in self._handlers.get(et, []):
                                 await h(payload)
-                            await r.sadd(PROCESSED_SET, entry_id)
+                            await cast(Awaitable[Any], r.sadd(PROCESSED_SET, entry_id))
                             # Cap processed set size
                             try:
                                 cap = get_settings().EVENT_PROCESSED_CAP
@@ -75,25 +77,28 @@ class SystemEventBus:
                                 cap = 10000
                             # Trim by scanning and removing oldest via XREVRANGE reference if needed (best-effort)
                             try:
-                                current = await r.scard(PROCESSED_SET)
+                                current = int(await cast(Awaitable[Any], r.scard(PROCESSED_SET)))
                                 if current and current > cap:
                                     # naive trim: pop arbitrary members to keep under cap
                                     for _ in range(int(current - cap)):
-                                        await r.spop(PROCESSED_SET)
+                                        await cast(Awaitable[Any], r.spop(PROCESSED_SET))
                             except Exception:
                                 pass
-                            await r.xack(STREAM_KEY, group, entry_id)
+                            await cast(Awaitable[Any], r.xack(STREAM_KEY, group, entry_id))
                         except Exception:
                             # Push to DLQ with original fields and entry id
                             try:
-                                await r.lpush(
-                                    DLQ_LIST,
-                                    json.dumps({
-                                        "id": entry_id,
-                                        "stream": STREAM_KEY,
-                                        "group": group,
-                                        "fields": {k: v for k, v in fields.items()},
-                                    }),
+                                await cast(
+                                    Awaitable[Any],
+                                    r.lpush(
+                                        DLQ_LIST,
+                                        json.dumps({
+                                            "id": entry_id,
+                                            "stream": STREAM_KEY,
+                                            "group": group,
+                                            "fields": {k: v for k, v in fields.items()},
+                                        }),
+                                    ),
                                 )
                             except Exception:
                                 pass

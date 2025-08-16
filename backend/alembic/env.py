@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import sys
 from logging.config import fileConfig
@@ -7,6 +9,7 @@ from sqlalchemy import engine_from_config, pool
 
 # Ensure app package import
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/..")
+from app.core.config import get_settings
 from app.db import Base  # type: ignore
 
 # this is the Alembic Config object, which provides
@@ -23,6 +26,7 @@ if config.config_file_name is not None:
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
 target_metadata = Base.metadata
+settings = get_settings()
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -42,7 +46,9 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = config.get_main_option("sqlalchemy.url")
+    url = settings.DATABASE_URL if hasattr(settings, 'DATABASE_URL') else context.get_x_argument(as_dictionary=True).get('url')
+    if not url:
+        url = 'sqlite:///./dev.db'
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -61,12 +67,12 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    config_section = config.get_section(config.config_ini_section, {})
-    url = os.getenv("DATABASE_URL", config.get_main_option("sqlalchemy.url"))
+    cfg = config.get_section(config.config_ini_section) or {}
+    url = getattr(settings, 'DATABASE_URL', None) or cfg.get('sqlalchemy.url')
     if url:
-        config_section["sqlalchemy.url"] = url
+        cfg['sqlalchemy.url'] = url
     connectable = engine_from_config(
-        config_section,
+        cfg,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )

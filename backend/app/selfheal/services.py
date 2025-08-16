@@ -1,16 +1,20 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime
+import json
 import os
-from typing import Iterable, List
+import urllib.request
+from collections.abc import Collection, Iterable
+from datetime import datetime
 
-from .models import SystemHealth, HealingResult, BuildResult
+from app.core.config import get_settings
+
+from .models import BuildResult, HealingResult, SystemHealth
 
 
 class HealthMonitor:
     async def check_all_components(self) -> list[SystemHealth]:
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         results: list[SystemHealth] = []
         # API placeholder metrics
         results.append(
@@ -98,7 +102,6 @@ class LearningEngine:
     async def learn_from_healing_attempts(self, issues: Iterable[SystemHealth]) -> None:
         # Persist telemetry and outcomes for future optimization
         _ = list(issues)
-        return None
 
 
 class ErrorAnalyzer:
@@ -160,12 +163,50 @@ class SelfHealingCore:
                     if not result.success:
                         await self.self_build_replacement(issue)
                 await self.learning_engine.learn_from_healing_attempts(critical)
+                # Alert when issues detected
+                try:
+                    if critical:
+                        s = get_settings()
+                        payload = {
+                            "kind": "self_heal_alert",
+                            "issues": [
+                                {"component": h.component, "score": h.health_score, "issues": h.issues}
+                                for h in critical
+                            ],
+                        }
+                        # Generic webhook
+                        if s.alert_webhook_url:
+                            req = urllib.request.Request(s.alert_webhook_url, method="POST")
+                            req.add_header("Content-Type", "application/json")
+                            urllib.request.urlopen(req, json.dumps(payload).encode(), timeout=5).read()
+                        # Slack webhook
+                        if s.slack_webhook_url:
+                            issues_list: Collection[dict] = payload.get("issues", [])  # type: ignore[assignment]
+                            text = "Self-heal issues: " + ", ".join(f"{i['component']}({i['score']})" for i in issues_list) or "none"
+                            req = urllib.request.Request(s.slack_webhook_url, method="POST")
+                            req.add_header("Content-Type", "application/json")
+                            urllib.request.urlopen(req, json.dumps({"text": text}).encode(), timeout=5).read()
+                        # Email (best-effort, plain SMTP)
+                        if s.email_smtp_host and s.email_from and s.email_to and s.email_username and s.email_password:
+                            import smtplib
+                            from email.message import EmailMessage
+                            msg = EmailMessage()
+                            msg["Subject"] = "Self-heal alert"
+                            msg["From"] = s.email_from
+                            msg["To"] = s.email_to
+                            msg.set_content(json.dumps(payload))
+                            with smtplib.SMTP(s.email_smtp_host, int(s.email_smtp_port or 587), timeout=5) as smtp:
+                                smtp.starttls()
+                                smtp.login(s.email_username, s.email_password)
+                                smtp.send_message(msg)
+                except Exception:
+                    pass
             except Exception:
                 # Best-effort: keep loop alive
                 pass
             try:
                 await asyncio.wait_for(stop_event.wait(), timeout=sleep_seconds)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 continue
 
 

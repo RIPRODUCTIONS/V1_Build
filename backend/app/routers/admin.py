@@ -3,7 +3,8 @@ from __future__ import annotations
 import logging
 import time
 from collections import defaultdict, deque
-from datetime import UTC, datetime
+from datetime import datetime, timezone
+import os
 from typing import Annotated
 
 from app.core.config import get_settings
@@ -43,7 +44,7 @@ def require_rate_limit(request: Request) -> None:
         _logger.info(
             "cleanup_request",
             extra={
-                "ts": datetime.now(UTC).isoformat(),
+                "ts": datetime.now(timezone.utc).isoformat(),
                 "ip": ip,
                 "route": str(request.url.path),
                 "auth": "rate_limited",
@@ -64,7 +65,7 @@ def require_ci(
         _logger.info(
             "cleanup_request",
             extra={
-                "ts": datetime.now(UTC).isoformat(),
+                "ts": datetime.now(timezone.utc).isoformat(),
                 "ip": ip,
                 "route": str(request.url.path),
                 "auth": "ci_env_false",
@@ -75,7 +76,7 @@ def require_ci(
         _logger.info(
             "cleanup_request",
             extra={
-                "ts": datetime.now(UTC).isoformat(),
+                "ts": datetime.now(timezone.utc).isoformat(),
                 "ip": ip,
                 "route": str(request.url.path),
                 "auth": "invalid_token",
@@ -85,7 +86,7 @@ def require_ci(
     _logger.info(
         "cleanup_request",
         extra={
-            "ts": datetime.now(UTC).isoformat(),
+                "ts": datetime.now(timezone.utc).isoformat(),
             "ip": ip,
             "route": str(request.url.path),
             "auth": "success",
@@ -303,7 +304,7 @@ def system_event_pending(_: Annotated[None, Depends(require_ci)] = None):
 
 
 class DlqReplayIn(BaseModel):
-    count: int = 1
+    count: int | None = 1
 
 
 @router.post("/events/system/dlq/replay")
@@ -313,8 +314,9 @@ def system_event_dlq_replay(payload: DlqReplayIn, _: Annotated[None, Depends(req
     r = redis.from_url(settings.REDIS_URL)
     try:
         key = os.getenv("SYSTEM_EVENT_DLQ", "dlq:system_events")
-        replayed = 0
-        for _ in range(max(1, int(payload.count))):
+        replayed: int = 0
+        count_int: int = max(1, int(payload.count or 1))
+        for __i in range(count_int):
             raw = r.rpop(key)
             if not raw:
                 break
@@ -429,7 +431,7 @@ def admin_templates_roi(_: Annotated[None, Depends(require_ci)] = None):
             .all()
         )
         out = []
-        cutoff = datetime.now(UTC).replace(tzinfo=None)  # naive to match DB default
+        cutoff = datetime.now(timezone.utc).replace(tzinfo=None)  # naive to match DB default
         from datetime import timedelta
         cutoff = cutoff - timedelta(hours=24)
         for r in rows:

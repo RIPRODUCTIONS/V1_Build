@@ -14,6 +14,8 @@ def resolve_secret(key: str, idx: dict[str, dict[str, str]], s: Settings) -> str
         return os.getenv(ref or key)
     if provider == "1password":
         try:
+            if not getattr(s, "OP_CLI", None) or not isinstance(s.OP_CLI, str):
+                return None
             return subprocess.check_output([s.OP_CLI, "read", ref], text=True).strip()
         except Exception:
             return None

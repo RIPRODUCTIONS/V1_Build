@@ -1,0 +1,38 @@
+{
+  "title": "Builder System Overview",
+  "timezone": "browser",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "API Requests/sec",
+      "targets": [
+        {"expr": "sum(rate(http_requests_total[1m]))"}
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "API 5xx/min",
+      "targets": [
+        {"expr": "sum(rate(http_requests_total{status=~\\"5..\\"}[1m]))"}
+      ]
+    },
+    {
+      "type": "gauge",
+      "title": "Celery Queue Depth (webexec)",
+      "targets": [
+        {"expr": "builder_queue_depth{queue=\"webexec\"}"}
+      ]
+    }
+    ,{
+      "type": "stat",
+      "title": "LLM p95 latency (s)",
+      "targets": [
+        {"expr": "histogram_quantile(0.95, sum by (le) (rate(llm_request_duration_seconds_bucket[5m])))"}
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "editable": true,
+  "version": 1
+}
+

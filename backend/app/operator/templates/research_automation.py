@@ -45,7 +45,10 @@ class PersonalResearchAssistant:
         }
 
     async def _search_google_scholar(self, topic: str) -> List[Dict[str, Any]]:
-        from playwright.async_api import async_playwright
+        try:
+            from playwright.async_api import async_playwright
+        except Exception:
+            return []
 
         executor = MVPWebExecutor()
         plan = {
@@ -83,7 +86,10 @@ class PersonalResearchAssistant:
             await pw.stop()
 
     async def _search_reddit_discussions(self, topic: str) -> List[Dict[str, Any]]:
-        from playwright.async_api import async_playwright
+        try:
+            from playwright.async_api import async_playwright
+        except Exception:
+            return []
 
         executor = MVPWebExecutor()
         plan = {
