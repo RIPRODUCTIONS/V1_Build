@@ -21,7 +21,14 @@ if curl -s http://localhost:5678 > /dev/null; then
     echo "✅ n8n is running on http://localhost:5678"
 else
     echo "⚠️  n8n is not running. Starting it now..."
-    docker-compose up -d
+    if command -v docker-compose &> /dev/null; then
+        docker-compose up -d
+    elif command -v docker &> /dev/null && docker compose version &> /dev/null; then
+        docker compose up -d
+    else
+        echo "❌ Docker or Docker Compose not found. Please install Docker to run n8n."
+        echo "   You can still use the workflows by importing them manually."
+    fi
     echo "⏳ Waiting for n8n to start..."
     sleep 10
 fi

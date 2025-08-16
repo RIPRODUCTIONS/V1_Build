@@ -1,9 +1,36 @@
 {
+  "name": "n8n-automation-workflows",
+  "version": "1.0.0",
+  "description": "Collection of n8n automation workflows for business processes",
+  "main": "index.js",
+  "scripts": {
+    "start": "echo 'Starting n8n automation environment...' && npm run setup",
+    "setup": "chmod +x setup.sh && ./setup.sh",
+    "install-python-deps": "pip3 install -r requirements.txt",
+    "test-python": "python3 gpt2_test.py",
+    "test-chat": "python3 mini_chat.py",
+    "docker-up": "docker compose up -d",
+    "docker-down": "docker compose down",
+    "docker-logs": "docker compose logs -f"
+  },
+  "keywords": [
+    "n8n",
+    "automation",
+    "workflow",
+    "business-process",
+    "integration"
+  ],
+  "author": "RIPRODUCTIONS",
+  "license": "MIT",
   "dependencies": {
     "@octokit/rest": "^22.0.0",
     "puppeteer": "^24.16.0"
   },
   "devDependencies": {
     "webpack-bundle-analyzer": "^4.10.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RIPRODUCTIONS/V1_Build.git"
   }
 }
