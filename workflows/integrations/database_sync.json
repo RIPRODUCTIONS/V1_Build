@@ -76,7 +76,7 @@
     },
     {
       "parameters": {
-        "toEmail": "admin@company.com",
+        "toEmail": "={{ $env.ADMIN_EMAIL || 'admin@company.com' }}",
         "subject": "Database Sync Report",
         "text": "Database synchronization completed:\n\nRecords processed: {{ $json.length }}\nSync time: {{ $now }}\n\nStatus: Success",
         "options": {}
@@ -111,7 +111,7 @@
             {
               "id": "high-customer-count",
               "leftValue": "={{ $json[0].count }}",
-              "rightValue": 100,
+              "rightValue": "={{ $env.CUSTOMER_COUNT_THRESHOLD || 100 }}",
               "operator": {
                 "type": "number",
                 "operation": "gt"
@@ -130,7 +130,7 @@
     },
     {
       "parameters": {
-        "toEmail": "management@company.com",
+        "toEmail": "={{ $env.MANAGEMENT_EMAIL || 'management@company.com' }}",
         "subject": "High Customer Registration Alert",
         "text": "High customer registration detected!\n\nNew customers today: {{ $json[0].count }}\n\nThis is above the normal threshold. Please review.",
         "options": {}

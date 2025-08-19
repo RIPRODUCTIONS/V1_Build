@@ -23,8 +23,8 @@
         "url": "https://api.openweathermap.org/data/2.5/weather",
         "options": {
           "qs": {
-            "q": "New York",
-            "appid": "YOUR_API_KEY",
+            "q": "={{ $env.WEATHER_LOCATION || 'New York' }}",
+            "appid": "={{ $env.OPENWEATHER_API_KEY }}",
             "units": "metric"
           }
         }
@@ -47,7 +47,7 @@
             {
               "id": "temperature-above-30",
               "leftValue": "={{ $json.main.temp }}",
-              "rightValue": 30,
+              "rightValue": "={{ $env.HIGH_TEMP_THRESHOLD || 30 }}",
               "operator": {
                 "type": "number",
                 "operation": "gt"
@@ -76,7 +76,7 @@
             {
               "id": "temperature-below-0",
               "leftValue": "={{ $json.main.temp }}",
-              "rightValue": 0,
+              "rightValue": "={{ $env.LOW_TEMP_THRESHOLD || 0 }}",
               "operator": {
                 "type": "number",
                 "operation": "lt"
@@ -95,7 +95,7 @@
     },
     {
       "parameters": {
-        "toEmail": "alerts@company.com",
+        "toEmail": "={{ $env.ALERTS_EMAIL || 'alerts@company.com' }}",
         "subject": "High Temperature Alert",
         "text": "High temperature alert!\n\nLocation: {{ $json.name }}\nTemperature: {{ $json.main.temp }}°C\nFeels like: {{ $json.main.feels_like }}°C\nHumidity: {{ $json.main.humidity }}%\n\nPlease take necessary precautions.",
         "options": {}
@@ -108,7 +108,7 @@
     },
     {
       "parameters": {
-        "toEmail": "alerts@company.com",
+        "toEmail": "={{ $env.ALERTS_EMAIL || 'alerts@company.com' }}",
         "subject": "Low Temperature Alert",
         "text": "Low temperature alert!\n\nLocation: {{ $json.name }}\nTemperature: {{ $json.main.temp }}°C\nFeels like: {{ $json.main.feels_like }}°C\nHumidity: {{ $json.main.humidity }}%\n\nPlease take necessary precautions.",
         "options": {}
@@ -121,7 +121,7 @@
     },
     {
       "parameters": {
-        "toEmail": "weather@company.com",
+        "toEmail": "={{ $env.WEATHER_EMAIL || 'weather@company.com' }}",
         "subject": "Daily Weather Report",
         "text": "Daily weather report:\n\nLocation: {{ $json.name }}\nTemperature: {{ $json.main.temp }}°C\nFeels like: {{ $json.main.feels_like }}°C\nHumidity: {{ $json.main.humidity }}%\nWeather: {{ $json.weather[0].description }}\n\nHave a great day!",
         "options": {}
@@ -131,6 +131,19 @@
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 1,
       "position": [900, 600]
+    },
+    {
+      "parameters": {
+        "toEmail": "={{ $env.ADMIN_EMAIL || 'admin@company.com' }}",
+        "subject": "Weather API Error",
+        "text": "Weather API request failed:\n\nError: {{ $json.error }}\nTime: {{ $now }}\n\nPlease check API key and connection.",
+        "options": {}
+      },
+      "id": "send-error-notification",
+      "name": "Send Error Notification",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [900, 800]
     }
   ],
   "connections": {
