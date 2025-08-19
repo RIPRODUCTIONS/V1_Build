@@ -6,11 +6,14 @@
         "pollTimes": {
           "item": [
             {
-              "mode": "everyMinute"
+              "mode": "everyFiveMinutes"
             }
           ]
         },
-        "options": {}
+        "options": {
+          "intervalSize": 300000,
+          "intervalSizeUnit": "milliseconds"
+        }
       },
       "id": "email-trigger",
       "name": "Email Trigger",

@@ -1,16 +1,30 @@
 {
-  "name": "my-project",
+  "name": "n8n-automation-project",
   "version": "1.0.0",
+  "description": "n8n automation workflows and utilities",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "dev": "nodemon index.js"
   },
-  "keywords": [],
+  "keywords": ["n8n", "automation", "workflows"],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
   "dependencies": {
     "@octokit/rest": "^22.0.0",
-    "@supabase/supabase-js": "^2.53.0"
+    "@supabase/supabase-js": "^2.53.0",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "eslint": "^8.55.0",
+    "prettier": "^3.1.0",
+    "nodemon": "^3.0.2"
   }
 }
