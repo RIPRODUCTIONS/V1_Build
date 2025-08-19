@@ -2,6 +2,31 @@
 
 This repository contains a collection of n8n automation workflows designed to streamline various business processes. Each workflow is organized by category and can be imported directly into your n8n instance.
 
+## 🔒 Security Considerations
+
+**🚨 IMPORTANT SECURITY NOTICE:**
+
+Before using these workflows, please review the security guidelines in `SECURITY.md`. This repository has been updated to address several critical security vulnerabilities:
+
+### Critical Security Actions Required:
+1. **Change default password** in `.env` file immediately
+2. **Configure API keys** using environment variables (see `.env.example`)
+3. **Review file permissions** - setup script now uses secure permissions
+4. **Use secure workflows** - new sanitized versions available
+
+### Security Features Implemented:
+- Input sanitization for email content
+- Environment variable-based credential management
+- Secure file permissions
+- Network security improvements
+- Comprehensive security documentation
+
+**⚠️ Never commit real credentials to version control!**
+
+For detailed security guidelines, see [SECURITY.md](SECURITY.md)
+
+---
+
 ## 🚀 Getting Started
 
 ### Prerequisites

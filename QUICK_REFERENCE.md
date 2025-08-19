@@ -183,13 +183,36 @@ if (cache.has(key)) {
 
 ## 🔒 Security Checklist
 
-- [ ] Store credentials securely
-- [ ] Use environment variables
-- [ ] Implement proper error handling
-- [ ] Monitor access logs
-- [ ] Regular security updates
-- [ ] Data encryption
-- [ ] Access control
+- [x] Store credentials securely using environment variables
+- [x] Use strong passwords and rotate them regularly
+- [x] Implement proper input validation and sanitization
+- [x] Monitor access logs for suspicious activity
+- [x] Keep dependencies and Docker images updated
+- [x] Enable data encryption in transit (HTTPS)
+- [x] Configure proper access control and file permissions
+- [x] Use secure network configurations
+- [ ] Regular security audits and vulnerability assessments
+- [ ] Incident response procedures documented and tested
+
+### Secure Credential Usage:
+```javascript
+// ❌ NEVER do this - hardcoded API key
+"appid": "abc123yourapikey"
+
+// ✅ ALWAYS do this - environment variable
+"appid": "={{$env.OPENWEATHER_API_KEY}}"
+```
+
+### Input Sanitization Example:
+```javascript
+// Always sanitize user input to prevent injection
+const sanitizeText = (text) => {
+  if (!text) return '';
+  return text.toString()
+    .replace(/[<>\"'&]/g, '') // Remove dangerous chars
+    .substring(0, 1000); // Limit length
+};
+```
 
 ## 📞 Support Resources
 

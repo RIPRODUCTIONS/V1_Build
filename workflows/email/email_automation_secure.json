@@ -1,0 +1,218 @@
+{
+  "name": "Email Processing Automation - Secure",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "folder": "INBOX",
+        "amount": 10,
+        "options": {}
+      },
+      "id": "email-read",
+      "name": "Read Emails",
+      "type": "n8n-nodes-base.emailReadImap",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Input sanitization to prevent injection attacks\nconst sanitizeText = (text) => {\n  if (!text) return '';\n  // Remove potentially dangerous characters and limit length\n  return text.toString()\n    .replace(/[<>\"'&]/g, '') // Remove HTML/script injection chars\n    .replace(/\\n{3,}/g, '\\n\\n') // Limit excessive newlines\n    .substring(0, 1000); // Limit length\n};\n\nconst sanitizeEmail = (email) => {\n  if (!email) return '';\n  // Basic email validation and sanitization\n  const emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;\n  return emailRegex.test(email) ? email.substring(0, 100) : 'unknown@domain.com';\n};\n\n// Sanitize all input data\nconst sanitizedData = {\n  from: sanitizeEmail($json.from),\n  subject: sanitizeText($json.subject),\n  text: sanitizeText($json.text),\n  originalFrom: $json.from, // Keep original for logging\n  originalSubject: $json.subject\n};\n\nreturn sanitizedData;"
+      },
+      "id": "input-sanitization",
+      "name": "Input Sanitization",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "subject-contains-urgent",
+              "leftValue": "={{ $json.subject }}",
+              "rightValue": "urgent",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "urgent-filter",
+      "name": "Urgent Email Filter",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "toEmail": "={{$env.ADMIN_EMAIL || 'admin@company.com'}}",
+        "subject": "URGENT: {{ $json.subject }}",
+        "text": "An urgent email was received:\n\nFrom: {{ $json.from }}\nSubject: {{ $json.subject }}\nBody Preview: {{ $json.text }}\n\nPlease respond immediately.\n\n--- Security Notice ---\nThis email content has been sanitized for security.",
+        "options": {}
+      },
+      "id": "send-urgent-notification",
+      "name": "Send Urgent Notification",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [1120, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "subject-contains-invoice",
+              "leftValue": "={{ $json.subject }}",
+              "rightValue": "invoice",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "invoice-filter",
+      "name": "Invoice Email Filter",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [900, 400]
+    },
+    {
+      "parameters": {
+        "toEmail": "={{$env.FINANCE_EMAIL || 'finance@company.com'}}",
+        "subject": "Invoice Received: {{ $json.subject }}",
+        "text": "An invoice email was received:\n\nFrom: {{ $json.from }}\nSubject: {{ $json.subject }}\n\nPlease process this invoice.\n\n--- Security Notice ---\nThis email content has been sanitized for security.",
+        "options": {}
+      },
+      "id": "send-invoice-notification",
+      "name": "Send Invoice Notification",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [1120, 400]
+    },
+    {
+      "parameters": {
+        "toEmail": "={{$env.ARCHIVE_EMAIL || 'archive@company.com'}}",
+        "subject": "Email Archived: {{ $json.subject }}",
+        "text": "Email archived:\n\nFrom: {{ $json.from }}\nSubject: {{ $json.subject }}\n\nThis email has been automatically archived.",
+        "options": {}
+      },
+      "id": "archive-email",
+      "name": "Archive Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [1120, 600]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Emails": {
+      "main": [
+        [
+          {
+            "node": "Input Sanitization",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input Sanitization": {
+      "main": [
+        [
+          {
+            "node": "Urgent Email Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Urgent Email Filter": {
+      "main": [
+        [
+          {
+            "node": "Send Urgent Notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Invoice Email Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Invoice Email Filter": {
+      "main": [
+        [
+          {
+            "node": "Send Invoice Notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Archive Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1"
+}
