@@ -24,7 +24,7 @@
         "options": {
           "qs": {
             "q": "New York",
-            "appid": "YOUR_API_KEY",
+            "appid": "={{$env.OPENWEATHER_API_KEY}}",
             "units": "metric"
           }
         }

@@ -25,7 +25,7 @@
         "options": {
           "qs": {
             "q": "New York",
-            "appid": "YOUR_API_KEY",
+            "appid": "={{$env.OPENWEATHER_API_KEY}}",
             "units": "metric"
           }
         }
@@ -38,12 +38,15 @@
     },
     {
       "parameters": {
-        "url": "https://api.github.com/repos/OWNER/REPO/issues",
+        "url": "https://api.github.com/repos/={{$env.GITHUB_REPO_OWNER}}/={{$env.GITHUB_REPO_NAME}}/issues",
         "options": {
           "qs": {
             "state": "open",
             "sort": "created",
             "direction": "desc"
+          },
+          "headers": {
+            "Authorization": "token ={{$env.GITHUB_TOKEN}}"
           }
         }
       },
