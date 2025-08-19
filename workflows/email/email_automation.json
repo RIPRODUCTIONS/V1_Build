@@ -49,7 +49,7 @@
     },
     {
       "parameters": {
-        "toEmail": "admin@company.com",
+        "toEmail": "={{ $env.ADMIN_EMAIL || 'admin@company.com' }}",
         "subject": "URGENT: {{ $json.subject }}",
         "text": "An urgent email was received:\n\nFrom: {{ $json.from }}\nSubject: {{ $json.subject }}\nBody: {{ $json.text }}\n\nPlease respond immediately.",
         "options": {}
@@ -91,7 +91,7 @@
     },
     {
       "parameters": {
-        "toEmail": "finance@company.com",
+        "toEmail": "={{ $env.FINANCE_EMAIL || 'finance@company.com' }}",
         "subject": "Invoice Received: {{ $json.subject }}",
         "text": "An invoice email was received:\n\nFrom: {{ $json.from }}\nSubject: {{ $json.subject }}\n\nPlease process this invoice.",
         "options": {}
@@ -104,7 +104,7 @@
     },
     {
       "parameters": {
-        "toEmail": "archive@company.com",
+        "toEmail": "={{ $env.ARCHIVE_EMAIL || 'archive@company.com' }}",
         "subject": "Email Archived: {{ $json.subject }}",
         "text": "Email archived:\n\nFrom: {{ $json.from }}\nSubject: {{ $json.subject }}\n\nThis email has been automatically archived.",
         "options": {}

@@ -1,0 +1,71 @@
+# Environment files with sensitive data
+.env.local
+.env.production
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+n8n_env/
+env/
+ENV/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# n8n data
+.n8n/
+
+# Docker
+docker-compose.override.yml
+
+# Logs
+logs/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Backup files
+*.bak
+*.backup
+
+# Archives
+*.zip
+*.tar.gz
+*.rar
+
+# Sensitive data files
+*_credentials.json
+*_secrets.json
+api_keys.txt
+
+# Test files
+test_output/
+coverage/
+
+# Build artifacts
+dist/
+build/
+
+# Package manager locks (uncomment if you want to ignore)
+# package-lock.json
+# yarn.lock

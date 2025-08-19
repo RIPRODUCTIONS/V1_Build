@@ -24,8 +24,8 @@
         "url": "https://api.openweathermap.org/data/2.5/weather",
         "options": {
           "qs": {
-            "q": "New York",
-            "appid": "YOUR_API_KEY",
+            "q": "={{ $env.WEATHER_LOCATION || 'New York' }}",
+            "appid": "={{ $env.OPENWEATHER_API_KEY }}",
             "units": "metric"
           }
         }
@@ -38,7 +38,7 @@
     },
     {
       "parameters": {
-        "url": "https://api.github.com/repos/OWNER/REPO/issues",
+        "url": "https://api.github.com/repos/={{ $env.GITHUB_OWNER || 'OWNER' }}/={{ $env.GITHUB_REPO || 'REPO' }}/issues",
         "options": {
           "qs": {
             "state": "open",
@@ -125,7 +125,7 @@
     },
     {
       "parameters": {
-        "url": "https://api.github.com/repos/OWNER/REPO/pulls",
+        "url": "https://api.github.com/repos/={{ $env.GITHUB_OWNER || 'OWNER' }}/={{ $env.GITHUB_REPO || 'REPO' }}/pulls",
         "options": {
           "qs": {
             "state": "open",

@@ -82,7 +82,7 @@
             {
               "id": "amount-greater-than-1000",
               "leftValue": "={{ $json.amount }}",
-              "rightValue": 1000,
+              "rightValue": "={{ $env.HIGH_VALUE_THRESHOLD || 1000 }}",
               "operator": {
                 "type": "number",
                 "operation": "gt"
@@ -130,7 +130,7 @@
     },
     {
       "parameters": {
-        "toEmail": "finance@company.com",
+        "toEmail": "={{ $env.FINANCE_EMAIL || 'finance@company.com' }}",
         "subject": "High Value Transaction Alert",
         "text": "High value transaction detected:\n\nTransaction ID: {{ $json.id }}\nAmount: ${{ $json.amount }}\nCustomer: {{ $json.customer }}\nDate: {{ $json.date }}\n\nPlease review this transaction.",
         "options": {}
@@ -143,7 +143,7 @@
     },
     {
       "parameters": {
-        "toEmail": "operations@company.com",
+        "toEmail": "={{ $env.OPERATIONS_EMAIL || 'operations@company.com' }}",
         "subject": "Pending Transaction Alert",
         "text": "Pending transaction detected:\n\nTransaction ID: {{ $json.id }}\nAmount: ${{ $json.amount }}\nCustomer: {{ $json.customer }}\nDate: {{ $json.date }}\n\nPlease process this transaction.",
         "options": {}
