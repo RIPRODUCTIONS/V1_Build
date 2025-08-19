@@ -1,0 +1,22 @@
+# Docker Compose override for development
+# This file is automatically loaded by docker-compose for development settings
+
+version: "3.8"
+
+services:
+  n8n:
+    environment:
+      - NODE_ENV=development
+      - N8N_LOG_LEVEL=debug
+      - N8N_DISABLE_UI=false
+    ports:
+      - "5678:5678"  # Direct access for development
+    volumes:
+      - ./workflows:/workflows:ro  # Mount workflows as read-only
+      - ./data:/data:rw           # Mount data directory
+    command: n8n start --tunnel
+    
+  # Remove nginx for development (direct access to n8n)
+  nginx:
+    profiles:
+      - production  # Only start nginx in production profile

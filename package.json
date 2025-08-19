@@ -1,8 +1,29 @@
 {
-  "dependencies": {
-    "@octokit/rest": "^22.0.0",
-    "puppeteer": "^24.16.0"
+  "name": "n8n-automation-infrastructure",
+  "version": "1.0.0",
+  "description": "n8n automation workflows and infrastructure",
+  "private": true,
+  "scripts": {
+    "start": "docker-compose up -d",
+    "stop": "docker-compose down",
+    "logs": "docker-compose logs -f",
+    "backup": "./backup.sh",
+    "setup": "./setup.sh",
+    "lint": "echo 'Running lint checks...' && cd my-project && npm run lint",
+    "format": "cd my-project && npm run format",
+    "test": "cd my-project && npm test",
+    "clean": "docker-compose down -v && docker system prune -f"
   },
+  "keywords": ["n8n", "automation", "workflows", "infrastructure"],
+  "author": "",
+  "license": "ISC",
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "workspaces": [
+    "my-project"
+  ],
   "devDependencies": {
     "webpack-bundle-analyzer": "^4.10.2"
   }

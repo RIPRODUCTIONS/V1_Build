@@ -6,11 +6,14 @@
         "pollTimes": {
           "item": [
             {
-              "mode": "every10Minutes"
+              "mode": "everyHour"
             }
           ]
         },
-        "options": {}
+        "options": {
+          "intervalSize": 3600000,
+          "intervalSizeUnit": "milliseconds"
+        }
       },
       "id": "sync-trigger",
       "name": "Sync Trigger",
